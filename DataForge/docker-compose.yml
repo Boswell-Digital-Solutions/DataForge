@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: dataforge-postgres
+    environment:
+      POSTGRES_DB: dataforge
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # DataForge API
+  dataforge:
+    build: .
+    container_name: dataforge-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/dataforge
+
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-this-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+
+      # Embedding Provider (configure one)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+      # COHERE_API_KEY: ${COHERE_API_KEY:-}
+
+      # Server
+      HOST: 0.0.0.0
+      PORT: 8001
+
+      # CORS
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost:8080
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        echo 'Running migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting DataForge...' &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+      "
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: dataforge-network
