@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models import models, schemas
@@ -87,8 +87,8 @@ async def create_document(
 def list_documents(
     skip: int = 0,
     limit: int = 100,
-    domain_id: str = None,
-    is_published: bool = None,
+    domain_id: Optional[str] = None,
+    is_published: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin_user)
 ):

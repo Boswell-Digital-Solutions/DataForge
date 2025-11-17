@@ -17,8 +17,10 @@ CHUNK_OVERLAP = 50
 # ============================================
 # Embedding Configuration
 # ============================================
-EMBEDDING_MODEL = "text-embedding-ada-002"
-EMBEDDING_DIMENSION = 1536
+# Note: Anthropic (Claude) doesn't provide embeddings API
+# Use Voyage AI (owned by Anthropic) for embeddings
+EMBEDDING_MODEL = "voyage-large-2"  # Default to Voyage AI
+EMBEDDING_DIMENSION = 1536  # voyage-large-2 = 1536, voyage-2 = 1024
 MAX_EMBEDDING_INPUT_LENGTH = 8000  # Max chars for embedding API
 
 # ============================================
@@ -56,8 +58,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440
 # ============================================
 # API Keys
 # ============================================
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")  # For future use (Claude API)
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")  # Recommended for embeddings (Anthropic-owned)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
 # ============================================
@@ -89,8 +92,11 @@ def validate_config():
     if not SECRET_KEY or SECRET_KEY == "your-secret-key-here-change-this-in-production":
         errors.append("SECRET_KEY must be set to a secure value")
 
-    if not OPENAI_API_KEY and not VOYAGE_API_KEY and not COHERE_API_KEY:
-        errors.append("At least one embedding provider API key must be set (OPENAI_API_KEY, VOYAGE_API_KEY, or COHERE_API_KEY)")
+    if not VOYAGE_API_KEY and not OPENAI_API_KEY and not COHERE_API_KEY:
+        errors.append(
+            "At least one embedding provider API key must be set "
+            "(VOYAGE_API_KEY, OPENAI_API_KEY, or COHERE_API_KEY)"
+        )
 
     if not DATABASE_URL:
         errors.append("DATABASE_URL must be set")
@@ -102,12 +108,13 @@ def validate_config():
 def get_embedding_provider():
     """
     Determine which embedding provider to use based on available API keys.
+    Priority: Voyage AI (Anthropic-owned) > OpenAI > Cohere
     Returns: tuple of (provider_name, api_key)
     """
-    if OPENAI_API_KEY:
+    if VOYAGE_API_KEY:
+        return ("voyage-ai", VOYAGE_API_KEY)
+    elif OPENAI_API_KEY:
         return ("openai", OPENAI_API_KEY)
-    elif VOYAGE_API_KEY:
-        return ("voyage", VOYAGE_API_KEY)
     elif COHERE_API_KEY:
         return ("cohere", COHERE_API_KEY)
     else:
