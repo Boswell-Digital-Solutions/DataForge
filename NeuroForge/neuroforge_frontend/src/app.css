@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* Light mode (default) */
+:root {
+  --color-text: #0d0d0d;
+  --color-heading: #0d0d0d;
+  --color-link: #e85c2a;
+  --color-border: #ead4b8;
+  color-scheme: light;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #e8e8e8;
+    --color-heading: #f8f8f8;
+    --color-link: #ff9d6b;
+    --color-border: #805c35;
+    color-scheme: dark;
+  }
+}
+
+/* Explicit dark mode support (overrides system preference) */
+html.dark {
+  --color-text: #e8e8e8;
+  --color-heading: #f8f8f8;
+  --color-link: #ff9d6b;
+  --color-border: #805c35;
+  color-scheme: dark;
+}
+
+/* Explicit light mode support (overrides system preference) */
+html:not(.dark) {
+  --color-text: #0d0d0d;
+  --color-heading: #0d0d0d;
+  --color-link: #e85c2a;
+  --color-border: #ead4b8;
+  color-scheme: light;
+}
+
+/* Smooth theme transitions */
+html,
+body,
+* {
+  transition: background-color 200ms ease-in-out, color 200ms ease-in-out,
+    border-color 200ms ease-in-out;
+}
+
+body {
+  font-feature-settings: "kern";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Light mode scrollbar */
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: #282828;
+  }
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #282828;
+}
+
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dab896;
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #805c35;
+  }
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #805c35;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #dab896;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c89c70;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a87d4d;
+  }
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #a87d4d;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #c89c70;
+}
