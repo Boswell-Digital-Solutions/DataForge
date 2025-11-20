@@ -102,7 +102,7 @@
   {/if}
 
   <div
-    class="rounded-lg border border-forge-ash-200 bg-white p-6 dark:border-forge-ash-700 dark:bg-forge-ash-900"
+    class="rounded-lg border border-forge-ash-200 bg-forge-ash-50 p-6 dark:border-forge-ash-700 dark:bg-forge-ash-900"
   >
     <h2 class="text-lg font-semibold text-forge-ink-900 dark:text-forge-ash-50">
       Filters

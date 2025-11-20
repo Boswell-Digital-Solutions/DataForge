@@ -121,7 +121,7 @@
     <div class="col-span-3 space-y-4">
       {#if loading}
         <div
-          class="rounded-lg border border-forge-ash-200 bg-white p-6 dark:border-forge-ash-700 dark:bg-forge-ash-900"
+          class="rounded-lg border border-forge-ash-200 bg-forge-ash-50 p-6 dark:border-forge-ash-700 dark:bg-forge-ash-900"
         >
           <div class="space-y-3">
             {#each [1, 2, 3] as _}
@@ -351,7 +351,7 @@
         </div>
       {:else}
         <div
-          class="rounded-lg border border-forge-ash-200 bg-white p-12 text-center dark:border-forge-ash-700 dark:bg-forge-ash-900"
+          class="rounded-lg border border-forge-ash-200 bg-forge-ash-50 p-12 text-center dark:border-forge-ash-700 dark:bg-forge-ash-900"
         >
           <p class="text-forge-ash-600 dark:text-forge-ash-400">
             No domains available
