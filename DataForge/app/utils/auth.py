@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import os
@@ -82,3 +82,21 @@ async def get_current_admin_user(current_user: models.User = Depends(get_current
             detail="Not enough permissions"
         )
     return current_user
+
+async def get_optional_user(request: Request, db: Session = Depends(get_db)):
+    """Optional authentication - returns user if authenticated, None otherwise."""
+    # Check for Authorization header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    
+    token = auth_header.replace("Bearer ", "")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: Optional[str] = payload.get("sub")
+        if username is None:
+            return None
+        user = get_user_by_username(db, username=username)
+        return user if user and user.is_active else None
+    except (JWTError, Exception):
+        return None

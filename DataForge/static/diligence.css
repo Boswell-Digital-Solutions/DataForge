@@ -9,49 +9,50 @@
    ============================================ */
 
 :root {
-    /* Light Mode Colors */
-    --forge-parchment: #F8F5EF;
-    --forge-panel: #FFFFFF;
-    --forge-border: #E2DCCD;
-    --forge-text: #2A1E0F;
-    --forge-text-muted: #6B5D4F;
-    --forge-ember: #D26A1B;
-    --forge-ember-hover: #B85A15;
-    --forge-ember-light: #F4D6C3;
+  /* Light Mode Colors */
+  --forge-parchment: #f8f5ef;
+  --forge-panel: #ffffff;
+  --forge-border: #e2dccd;
+  --forge-text: #2a1e0f;
+  --forge-text-muted: #6b5d4f;
+  --forge-ember: #d26a1b;
+  --forge-ember-hover: #b85a15;
+  --forge-ember-light: #f4d6c3;
 
-    /* Status Colors */
-    --forge-green: #2E7D32;
-    --forge-green-light: #C8E6C9;
-    --forge-yellow: #F57C00;
-    --forge-yellow-light: #FFE0B2;
-    --forge-red: #C62828;
-    --forge-red-light: #FFCDD2;
+  /* Status Colors */
+  --forge-green: #2e7d32;
+  --forge-green-light: #c8e6c9;
+  --forge-yellow: #f57c00;
+  --forge-yellow-light: #ffe0b2;
+  --forge-red: #c62828;
+  --forge-red-light: #ffcdd2;
 
-    /* Severity Colors */
-    --severity-high: #C62828;
-    --severity-medium: #F57C00;
-    --severity-low: #FBC02D;
+  /* Severity Colors */
+  --severity-high: #c62828;
+  --severity-medium: #f57c00;
+  --severity-low: #fbc02d;
 
-    /* Shadows */
-    --forge-shadow-sm: 0 1px 3px rgba(42, 30, 15, 0.08);
-    --forge-shadow-md: 0 4px 6px rgba(42, 30, 15, 0.1);
-    --forge-shadow-lg: 0 10px 15px rgba(42, 30, 15, 0.12);
+  /* Shadows */
+  --forge-shadow-sm: 0 1px 3px rgba(42, 30, 15, 0.08);
+  --forge-shadow-md: 0 4px 6px rgba(42, 30, 15, 0.1);
+  --forge-shadow-lg: 0 10px 15px rgba(42, 30, 15, 0.12);
 
-    /* Typography */
-    --font-heading: 'Cinzel Decorative', 'Cinzel', serif;
-    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  /* Typography */
+  --font-heading: "Cinzel Decorative", "Cinzel", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, sans-serif;
 }
 
 /* Dark Mode (optional - keeping existing dark styles) */
 @media (prefers-color-scheme: dark) {
-    :root {
-        --forge-parchment: #1A1A1A;
-        --forge-panel: #2A2A2A;
-        --forge-border: #3A3A3A;
-        --forge-text: #E8E8E8;
-        --forge-text-muted: #A0A0A0;
-        --forge-ember-light: #3A2A1F;
-    }
+  :root {
+    --forge-parchment: #1a1a1a;
+    --forge-panel: #2a2a2a;
+    --forge-border: #3a3a3a;
+    --forge-text: #e8e8e8;
+    --forge-text-muted: #a0a0a0;
+    --forge-ember-light: #3a2a1f;
+  }
 }
 
 /* ============================================
@@ -59,42 +60,59 @@
    ============================================ */
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: var(--font-body);
-    background: var(--forge-parchment);
-    color: var(--forge-text);
-    line-height: 1.6;
-    min-height: 100vh;
+  font-family: var(--font-body);
+  background: var(--forge-parchment);
+  color: var(--forge-text);
+  line-height: 1.6;
+  min-height: 100vh;
 }
 
 /* ============================================
    Typography
    ============================================ */
 
-h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    color: var(--forge-text);
-    margin-bottom: 0.75rem;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--forge-text);
+  margin-bottom: 0.75rem;
 }
 
-h1 { font-size: 2.25rem; }
-h2 { font-size: 1.875rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
-h5 { font-size: 1.125rem; }
-h6 { font-size: 1rem; }
+h1 {
+  font-size: 2.25rem;
+}
+h2 {
+  font-size: 1.875rem;
+}
+h3 {
+  font-size: 1.5rem;
+}
+h4 {
+  font-size: 1.25rem;
+}
+h5 {
+  font-size: 1.125rem;
+}
+h6 {
+  font-size: 1rem;
+}
 
 .subtitle {
-    color: var(--forge-text-muted);
-    font-size: 1rem;
-    margin-top: -0.5rem;
-    margin-bottom: 1.5rem;
+  color: var(--forge-text-muted);
+  font-size: 1rem;
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 /* ============================================
@@ -102,40 +120,85 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .diligence-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
 .diligence-header {
-    background: var(--forge-panel);
-    padding: 2rem;
-    border-radius: 8px;
-    border: 1px solid var(--forge-border);
-    box-shadow: var(--forge-shadow-sm);
-    margin-bottom: 2rem;
+  background: var(--forge-panel);
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--forge-border);
+  box-shadow: var(--forge-shadow-sm);
+  margin-bottom: 2rem;
 }
 
 .breadcrumb {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-    color: var(--forge-text-muted);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--forge-text-muted);
 }
 
 .breadcrumb a {
-    color: var(--forge-ember);
-    text-decoration: none;
+  color: var(--forge-ember);
+  text-decoration: none;
 }
 
 .breadcrumb a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .breadcrumb-separator {
-    color: var(--forge-border);
+  color: var(--forge-border);
+}
+
+/* ============================================
+   Navigation Bar
+   ============================================ */
+
+.diligence-navbar {
+  background: var(--forge-panel);
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: var(--forge-shadow-sm);
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid var(--forge-border);
+}
+
+.diligence-navbar a {
+  color: var(--forge-ember);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.diligence-navbar a:hover {
+  background: var(--forge-ember-light);
+  color: var(--forge-ember-hover);
+}
+
+.diligence-navbar a.active {
+  background: var(--forge-ember);
+  color: var(--forge-panel);
+  font-weight: 600;
+}
+
+.navbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--forge-border);
 }
 
 /* ============================================
@@ -143,46 +206,46 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .card {
-    background: var(--forge-panel);
-    border: 1px solid var(--forge-border);
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: var(--forge-shadow-sm);
-    transition: all 0.2s ease;
+  background: var(--forge-panel);
+  border: 1px solid var(--forge-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: var(--forge-shadow-sm);
+  transition: all 0.2s ease;
 }
 
 .card:hover {
-    box-shadow: var(--forge-shadow-md);
-    transform: translateY(-2px);
+  box-shadow: var(--forge-shadow-md);
+  transform: translateY(-2px);
 }
 
 .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--forge-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--forge-border);
 }
 
 .card-title {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  margin: 0;
 }
 
 .card-body {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--forge-border);
-    font-size: 0.875rem;
-    color: var(--forge-text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--forge-border);
+  font-size: 0.875rem;
+  color: var(--forge-text-muted);
 }
 
 /* ============================================
@@ -190,21 +253,21 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .project-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .review-timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .findings-grid {
-    display: grid;
-    gap: 1rem;
+  display: grid;
+  gap: 1rem;
 }
 
 /* ============================================
@@ -212,49 +275,49 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: var(--font-body);
 }
 
 .btn-primary {
-    background: var(--forge-ember);
-    color: white;
+  background: var(--forge-ember);
+  color: white;
 }
 
 .btn-primary:hover {
-    background: var(--forge-ember-hover);
-    box-shadow: var(--forge-shadow-md);
+  background: var(--forge-ember-hover);
+  box-shadow: var(--forge-shadow-md);
 }
 
 .btn-secondary {
-    background: var(--forge-panel);
-    color: var(--forge-text);
-    border: 1px solid var(--forge-border);
+  background: var(--forge-panel);
+  color: var(--forge-text);
+  border: 1px solid var(--forge-border);
 }
 
 .btn-secondary:hover {
-    border-color: var(--forge-ember);
-    color: var(--forge-ember);
+  border-color: var(--forge-ember);
+  color: var(--forge-ember);
 }
 
 .btn-small {
-    padding: 0.375rem 0.875rem;
-    font-size: 0.875rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
 }
 
 .btn-icon {
-    padding: 0.5rem;
-    border-radius: 50%;
+  padding: 0.5rem;
+  border-radius: 50%;
 }
 
 /* ============================================
@@ -262,61 +325,61 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Rating Badges */
 .badge-rating-green {
-    background: var(--forge-green-light);
-    color: var(--forge-green);
+  background: var(--forge-green-light);
+  color: var(--forge-green);
 }
 
 .badge-rating-yellow {
-    background: var(--forge-yellow-light);
-    color: var(--forge-yellow);
+  background: var(--forge-yellow-light);
+  color: var(--forge-yellow);
 }
 
 .badge-rating-red {
-    background: var(--forge-red-light);
-    color: var(--forge-red);
+  background: var(--forge-red-light);
+  color: var(--forge-red);
 }
 
 /* Severity Badges */
 .badge-severity-high {
-    background: var(--forge-red-light);
-    color: var(--severity-high);
+  background: var(--forge-red-light);
+  color: var(--severity-high);
 }
 
 .badge-severity-medium {
-    background: var(--forge-yellow-light);
-    color: var(--severity-medium);
+  background: var(--forge-yellow-light);
+  color: var(--severity-medium);
 }
 
 .badge-severity-low {
-    background: #FFF9C4;
-    color: #F57F17;
+  background: #fff9c4;
+  color: #f57f17;
 }
 
 /* Status Badges */
 .badge-status-open {
-    background: var(--forge-red-light);
-    color: var(--forge-red);
+  background: var(--forge-red-light);
+  color: var(--forge-red);
 }
 
 .badge-status-in_progress {
-    background: var(--forge-yellow-light);
-    color: var(--forge-yellow);
+  background: var(--forge-yellow-light);
+  color: var(--forge-yellow);
 }
 
 .badge-status-resolved {
-    background: var(--forge-green-light);
-    color: var(--forge-green);
+  background: var(--forge-green-light);
+  color: var(--forge-green);
 }
 
 /* ============================================
@@ -324,68 +387,75 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .scores-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
 }
 
 .score-item {
-    text-align: center;
-    padding: 1rem;
-    background: var(--forge-ember-light);
-    border-radius: 8px;
-    border: 1px solid var(--forge-border);
+  text-align: center;
+  padding: 1rem;
+  background: var(--forge-ember-light);
+  border-radius: 8px;
+  border: 1px solid var(--forge-border);
 }
 
 .score-label {
-    font-size: 0.875rem;
-    color: var(--forge-text-muted);
-    margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--forge-text-muted);
+  margin-bottom: 0.5rem;
 }
 
 .score-value {
-    font-size: 2rem;
-    font-weight: 700;
-    font-family: var(--font-heading);
-    color: var(--forge-ember);
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: var(--forge-ember);
 }
 
 .score-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--forge-border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 0.5rem;
+  width: 100%;
+  height: 8px;
+  background: var(--forge-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.5rem;
 }
 
 .score-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--forge-red) 0%, var(--forge-yellow) 50%, var(--forge-green) 100%);
-    transition: width 0.3s ease;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--forge-red) 0%,
+    var(--forge-yellow) 50%,
+    var(--forge-green) 100%
+  );
+  transition: width 0.3s ease;
 }
 
 /* ============================================
    Lists
    ============================================ */
 
-.strengths-list, .risks-list {
-    list-style: none;
-    padding: 0;
+.strengths-list,
+.risks-list {
+  list-style: none;
+  padding: 0;
 }
 
-.strengths-list li, .risks-list li {
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    border-left: 3px solid var(--forge-ember);
-    background: var(--forge-ember-light);
-    border-radius: 4px;
+.strengths-list li,
+.risks-list li {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid var(--forge-ember);
+  background: var(--forge-ember-light);
+  border-radius: 4px;
 }
 
 .risks-list li {
-    border-left-color: var(--forge-red);
-    background: var(--forge-red-light);
+  border-left-color: var(--forge-red);
+  background: var(--forge-red-light);
 }
 
 /* ============================================
@@ -393,42 +463,42 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .form-group {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--forge-text);
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--forge-text);
 }
 
 .form-input,
 .form-select,
 .form-textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--forge-border);
-    border-radius: 6px;
-    font-size: 1rem;
-    font-family: var(--font-body);
-    background: var(--forge-panel);
-    color: var(--forge-text);
-    transition: border-color 0.2s ease;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--forge-border);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  background: var(--forge-panel);
+  color: var(--forge-text);
+  transition: border-color 0.2s ease;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-    outline: none;
-    border-color: var(--forge-ember);
-    box-shadow: 0 0 0 3px rgba(210, 106, 27, 0.1);
+  outline: none;
+  border-color: var(--forge-ember);
+  box-shadow: 0 0 0 3px rgba(210, 106, 27, 0.1);
 }
 
 .form-textarea {
-    min-height: 200px;
-    resize: vertical;
-    font-family: 'Courier New', monospace;
+  min-height: 200px;
+  resize: vertical;
+  font-family: "Courier New", monospace;
 }
 
 /* ============================================
@@ -436,26 +506,26 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
 }
 
 .table th {
-    background: var(--forge-ember-light);
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid var(--forge-border);
+  background: var(--forge-ember-light);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--forge-border);
 }
 
 .table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--forge-border);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--forge-border);
 }
 
 .table tr:hover {
-    background: var(--forge-ember-light);
+  background: var(--forge-ember-light);
 }
 
 /* ============================================
@@ -463,37 +533,37 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .project-card {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .project-card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 0.75rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
 }
 
 .project-card-tag {
-    padding: 0.25rem 0.625rem;
-    background: var(--forge-border);
-    border-radius: 4px;
-    font-size: 0.75rem;
-    color: var(--forge-text-muted);
+  padding: 0.25rem 0.625rem;
+  background: var(--forge-border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--forge-text-muted);
 }
 
 .project-card-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .project-card-stat {
-    font-size: 0.875rem;
+  font-size: 0.875rem;
 }
 
 .project-card-stat-label {
-    color: var(--forge-text-muted);
+  color: var(--forge-text-muted);
 }
 
 /* ============================================
@@ -501,43 +571,43 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .review-card {
-    border-left: 4px solid var(--forge-ember);
+  border-left: 4px solid var(--forge-ember);
 }
 
 .review-card-meta {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.875rem;
-    color: var(--forge-text-muted);
-    margin-top: 0.5rem;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--forge-text-muted);
+  margin-top: 0.5rem;
 }
 
 .review-card-scores {
-    display: flex;
-    gap: 0.75rem;
-    margin: 1rem 0;
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
 
 .review-card-score {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.5rem;
-    background: var(--forge-ember-light);
-    border-radius: 6px;
-    min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--forge-ember-light);
+  border-radius: 6px;
+  min-width: 60px;
 }
 
 .review-card-score-label {
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    color: var(--forge-text-muted);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  color: var(--forge-text-muted);
 }
 
 .review-card-score-value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--forge-ember);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--forge-ember);
 }
 
 /* ============================================
@@ -545,33 +615,33 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .finding-card {
-    position: relative;
-    padding-left: 1rem;
+  position: relative;
+  padding-left: 1rem;
 }
 
 .finding-card-severity-high {
-    border-left: 4px solid var(--severity-high);
+  border-left: 4px solid var(--severity-high);
 }
 
 .finding-card-severity-medium {
-    border-left: 4px solid var(--severity-medium);
+  border-left: 4px solid var(--severity-medium);
 }
 
 .finding-card-severity-low {
-    border-left: 4px solid var(--severity-low);
+  border-left: 4px solid var(--severity-low);
 }
 
 .finding-card-meta {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .finding-card-file {
-    font-family: 'Courier New', monospace;
-    color: var(--forge-text-muted);
-    font-size: 0.875rem;
+  font-family: "Courier New", monospace;
+  color: var(--forge-text-muted);
+  font-size: 0.875rem;
 }
 
 /* ============================================
@@ -579,66 +649,107 @@ h6 { font-size: 1rem; }
    ============================================ */
 
 .empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: var(--forge-text-muted);
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--forge-text-muted);
 }
 
 .empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 .empty-state-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: var(--forge-text);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--forge-text);
 }
 
 /* ============================================
    Utilities
    ============================================ */
 
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }
-.mt-4 { margin-top: 2rem; }
+.mt-1 {
+  margin-top: 0.5rem;
+}
+.mt-2 {
+  margin-top: 1rem;
+}
+.mt-3 {
+  margin-top: 1.5rem;
+}
+.mt-4 {
+  margin-top: 2rem;
+}
 
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mb-3 { margin-bottom: 1.5rem; }
-.mb-4 { margin-bottom: 2rem; }
+.mb-1 {
+  margin-bottom: 0.5rem;
+}
+.mb-2 {
+  margin-bottom: 1rem;
+}
+.mb-3 {
+  margin-bottom: 1.5rem;
+}
+.mb-4 {
+  margin-bottom: 2rem;
+}
 
-.text-center { text-align: center; }
-.text-right { text-align: right; }
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
 
-.text-muted { color: var(--forge-text-muted); }
-.text-small { font-size: 0.875rem; }
+.text-muted {
+  color: var(--forge-text-muted);
+}
+.text-small {
+  font-size: 0.875rem;
+}
 
-.flex { display: flex; }
-.flex-between { display: flex; justify-content: space-between; }
-.flex-center { display: flex; justify-content: center; align-items: center; }
-.gap-1 { gap: 0.5rem; }
-.gap-2 { gap: 1rem; }
+.flex {
+  display: flex;
+}
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+}
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.gap-1 {
+  gap: 0.5rem;
+}
+.gap-2 {
+  gap: 1rem;
+}
 
 /* ============================================
    Responsive
    ============================================ */
 
 @media (max-width: 768px) {
-    .diligence-container {
-        padding: 1rem;
-    }
+  .diligence-container {
+    padding: 1rem;
+  }
 
-    .project-grid {
-        grid-template-columns: 1fr;
-    }
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
 
-    .scores-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  .scores-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
+  h1 {
+    font-size: 1.75rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
 }

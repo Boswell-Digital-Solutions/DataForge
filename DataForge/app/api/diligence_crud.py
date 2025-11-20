@@ -8,7 +8,7 @@ Includes Redis caching for performance optimization.
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from sqlalchemy.exc import SQLAlchemyError
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime
 import logging
 import json
@@ -18,6 +18,12 @@ try:
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
+    redis = None
+
+if TYPE_CHECKING:
+    import redis as redis_type
+else:
+    redis_type = object
 
 from app.models.diligence_models import (
     DiligenceProject,
@@ -38,10 +44,10 @@ from app.models.diligence_schemas import (
 logger = logging.getLogger(__name__)
 
 # Redis client for caching (initialized lazily)
-_redis_client: Optional[redis.Redis] = None
+_redis_client: Optional["redis_type.Redis"] = None
 
 
-def get_redis_client() -> Optional[redis.Redis]:
+def get_redis_client() -> Optional["redis_type.Redis"]:
     """Get or initialize Redis client (sync version for CRUD operations)."""
     global _redis_client
     

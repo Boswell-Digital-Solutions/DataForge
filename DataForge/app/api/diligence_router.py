@@ -32,7 +32,7 @@ from app.models.diligence_schemas import (
     FindingStatusEnum
 )
 from app.api import diligence_crud
-from app.utils.auth import get_current_admin_user
+from app.utils.auth import get_current_admin_user, get_optional_user
 from app.utils.diligence_parser import parse_ai_report
 
 # Router for API endpoints
@@ -381,7 +381,8 @@ def create_review_from_bulk_text(
 # ============================================
 
 @ui_router.get("/diligence", response_class=HTMLResponse)
-async def diligence_dashboard(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin_user)):
+@ui_router.get("/diligence/dashboard", response_class=HTMLResponse)
+async def diligence_dashboard(request: Request, db: Session = Depends(get_db), current_user: Optional[models.User] = Depends(get_optional_user)):
     """
     Main Due Diligence Dashboard page for current user.
 
@@ -393,10 +394,15 @@ async def diligence_dashboard(request: Request, db: Session = Depends(get_db), c
             status_code=500
         )
 
-    projects = diligence_crud.get_projects(db, user_id=current_user.id, limit=100)
+    # If no user is authenticated, show empty projects list
+    if current_user is None:
+        projects = []
+    else:
+        projects = diligence_crud.get_projects(db, user_id=current_user.id, limit=100)
+    
     return templates.TemplateResponse(
         "diligence/dashboard.html",
-        {"request": request, "projects": projects}
+        {"request": request, "projects": projects, "current_user": current_user}
     )
 
 

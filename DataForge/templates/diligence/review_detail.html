@@ -1,287 +1,374 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <title>Review #{{ review.id }} - {{ project.name }} - DataForge</title>
-    <link rel="stylesheet" href="/static/diligence.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/diligence.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
     <div class="diligence-container">
-        <!-- Header -->
-        <div class="diligence-header">
-            <div class="breadcrumb">
-                <a href="/">DataForge</a>
-                <span class="breadcrumb-separator">/</span>
-                <a href="/diligence">Due Diligence</a>
-                <span class="breadcrumb-separator">/</span>
-                <a href="/diligence/projects/{{ project.id }}">{{ project.name }}</a>
-                <span class="breadcrumb-separator">/</span>
-                <span>Review #{{ review.id }}</span>
-            </div>
-
-            <div class="flex-between">
-                <div>
-                    <h1>Due Diligence Report</h1>
-                    <p class="subtitle">{{ project.name }}</p>
-                </div>
-                {% if review.overall_rating %}
-                <span class="badge badge-rating-{{ review.overall_rating.value }}" style="height: fit-content; font-size: 1.25rem; padding: 0.75rem 1.5rem;">
-                    {{ review.overall_rating.value.upper() }}
-                </span>
-                {% endif %}
-            </div>
-
-            <div class="flex gap-2 mt-2">
-                <span class="text-muted text-small">📅 {{ review.review_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
-                {% if review.reviewer_name %}
-                <span class="text-muted text-small">👤 {{ review.reviewer_name }}</span>
-                {% endif %}
-                {% if review.review_type %}
-                <span class="text-muted text-small">🤖 {{ review.review_type }}</span>
-                {% endif %}
-            </div>
-
-            <div class="flex gap-2 mt-3">
-                <a href="/diligence/projects/{{ project.id }}" class="btn btn-secondary">
-                    ← Back to Project
-                </a>
-                <button class="btn btn-secondary" onclick="window.print()">
-                    🖨️ Print Report
-                </button>
-            </div>
+      <!-- Header -->
+      <div class="diligence-header">
+        <div class="breadcrumb">
+          <a href="/">DataForge</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="/diligence">Due Diligence</a>
+          <span class="breadcrumb-separator">/</span>
+          <a href="/diligence/projects/{{ project.id }}">{{ project.name }}</a>
+          <span class="breadcrumb-separator">/</span>
+          <span>Review #{{ review.id }}</span>
         </div>
 
-        <!-- Scores Overview -->
-        {% if review.code_quality_score or review.security_score or review.architecture_score or review.operations_score or review.documentation_score %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h3 class="card-title">Scores Overview</h3>
-            </div>
-            <div class="card-body">
-                <div class="scores-container">
-                    {% if review.code_quality_score %}
-                    <div class="score-item">
-                        <div class="score-label">Code Quality</div>
-                        <div class="score-value">{{ "%.1f"|format(review.code_quality_score) }}</div>
-                        <div class="score-bar">
-                            <div class="score-bar-fill" style="width: {{ (review.code_quality_score / 5 * 100)|int }}%"></div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if review.security_score %}
-                    <div class="score-item">
-                        <div class="score-label">Security</div>
-                        <div class="score-value">{{ "%.1f"|format(review.security_score) }}</div>
-                        <div class="score-bar">
-                            <div class="score-bar-fill" style="width: {{ (review.security_score / 5 * 100)|int }}%"></div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if review.architecture_score %}
-                    <div class="score-item">
-                        <div class="score-label">Architecture</div>
-                        <div class="score-value">{{ "%.1f"|format(review.architecture_score) }}</div>
-                        <div class="score-bar">
-                            <div class="score-bar-fill" style="width: {{ (review.architecture_score / 5 * 100)|int }}%"></div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if review.operations_score %}
-                    <div class="score-item">
-                        <div class="score-label">Operations</div>
-                        <div class="score-value">{{ "%.1f"|format(review.operations_score) }}</div>
-                        <div class="score-bar">
-                            <div class="score-bar-fill" style="width: {{ (review.operations_score / 5 * 100)|int }}%"></div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if review.documentation_score %}
-                    <div class="score-item">
-                        <div class="score-label">Documentation</div>
-                        <div class="score-value">{{ "%.1f"|format(review.documentation_score) }}</div>
-                        <div class="score-bar">
-                            <div class="score-bar-fill" style="width: {{ (review.documentation_score / 5 * 100)|int }}%"></div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+        <div class="flex-between">
+          <div>
+            <h1>Due Diligence Report</h1>
+            <p class="subtitle">{{ project.name }}</p>
+          </div>
+          {% if review.overall_rating %}
+          <span
+            class="badge badge-rating-{{ review.overall_rating.value }}"
+            style="
+              height: fit-content;
+              font-size: 1.25rem;
+              padding: 0.75rem 1.5rem;
+            "
+          >
+            {{ review.overall_rating.value.upper() }}
+          </span>
+          {% endif %}
         </div>
-        {% endif %}
 
-        <!-- Summary -->
-        {% if review.summary %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h3 class="card-title">Executive Summary</h3>
-            </div>
-            <div class="card-body">
-                <p>{{ review.summary }}</p>
-            </div>
+        <div class="flex gap-2 mt-2">
+          <span class="text-muted text-small"
+            >📅 {{ review.review_date.strftime('%B %d, %Y at %I:%M %p') }}</span
+          >
+          {% if review.reviewer_name %}
+          <span class="text-muted text-small"
+            >👤 {{ review.reviewer_name }}</span
+          >
+          {% endif %} {% if review.review_type %}
+          <span class="text-muted text-small">🤖 {{ review.review_type }}</span>
+          {% endif %}
         </div>
-        {% endif %}
 
-        <!-- Strengths and Risks -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-            <!-- Strengths -->
-            {% if review.strengths %}
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">✅ Strengths</h3>
-                </div>
-                <div class="card-body">
-                    <ul class="strengths-list">
-                        {% for strength in review.strengths %}
-                        <li>{{ strength }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+        <div class="flex gap-2 mt-3">
+          <a
+            href="/diligence/projects/{{ project.id }}"
+            class="btn btn-secondary"
+          >
+            ← Back to Project
+          </a>
+          <button class="btn btn-secondary" onclick="window.print()">
+            🖨️ Print Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Scores Overview -->
+      {% if review.code_quality_score or review.security_score or
+      review.architecture_score or review.operations_score or
+      review.documentation_score %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Scores Overview</h3>
+        </div>
+        <div class="card-body">
+          <div class="scores-container">
+            {% if review.code_quality_score %}
+            <div class="score-item">
+              <div class="score-label">Code Quality</div>
+              <div class="score-value">
+                {{ "%.1f"|format(review.code_quality_score) }}
+              </div>
+              <div class="score-bar">
+                <div
+                  class="score-bar-fill"
+                  style="width: {{ (review.code_quality_score / 5 * 100)|int }}%"
+                ></div>
+              </div>
+            </div>
+            {% endif %} {% if review.security_score %}
+            <div class="score-item">
+              <div class="score-label">Security</div>
+              <div class="score-value">
+                {{ "%.1f"|format(review.security_score) }}
+              </div>
+              <div class="score-bar">
+                <div
+                  class="score-bar-fill"
+                  style="width: {{ (review.security_score / 5 * 100)|int }}%"
+                ></div>
+              </div>
+            </div>
+            {% endif %} {% if review.architecture_score %}
+            <div class="score-item">
+              <div class="score-label">Architecture</div>
+              <div class="score-value">
+                {{ "%.1f"|format(review.architecture_score) }}
+              </div>
+              <div class="score-bar">
+                <div
+                  class="score-bar-fill"
+                  style="width: {{ (review.architecture_score / 5 * 100)|int }}%"
+                ></div>
+              </div>
+            </div>
+            {% endif %} {% if review.operations_score %}
+            <div class="score-item">
+              <div class="score-label">Operations</div>
+              <div class="score-value">
+                {{ "%.1f"|format(review.operations_score) }}
+              </div>
+              <div class="score-bar">
+                <div
+                  class="score-bar-fill"
+                  style="width: {{ (review.operations_score / 5 * 100)|int }}%"
+                ></div>
+              </div>
+            </div>
+            {% endif %} {% if review.documentation_score %}
+            <div class="score-item">
+              <div class="score-label">Documentation</div>
+              <div class="score-value">
+                {{ "%.1f"|format(review.documentation_score) }}
+              </div>
+              <div class="score-bar">
+                <div
+                  class="score-bar-fill"
+                  style="width: {{ (review.documentation_score / 5 * 100)|int }}%"
+                ></div>
+              </div>
             </div>
             {% endif %}
-
-            <!-- Risks -->
-            {% if review.risks %}
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">⚠️ Risks</h3>
-                </div>
-                <div class="card-body">
-                    <ul class="risks-list">
-                        {% for risk in review.risks %}
-                        <li>{{ risk }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-            {% endif %}
+          </div>
         </div>
+      </div>
+      {% endif %}
 
-        <!-- Findings -->
-        {% if review.findings %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h3 class="card-title">Findings</h3>
-                <span class="text-muted text-small">{{ review.findings|length }} finding(s)</span>
-            </div>
-            <div class="card-body">
-                <div class="findings-grid">
-                    {% for finding in review.findings %}
-                    <div class="card finding-card finding-card-severity-{{ finding.severity.value }}">
-                        <div class="flex-between mb-2">
-                            <h4 style="margin: 0;">{{ finding.title }}</h4>
-                            <div class="flex gap-1">
-                                <span class="badge badge-severity-{{ finding.severity.value }}">
-                                    {{ finding.severity.value.upper() }}
-                                </span>
-                                <span class="badge badge-status-{{ finding.status.value }}">
-                                    {{ finding.status.value.replace('_', ' ').upper() }}
-                                </span>
-                            </div>
-                        </div>
-
-                        {% if finding.description %}
-                        <p class="text-small">{{ finding.description }}</p>
-                        {% endif %}
-
-                        <div class="finding-card-meta">
-                            {% if finding.category %}
-                            <span>🏷️ {{ finding.category.replace('_', ' ').title() }}</span>
-                            {% endif %}
-                            {% if finding.file_path %}
-                            <span class="finding-card-file">📁 {{ finding.file_path }}{% if finding.line_number %}:{{ finding.line_number }}{% endif %}</span>
-                            {% endif %}
-                        </div>
-
-                        {% if finding.remediation %}
-                        <div class="mt-2" style="padding: 0.75rem; background: var(--forge-green-light); border-radius: 6px; border-left: 3px solid var(--forge-green);">
-                            <strong class="text-small">💡 Remediation:</strong>
-                            <p class="text-small" style="margin-top: 0.25rem;">{{ finding.remediation }}</p>
-                        </div>
-                        {% endif %}
-
-                        <div class="flex gap-1 mt-2">
-                            {% if finding.status.value != 'resolved' %}
-                            <button class="btn btn-small btn-secondary" onclick="updateFindingStatus({{ finding.id }}, 'in_progress')">
-                                Mark In Progress
-                            </button>
-                            <button class="btn btn-small btn-primary" onclick="updateFindingStatus({{ finding.id }}, 'resolved')">
-                                ✓ Mark Resolved
-                            </button>
-                            {% else %}
-                            <button class="btn btn-small btn-secondary" onclick="updateFindingStatus({{ finding.id }}, 'open')">
-                                Reopen
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+      <!-- Summary -->
+      {% if review.summary %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Executive Summary</h3>
         </div>
-        {% endif %}
-
-        <!-- Recommendation -->
-        {% if review.recommendation %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h3 class="card-title">Recommendation</h3>
-            </div>
-            <div class="card-body">
-                <p>{{ review.recommendation }}</p>
-            </div>
+        <div class="card-body">
+          <p>{{ review.summary }}</p>
         </div>
-        {% endif %}
+      </div>
+      {% endif %}
 
-        <!-- Raw Report (collapsible) -->
-        {% if review.raw_report_text %}
+      <!-- Strengths and Risks -->
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+        "
+      >
+        <!-- Strengths -->
+        {% if review.strengths %}
         <div class="card">
-            <div class="card-header" style="cursor: pointer;" onclick="toggleRawReport()">
-                <h3 class="card-title">📄 Raw AI Report</h3>
-                <span class="text-small text-muted">(click to expand)</span>
-            </div>
-            <div class="card-body" id="rawReportContent" style="display: none;">
-                <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.875rem; background: var(--forge-border); padding: 1rem; border-radius: 6px; overflow-x: auto;">{{ review.raw_report_text }}</pre>
-            </div>
+          <div class="card-header">
+            <h3 class="card-title">✅ Strengths</h3>
+          </div>
+          <div class="card-body">
+            <ul class="strengths-list">
+              {% for strength in review.strengths %}
+              <li>{{ strength }}</li>
+              {% endfor %}
+            </ul>
+          </div>
         </div>
         {% endif %}
+
+        <!-- Risks -->
+        {% if review.risks %}
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⚠️ Risks</h3>
+          </div>
+          <div class="card-body">
+            <ul class="risks-list">
+              {% for risk in review.risks %}
+              <li>{{ risk }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Findings -->
+      {% if review.findings %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Findings</h3>
+          <span class="text-muted text-small"
+            >{{ review.findings|length }} finding(s)</span
+          >
+        </div>
+        <div class="card-body">
+          <div class="findings-grid">
+            {% for finding in review.findings %}
+            <div
+              class="card finding-card finding-card-severity-{{ finding.severity.value }}"
+            >
+              <div class="flex-between mb-2">
+                <h4 style="margin: 0">{{ finding.title }}</h4>
+                <div class="flex gap-1">
+                  <span
+                    class="badge badge-severity-{{ finding.severity.value }}"
+                  >
+                    {{ finding.severity.value.upper() }}
+                  </span>
+                  <span class="badge badge-status-{{ finding.status.value }}">
+                    {{ finding.status.value.replace('_', ' ').upper() }}
+                  </span>
+                </div>
+              </div>
+
+              {% if finding.description %}
+              <p class="text-small">{{ finding.description }}</p>
+              {% endif %}
+
+              <div class="finding-card-meta">
+                {% if finding.category %}
+                <span>🏷️ {{ finding.category.replace('_', ' ').title() }}</span>
+                {% endif %} {% if finding.file_path %}
+                <span class="finding-card-file"
+                  >📁 {{ finding.file_path }}{% if finding.line_number %}:{{
+                  finding.line_number }}{% endif %}</span
+                >
+                {% endif %}
+              </div>
+
+              {% if finding.remediation %}
+              <div
+                class="mt-2"
+                style="
+                  padding: 0.75rem;
+                  background: var(--forge-green-light);
+                  border-radius: 6px;
+                  border-left: 3px solid var(--forge-green);
+                "
+              >
+                <strong class="text-small">💡 Remediation:</strong>
+                <p class="text-small" style="margin-top: 0.25rem">
+                  {{ finding.remediation }}
+                </p>
+              </div>
+              {% endif %}
+
+              <div class="flex gap-1 mt-2">
+                {% if finding.status.value != 'resolved' %}
+                <button
+                  class="btn btn-small btn-secondary"
+                  onclick="updateFindingStatus({{ finding.id }}, 'in_progress')"
+                >
+                  Mark In Progress
+                </button>
+                <button
+                  class="btn btn-small btn-primary"
+                  onclick="updateFindingStatus({{ finding.id }}, 'resolved')"
+                >
+                  ✓ Mark Resolved
+                </button>
+                {% else %}
+                <button
+                  class="btn btn-small btn-secondary"
+                  onclick="updateFindingStatus({{ finding.id }}, 'open')"
+                >
+                  Reopen
+                </button>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Recommendation -->
+      {% if review.recommendation %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Recommendation</h3>
+        </div>
+        <div class="card-body">
+          <p>{{ review.recommendation }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Raw Report (collapsible) -->
+      {% if review.raw_report_text %}
+      <div class="card">
+        <div
+          class="card-header"
+          style="cursor: pointer"
+          onclick="toggleRawReport()"
+        >
+          <h3 class="card-title">📄 Raw AI Report</h3>
+          <span class="text-small text-muted">(click to expand)</span>
+        </div>
+        <div class="card-body" id="rawReportContent" style="display: none">
+          <pre
+            style="
+              white-space: pre-wrap;
+              font-family: 'Courier New', monospace;
+              font-size: 0.875rem;
+              background: var(--forge-border);
+              padding: 1rem;
+              border-radius: 6px;
+              overflow-x: auto;
+            "
+          >
+{{ review.raw_report_text }}</pre
+          >
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <script>
-        function toggleRawReport() {
-            const content = document.getElementById('rawReportContent');
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
-        }
+      function toggleRawReport() {
+        const content = document.getElementById("rawReportContent");
+        content.style.display =
+          content.style.display === "none" ? "block" : "none";
+      }
 
-        async function updateFindingStatus(findingId, newStatus) {
-            try {
-                const response = await fetch(`/api/diligence/findings/${findingId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: newStatus,
-                        resolved_by: newStatus === 'resolved' ? 'User' : null
-                    })
-                });
+      async function updateFindingStatus(findingId, newStatus) {
+        try {
+          const response = await fetch(`/api/diligence/findings/${findingId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: newStatus,
+              resolved_by: newStatus === "resolved" ? "User" : null,
+            }),
+          });
 
-                if (response.ok) {
-                    // Reload page to show updated status
-                    window.location.reload();
-                } else {
-                    alert('Failed to update finding status');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error updating finding status');
-            }
+          if (response.ok) {
+            // Reload page to show updated status
+            window.location.reload();
+          } else {
+            alert("Failed to update finding status");
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error updating finding status");
         }
+      }
     </script>
-</body>
+  </body>
 </html>

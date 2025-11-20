@@ -122,22 +122,29 @@ app.include_router(diligence_ui_router)  # Due Diligence UI
 # Health Check & Info Endpoints
 # ============================================
 
-@app.get("/", tags=["info"])
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "name": "DataForge",
-        "version": "1.0.0",
-        "description": "Knowledge Base Management System with Semantic Search",
-        "endpoints": {
-            "docs": "/docs",
-            "health": "/health",
-            "search": "/api/search",
-            "admin": "/admin",
-            "auth": "/auth/token",
-            "admin_ui": "/admin-ui"
-        }
-    }
+@app.get("/", tags=["info"], response_class=HTMLResponse)
+async def root(request: Request):
+    """Home page with links to main features"""
+    if templates is None:
+        return HTMLResponse(
+            content="""
+            <html>
+                <head><title>DataForge</title></head>
+                <body>
+                    <h1>DataForge</h1>
+                    <p>Knowledge Base Management System with Semantic Search</p>
+                    <ul>
+                        <li><a href="/diligence/dashboard">📊 Due Diligence Dashboard</a></li>
+                        <li><a href="/admin">🔧 Admin Panel</a></li>
+                        <li><a href="/docs">📚 API Documentation</a></li>
+                    </ul>
+                </body>
+            </html>
+            """,
+            status_code=200
+        )
+    
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @app.get("/health", tags=["info"])
 async def health_check():
@@ -170,6 +177,7 @@ async def health_check():
 # Admin UI
 # ============================================
 
+@app.get("/admin", response_class=HTMLResponse, tags=["ui"])
 @app.get("/admin-ui", response_class=HTMLResponse, tags=["ui"])
 async def admin_ui(request: Request):
     """
