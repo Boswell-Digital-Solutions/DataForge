@@ -44,3 +44,22 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
+# Code coverage
+*.cover
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Linting and type checking
+.mypy_cache/
+.pylint/
+bandit-report.json
+safety-report.json
+reports/
+
+# Temporary
+tmp/
+temp/
+*.tmp

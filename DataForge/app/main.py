@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from app.database import engine, Base
 from app.api import search_router, admin_router, auth_router, projects_router
+from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.config import (
     validate_config,
     get_embedding_provider,
@@ -114,6 +115,8 @@ app.include_router(search_router.router)
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)
 app.include_router(projects_router.router)  # AuthorForge projects API
+app.include_router(diligence_router)  # Due Diligence API
+app.include_router(diligence_ui_router)  # Due Diligence UI
 
 # ============================================
 # Health Check & Info Endpoints

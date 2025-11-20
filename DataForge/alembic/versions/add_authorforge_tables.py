@@ -14,15 +14,15 @@ Adds AuthorForge project management tables:
 - project_genres association table
 
 """
-from alembic import op
+from alembic import op  # type: ignore
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'add_authorforge_001'
-down_revision = '9fe94997bec5'
-branch_labels = None
-depends_on = None
+revision: str | None = 'add_authorforge_001'
+down_revision: str | None = '9fe94997bec5'
+branch_labels: str | None = None
+depends_on: str | None = None
 
 
 def upgrade() -> None:

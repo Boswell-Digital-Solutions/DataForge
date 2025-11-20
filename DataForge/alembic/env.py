@@ -6,7 +6,8 @@ from pathlib import Path
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-from alembic import context
+import alembic  # type: ignore
+from alembic import context as _context  # type: ignore
 from dotenv import load_dotenv
 
 # Add parent directory to Python path to import app modules
@@ -21,7 +22,7 @@ from app.models import models  # noqa: F401 - Import needed for metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-config = context.config
+config = _context.config
 
 # Set the database URL from environment variable
 config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge"))
@@ -56,15 +57,15 @@ def run_migrations_offline() -> None:
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(
+    _context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
 
-    with context.begin_transaction():
-        context.run_migrations()
+    with _context.begin_transaction():
+        _context.run_migrations()
 
 
 def run_migrations_online() -> None:
@@ -81,15 +82,15 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
+        _context.configure(
             connection=connection, target_metadata=target_metadata
         )
 
-        with context.begin_transaction():
-            context.run_migrations()
+        with _context.begin_transaction():
+            _context.run_migrations()
 
 
-if context.is_offline_mode():
+if _context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()

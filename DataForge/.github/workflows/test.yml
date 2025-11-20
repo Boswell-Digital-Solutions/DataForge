@@ -1,0 +1,118 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: dataforge_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov bandit safety mypy
+    
+    - name: Run mypy type checking
+      run: |
+        mypy app/utils/redis_utils.py \
+              app/utils/metrics.py \
+              app/api/diligence_crud.py \
+              app/utils/embeddings.py \
+              --ignore-missing-imports || true
+      continue-on-error: true
+    
+    - name: Run pytest with coverage
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
+        SECRET_KEY: test-secret-key-for-ci
+        VOYAGE_API_KEY: test-key
+      run: |
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Run security checks
+      run: |
+        bandit -r app/ -f json -o bandit-report.json || true
+        safety check --json || true
+      continue-on-error: true
+    
+    - name: Comment test results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          try {
+            const testOutput = fs.readFileSync('./coverage.xml', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Tests passed! Coverage reports available.'
+            });
+          } catch (e) {
+            console.log('Could not post comment:', e);
+          }
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+    
+    - name: Check code format with black
+      run: black --check app/ || true
+      continue-on-error: true
+    
+    - name: Check import sorting with isort
+      run: isort --check-only app/ || true
+      continue-on-error: true
+    
+    - name: Lint with flake8
+      run: flake8 app/ --max-line-length=120 --ignore=E203,W503 || true
+      continue-on-error: true

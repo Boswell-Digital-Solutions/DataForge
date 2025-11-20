@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Due Diligence Dashboard - DataForge</title>
+    <link rel="stylesheet" href="/static/diligence.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="diligence-container">
+        <!-- Header -->
+        <div class="diligence-header">
+            <div class="breadcrumb">
+                <a href="/">DataForge</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>Due Diligence</span>
+            </div>
+            <h1>Due Diligence Dashboard</h1>
+            <p class="subtitle">Review and assess software repositories with AI-assisted analysis</p>
+            <div class="flex gap-2">
+                <a href="/diligence/new" class="btn btn-primary">
+                    <span>+</span> New Project / Review
+                </a>
+                <button class="btn btn-secondary" onclick="window.location.reload()">
+                    ↻ Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        {% if projects %}
+        <div class="project-grid">
+            {% for project in projects %}
+            <div class="card project-card" onclick="window.location.href='/diligence/projects/{{ project.id }}'">
+                <div class="card-header">
+                    <h3 class="card-title">{{ project.name }}</h3>
+                    {% if project.current_health_status %}
+                    <span class="badge badge-rating-{{ project.current_health_status.value }}">
+                        {{ project.current_health_status.value.upper() }}
+                    </span>
+                    {% else %}
+                    <span class="badge" style="background: #E0E0E0; color: #757575;">NO REVIEW</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    {% if project.description %}
+                    <p class="text-small text-muted">{{ project.description[:150] }}{% if project.description|length > 150 %}...{% endif %}</p>
+                    {% else %}
+                    <p class="text-small text-muted">No description provided</p>
+                    {% endif %}
+
+                    {% if project.tags %}
+                    <div class="project-card-tags">
+                        {% for tag in project.tags[:5] %}
+                        <span class="project-card-tag">{{ tag }}</span>
+                        {% endfor %}
+                        {% if project.tags|length > 5 %}
+                        <span class="project-card-tag">+{{ project.tags|length - 5 }} more</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-footer">
+                    <div class="project-card-stat">
+                        <span class="project-card-stat-label">Last Review:</span>
+                        {% if project.latest_review_date %}
+                        {{ project.latest_review_date.strftime('%b %d, %Y') }}
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </div>
+                    <div class="text-right">
+                        <span class="text-small text-muted">Created {{ project.created_at.strftime('%b %d, %Y') }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h3 class="empty-state-title">No Projects Yet</h3>
+            <p>Create your first due diligence project to get started.</p>
+            <a href="/diligence/new" class="btn btn-primary mt-3">
+                <span>+</span> Create First Project
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Add keyboard shortcut for new project
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                window.location.href = '/diligence/new';
+            }
+        });
+    </script>
+</body>
+</html>

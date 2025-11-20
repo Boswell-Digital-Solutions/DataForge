@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.name }} - Due Diligence - DataForge</title>
+    <link rel="stylesheet" href="/static/diligence.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="diligence-container">
+        <!-- Header -->
+        <div class="diligence-header">
+            <div class="breadcrumb">
+                <a href="/">DataForge</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/diligence">Due Diligence</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>{{ project.name }}</span>
+            </div>
+
+            <div class="flex-between">
+                <div>
+                    <h1>{{ project.name }}</h1>
+                    {% if project.description %}
+                    <p class="subtitle">{{ project.description }}</p>
+                    {% endif %}
+                </div>
+                {% if project.current_health_status %}
+                <span class="badge badge-rating-{{ project.current_health_status.value }}" style="height: fit-content; font-size: 1rem; padding: 0.5rem 1rem;">
+                    {{ project.current_health_status.value.upper() }}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="flex gap-2 mt-3">
+                <button class="btn btn-primary" onclick="createNewReview()">
+                    <span>+</span> New Review
+                </button>
+                <button class="btn btn-secondary" onclick="editProject()">
+                    ✏️ Edit Project
+                </button>
+                <a href="/diligence" class="btn btn-secondary">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Project Info -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title">Project Information</h3>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    {% if project.git_url %}
+                    <div>
+                        <strong class="text-muted">Git URL:</strong>
+                        <p><a href="{{ project.git_url }}" target="_blank" style="color: var(--forge-ember);">{{ project.git_url }}</a></p>
+                    </div>
+                    {% endif %}
+
+                    {% if project.repo_path %}
+                    <div>
+                        <strong class="text-muted">Local Path:</strong>
+                        <p><code>{{ project.repo_path }}</code></p>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <strong class="text-muted">Created:</strong>
+                        <p>{{ project.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    </div>
+
+                    {% if project.latest_review_date %}
+                    <div>
+                        <strong class="text-muted">Last Review:</strong>
+                        <p>{{ project.latest_review_date.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if project.tags %}
+                <div class="mt-3">
+                    <strong class="text-muted">Tags:</strong>
+                    <div class="project-card-tags mt-1">
+                        {% for tag in project.tags %}
+                        <span class="project-card-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reviews Timeline -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Review History</h3>
+                <span class="text-muted text-small">{{ reviews|length }} review(s)</span>
+            </div>
+            <div class="card-body">
+                {% if reviews %}
+                <div class="review-timeline">
+                    {% for review in reviews %}
+                    <div class="card review-card" onclick="window.location.href='/diligence/reviews/{{ review.id }}'">
+                        <div class="flex-between">
+                            <div>
+                                <h4 style="margin: 0;">Review #{{ review.id }}</h4>
+                                <div class="review-card-meta">
+                                    <span>📅 {{ review.review_date.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                    {% if review.reviewer_name %}
+                                    <span>👤 {{ review.reviewer_name }}</span>
+                                    {% endif %}
+                                    {% if review.review_type %}
+                                    <span>🤖 {{ review.review_type }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if review.overall_rating %}
+                            <span class="badge badge-rating-{{ review.overall_rating.value }}">
+                                {{ review.overall_rating.value.upper() }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if review.code_quality_score or review.security_score %}
+                        <div class="review-card-scores">
+                            {% if review.code_quality_score %}
+                            <div class="review-card-score">
+                                <span class="review-card-score-label">Code</span>
+                                <span class="review-card-score-value">{{ "%.1f"|format(review.code_quality_score) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if review.security_score %}
+                            <div class="review-card-score">
+                                <span class="review-card-score-label">Security</span>
+                                <span class="review-card-score-value">{{ "%.1f"|format(review.security_score) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if review.architecture_score %}
+                            <div class="review-card-score">
+                                <span class="review-card-score-label">Arch</span>
+                                <span class="review-card-score-value">{{ "%.1f"|format(review.architecture_score) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if review.operations_score %}
+                            <div class="review-card-score">
+                                <span class="review-card-score-label">Ops</span>
+                                <span class="review-card-score-value">{{ "%.1f"|format(review.operations_score) }}</span>
+                            </div>
+                            {% endif %}
+                            {% if review.documentation_score %}
+                            <div class="review-card-score">
+                                <span class="review-card-score-label">Docs</span>
+                                <span class="review-card-score-value">{{ "%.1f"|format(review.documentation_score) }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h4 class="empty-state-title">No Reviews Yet</h4>
+                    <p>Create your first review for this project.</p>
+                    <button class="btn btn-primary mt-2" onclick="createNewReview()">
+                        <span>+</span> Create First Review
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createNewReview() {
+            window.location.href = '/diligence/new?project_id={{ project.id }}';
+        }
+
+        function editProject() {
+            alert('Edit project functionality - implement modal or separate page');
+            // TODO: Implement edit modal with API call to PUT /api/diligence/projects/{{ project.id }}
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                createNewReview();
+            }
+        });
+    </script>
+</body>
+</html>

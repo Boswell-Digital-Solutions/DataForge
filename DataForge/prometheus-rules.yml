@@ -1,0 +1,285 @@
+# Prometheus Alert Rules for DataForge
+# Reference: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+
+groups:
+  # DataForge API Alerts
+  - name: dataforge_api_alerts
+    interval: 30s
+    rules:
+      # High error rate (>5% for 5 minutes)
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{job="dataforge-api", status=~"5.."}[5m])) /
+           sum(rate(http_requests_total{job="dataforge-api"}[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High error rate detected on DataForge API"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+          dashboard: "http://grafana:3000/d/dataforge-api"
+          runbook: "https://wiki.example.com/dataforge/api-errors"
+
+      # API Response Time - P95 > 500ms
+      - alert: SlowAPIResponse
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(request_duration_seconds_bucket{job="dataforge-api"}[5m])) by (le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Slow API response times detected"
+          description: "P95 response time is {{ $value | humanizeDuration }} (threshold: 500ms)"
+          dashboard: "http://grafana:3000/d/dataforge-api"
+
+      # High API latency - P99 > 2s
+      - alert: VeryHighAPILatency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(request_duration_seconds_bucket{job="dataforge-api"}[5m])) by (le)
+          ) > 2
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Very high API latency detected"
+          description: "P99 latency is {{ $value | humanizeDuration }} (threshold: 2s)"
+
+      # API connection pool exhausted
+      - alert: APIConnectionPoolExhausted
+        expr: |
+          database_connections_active{job="dataforge-api"} >= database_connections_max
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "Active connections: {{ $value }}"
+
+  # Database Alerts
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is not responding"
+
+      # Database connection count high (80% of max)
+      - alert: HighDatabaseConnections
+        expr: |
+          pg_stat_activity_count{job="postgres"} > on(instance) (pg_settings_max_connections * 0.8)
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Current connections: {{ $value }}, Threshold: 80% of max"
+
+      # Database replication lag (>100ms)
+      - alert: ReplicationLagHigh
+        expr: pg_replication_lag_seconds > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database replication lag"
+          description: "Replication lag: {{ $value | humanizeDuration }}"
+
+      # Slow queries detected
+      - alert: SlowQueriesDetected
+        expr: |
+          increase(pg_slow_queries_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of slow queries detected"
+          description: "Slow queries in last 5 minutes: {{ $value }}"
+
+      # Database disk usage high (80%)
+      - alert: HighDatabaseDiskUsage
+        expr: |
+          (pg_stat_file_size_bytes / pg_setting_datadisk_limit_bytes) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database disk usage"
+          description: "Disk usage: {{ $value | humanizePercentage }}"
+
+  # Redis Alerts
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is not responding"
+
+      # Redis memory usage high (90%)
+      - alert: RedisHighMemoryUsage
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Memory usage: {{ $value | humanizePercentage }}"
+
+      # Redis evictions happening
+      - alert: RedisEvictionsDetected
+        expr: |
+          increase(redis_evicted_keys_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis key evictions detected"
+          description: "Keys evicted in last 5 minutes: {{ $value }}"
+
+      # Redis command latency high
+      - alert: RedisHighCommandLatency
+        expr: |
+          redis_command_duration_seconds_p99 > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High Redis command latency"
+          description: "P99 command latency: {{ $value | humanizeDuration }}"
+
+  # System Alerts
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Node down
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Node is down"
+          description: "Node {{ $labels.instance }} has been down for 2 minutes"
+
+      # High CPU usage (>80% for 10 minutes)
+      - alert: HighCPUUsage
+        expr: |
+          (1 - avg(rate(node_cpu_seconds_total{job="node", mode="idle"}[5m])) by (instance)) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage: {{ $value | humanizePercentage }}"
+
+      # High memory usage (>85%)
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High system memory usage"
+          description: "Memory usage: {{ $value | humanizePercentage }}"
+
+      # High disk usage (>85%)
+      - alert: HighDiskUsage
+        expr: |
+          (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage on {{ $labels.device }}"
+          description: "Disk usage: {{ $value | humanizePercentage }}"
+
+      # High inode usage (>90%)
+      - alert: HighInodeUsage
+        expr: |
+          (1 - (node_filesystem_files_free / node_filesystem_files)) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High inode usage on {{ $labels.device }}"
+          description: "Inode usage: {{ $value | humanizePercentage }}"
+
+  # Embedding Service Alerts
+  - name: embedding_alerts
+    interval: 30s
+    rules:
+      # High embedding latency
+      - alert: HighEmbeddingLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(embedding_duration_seconds_bucket[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: embeddings
+        annotations:
+          summary: "High embedding generation latency"
+          description: "P95 latency: {{ $value | humanizeDuration }}"
+
+      # Embedding API failures high
+      - alert: EmbeddingAPIFailureRate
+        expr: |
+          (sum(rate(embedding_api_errors_total[5m])) /
+           sum(rate(embedding_api_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: embeddings
+        annotations:
+          summary: "High embedding API failure rate"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+
+  # Application Alerts
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # Health check failures
+      - alert: HealthCheckFailing
+        expr: up{job="dataforge-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "DataForge API health check is failing"
+          description: "API instance {{ $labels.instance }} failed health check"

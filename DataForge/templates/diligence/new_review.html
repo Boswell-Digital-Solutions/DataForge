@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Review - Due Diligence - DataForge</title>
+    <link rel="stylesheet" href="/static/diligence.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--forge-border);
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            color: var(--forge-text-muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button.active {
+            color: var(--forge-ember);
+            border-bottom-color: var(--forge-ember);
+            font-weight: 600;
+        }
+
+        .tab-button:hover {
+            color: var(--forge-text);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .form-hint {
+            font-size: 0.875rem;
+            color: var(--forge-text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .success-message {
+            background: var(--forge-green-light);
+            color: var(--forge-green);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid var(--forge-green);
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .error-message {
+            background: var(--forge-red-light);
+            color: var(--forge-red);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid var(--forge-red);
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="diligence-container">
+        <!-- Header -->
+        <div class="diligence-header">
+            <div class="breadcrumb">
+                <a href="/">DataForge</a>
+                <span class="breadcrumb-separator">/</span>
+                <a href="/diligence">Due Diligence</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>New</span>
+            </div>
+            <h1>Create New Review</h1>
+            <p class="subtitle">Add a new project or create a review for an existing project</p>
+            <div class="flex gap-2">
+                <a href="/diligence" class="btn btn-secondary">
+                    ← Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div id="successMessage" class="success-message"></div>
+        <div id="errorMessage" class="error-message"></div>
+
+        <!-- Tabs -->
+        <div class="card">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('project')">
+                    📁 New Project
+                </button>
+                <button class="tab-button" onclick="switchTab('bulk')">
+                    🤖 AI Review (Bulk Paste)
+                </button>
+                <button class="tab-button" onclick="switchTab('manual')">
+                    ✍️ Manual Review
+                </button>
+            </div>
+
+            <!-- Tab 1: New Project -->
+            <div id="tab-project" class="tab-panel active">
+                <h3>Create New Project</h3>
+                <p class="text-muted mb-3">Add a new software project to review</p>
+
+                <form id="projectForm" onsubmit="submitProject(event)">
+                    <div class="form-group">
+                        <label class="form-label">Project Name *</label>
+                        <input type="text" class="form-input" name="name" required placeholder="e.g., MyApp Backend API">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" name="description" rows="4" placeholder="Brief description of the project..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Git URL</label>
+                        <input type="url" class="form-input" name="git_url" placeholder="https://github.com/user/repo">
+                        <p class="form-hint">GitHub, GitLab, or other repository URL</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Local Repository Path</label>
+                        <input type="text" class="form-input" name="repo_path" placeholder="/path/to/local/repo">
+                        <p class="form-hint">Path to cloned repository on local system</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tags (comma-separated)</label>
+                        <input type="text" class="form-input" name="tags" placeholder="python, api, fastapi, postgresql">
+                        <p class="form-hint">Technologies, languages, or categories</p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">Create Project</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab 2: Bulk AI Paste -->
+            <div id="tab-bulk" class="tab-panel">
+                <h3>Create Review from AI Report</h3>
+                <p class="text-muted mb-3">Paste markdown from Claude, ChatGPT, Augment, or Cursor</p>
+
+                <form id="bulkForm" onsubmit="submitBulkReview(event)">
+                    <div class="form-group">
+                        <label class="form-label">Select Project *</label>
+                        <select class="form-select" name="project_id" required>
+                            <option value="">Choose a project...</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="form-hint">If project doesn't exist, create it first in the "New Project" tab</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Reviewer Name</label>
+                        <input type="text" class="form-input" name="reviewer_name" placeholder="e.g., Claude, ChatGPT, Your Name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Review Type</label>
+                        <select class="form-select" name="review_type">
+                            <option value="">Select type...</option>
+                            <option value="claude">Claude</option>
+                            <option value="chatgpt">ChatGPT</option>
+                            <option value="augment">Augment</option>
+                            <option value="cursor">Cursor</option>
+                            <option value="human">Human</option>
+                            <option value="automated">Automated</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">AI Report (Markdown) *</label>
+                        <textarea class="form-textarea" name="raw_report_text" required placeholder="Paste your AI-generated due diligence report here...
+
+Example format:
+# Summary
+This is a well-structured Python application...
+
+# Code Quality: 4/5
+...
+
+# Security: 3/5
+...
+
+# Strengths
+- Modern architecture
+- Good test coverage
+
+# Risks
+- Missing input validation
+- No rate limiting
+
+# Findings
+## High Severity
+- SQL Injection risk in search endpoint
+
+# Recommendation
+...
+
+# Overall Rating: Yellow
+" style="min-height: 400px;"></textarea>
+                        <p class="form-hint">The parser will automatically extract scores, strengths, risks, and findings</p>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">Parse & Create Review</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab 3: Manual Review -->
+            <div id="tab-manual" class="tab-panel">
+                <h3>Create Manual Review</h3>
+                <p class="text-muted mb-3">Enter review details manually</p>
+
+                <form id="manualForm" onsubmit="submitManualReview(event)">
+                    <div class="form-group">
+                        <label class="form-label">Select Project *</label>
+                        <select class="form-select" name="project_id" required>
+                            <option value="">Choose a project...</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Reviewer Name</label>
+                        <input type="text" class="form-input" name="reviewer_name" placeholder="Your name">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Summary</label>
+                        <textarea class="form-input" name="summary" rows="4" placeholder="Executive summary of the review..."></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">Code Quality (1-5)</label>
+                            <input type="number" class="form-input" name="code_quality_score" min="1" max="5" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Security (1-5)</label>
+                            <input type="number" class="form-input" name="security_score" min="1" max="5" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Architecture (1-5)</label>
+                            <input type="number" class="form-input" name="architecture_score" min="1" max="5" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Operations (1-5)</label>
+                            <input type="number" class="form-input" name="operations_score" min="1" max="5" step="0.1">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Documentation (1-5)</label>
+                            <input type="number" class="form-input" name="documentation_score" min="1" max="5" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Overall Rating</label>
+                        <select class="form-select" name="overall_rating">
+                            <option value="">Select rating...</option>
+                            <option value="green">🟢 Green (Low Risk)</option>
+                            <option value="yellow">🟡 Yellow (Medium Risk)</option>
+                            <option value="red">🔴 Red (High Risk)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Recommendation</label>
+                        <textarea class="form-input" name="recommendation" rows="4" placeholder="Final recommendation..."></textarea>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">Create Review</button>
+                        <button type="reset" class="btn btn-secondary">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all panels
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            // Deactivate all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected panel
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Activate button
+            event.target.classList.add('active');
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function submitProject(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            // Parse tags
+            const tagsStr = formData.get('tags');
+            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description') || null,
+                git_url: formData.get('git_url') || null,
+                repo_path: formData.get('repo_path') || null,
+                tags: tags,
+                metadata: {}
+            };
+
+            try {
+                const response = await fetch('/api/diligence/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const project = await response.json();
+                    showSuccess(`Project "${project.name}" created successfully!`);
+                    e.target.reset();
+                    // Redirect to project page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = `/diligence/projects/${project.id}`;
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    showError(`Error: ${error.detail || 'Failed to create project'}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        async function submitBulkReview(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            const data = {
+                project_id: parseInt(formData.get('project_id')),
+                reviewer_name: formData.get('reviewer_name') || null,
+                review_type: formData.get('review_type') || null,
+                raw_report_text: formData.get('raw_report_text')
+            };
+
+            try {
+                const response = await fetch('/api/diligence/reviews/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const review = await response.json();
+                    showSuccess(`Review created successfully! Parsed ${review.findings?.length || 0} findings.`);
+                    // Redirect to review page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = `/diligence/reviews/${review.id}`;
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    showError(`Error: ${error.detail || 'Failed to create review'}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        async function submitManualReview(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            const data = {
+                project_id: parseInt(formData.get('project_id')),
+                reviewer_name: formData.get('reviewer_name') || null,
+                summary: formData.get('summary') || null,
+                code_quality_score: formData.get('code_quality_score') ? parseFloat(formData.get('code_quality_score')) : null,
+                security_score: formData.get('security_score') ? parseFloat(formData.get('security_score')) : null,
+                architecture_score: formData.get('architecture_score') ? parseFloat(formData.get('architecture_score')) : null,
+                operations_score: formData.get('operations_score') ? parseFloat(formData.get('operations_score')) : null,
+                documentation_score: formData.get('documentation_score') ? parseFloat(formData.get('documentation_score')) : null,
+                overall_rating: formData.get('overall_rating') || null,
+                recommendation: formData.get('recommendation') || null,
+                strengths: [],
+                risks: []
+            };
+
+            try {
+                const response = await fetch('/api/diligence/reviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const review = await response.json();
+                    showSuccess('Review created successfully!');
+                    // Redirect to review page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = `/diligence/reviews/${review.id}`;
+                    }, 2000);
+                } else {
+                    const error = await response.json();
+                    showError(`Error: ${error.detail || 'Failed to create review'}`);
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        // Check for project_id in URL query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('project_id');
+        if (projectId) {
+            // Pre-select the project in the bulk and manual forms
+            switchTab('bulk');
+            setTimeout(() => {
+                document.querySelector('#tab-bulk select[name="project_id"]').value = projectId;
+                document.querySelector('#tab-manual select[name="project_id"]').value = projectId;
+            }, 100);
+        }
+    </script>
+</body>
+</html>

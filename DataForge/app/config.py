@@ -49,6 +49,11 @@ RATE_LIMIT_ADMIN = "100/minute"  # 100 admin operations per minute
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
 
 # ============================================
+# Redis Configuration (Caching)
+# ============================================
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# ============================================
 # Security Configuration
 # ============================================
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -86,23 +91,72 @@ def validate_config():
     """
     Validate that required configuration is present.
     Raises ValueError if critical config is missing.
+    
+    SECURITY: Validates that sensitive configuration is properly set
+    for the deployment environment (development vs production).
     """
     errors = []
+    warnings = []
 
-    if not SECRET_KEY or SECRET_KEY == "your-secret-key-here-change-this-in-production":
-        errors.append("SECRET_KEY must be set to a secure value")
-
-    if not VOYAGE_API_KEY and not OPENAI_API_KEY and not COHERE_API_KEY:
-        errors.append(
-            "At least one embedding provider API key must be set "
-            "(VOYAGE_API_KEY, OPENAI_API_KEY, or COHERE_API_KEY)"
+    # Check Redis configuration (optional but recommended)
+    if not REDIS_URL:
+        warnings.append(
+            "WARNING: REDIS_URL not configured. Caching disabled. "
+            "Set REDIS_URL for better performance."
         )
 
+    # Check SECRET_KEY
+    if not SECRET_KEY:
+        errors.append(
+            "SECRET_KEY is not set. Required for JWT token signing. "
+            "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+    elif SECRET_KEY in ("your-secret-key-here-change-this-in-production", "your-secret-key-here-change-in-production", ""):
+        errors.append(
+            "SECRET_KEY is set to the default placeholder value. "
+            "MUST use a strong, random secret key in production. "
+            "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+
+    # Check embedding provider
+    if not VOYAGE_API_KEY and not OPENAI_API_KEY and not COHERE_API_KEY:
+        errors.append(
+            "No embedding provider API key configured. "
+            "Set one of: VOYAGE_API_KEY (recommended), OPENAI_API_KEY, or COHERE_API_KEY"
+        )
+
+    # Check database URL
     if not DATABASE_URL:
         errors.append("DATABASE_URL must be set")
+    elif "localhost" in DATABASE_URL and "production" in os.getenv("ENVIRONMENT", "development").lower():
+        warnings.append("WARNING: Using localhost database URL in production environment")
+
+    # Warn about default database credentials (if using Docker default)
+    if "postgres:postgres" in DATABASE_URL:
+        warnings.append(
+            "WARNING: Using default PostgreSQL credentials (postgres:postgres). "
+            "Change POSTGRES_PASSWORD in production."
+        )
 
     if errors:
-        raise ValueError(f"Configuration errors:\n" + "\n".join(f"  - {e}" for e in errors))
+        error_message = "Configuration validation failed:\n" + "\n".join(f"  ❌ {e}" for e in errors)
+        if warnings:
+            error_message += "\n\n" + "\n".join(f"  ⚠️  {w}" for w in warnings)
+        raise ValueError(error_message)
+
+    if warnings:
+        import logging
+        logger = logging.getLogger(__name__)
+        for warning in warnings:
+            logger.warning(warning)
+
+
+def get_redis_enabled() -> bool:
+    """
+    Check if Redis is configured and should be used.
+    Returns False if REDIS_URL is not set.
+    """
+    return bool(REDIS_URL)
 
 
 def get_embedding_provider():
