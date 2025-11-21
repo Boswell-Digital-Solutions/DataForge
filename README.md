@@ -270,13 +270,3 @@ Maintained by Boswell Digital Solutions LLC
 
 yaml
 Copy code
-
----
-
-If you want:  
-✨ A branded PDF version  
-✨ A DOCX + letterhead version  
-✨ A matching LICENSE.md, LEGAL.md, SECURITY.md, or ARCHITECTURE.md  
-✨ Or a fully auto-generated GitHub Pages docs site  
-
-Just say **“generate it.”**-m
