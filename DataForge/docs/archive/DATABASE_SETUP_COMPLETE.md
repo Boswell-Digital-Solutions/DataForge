@@ -7,6 +7,7 @@ The database authentication issue has been **completely resolved** and the Autho
 ## Changes Made
 
 ### 1. Fixed Database Authentication
+
 - **Created new PostgreSQL user**: `tradeforge` with password `tradeforge_dev_password`
 - **Created database**: `dataforge` owned by `tradeforge`
 - **Updated .env file**: Now uses correct credentials
@@ -15,6 +16,7 @@ The database authentication issue has been **completely resolved** and the Autho
 ### 2. Database Configuration
 
 **Current Setup:**
+
 ```bash
 Database: dataforge
 User: tradeforge
@@ -24,6 +26,7 @@ Port: 5432
 ```
 
 **Updated .env file:**
+
 ```bash
 DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/dataforge
 ```
@@ -31,6 +34,7 @@ DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/data
 ### 3. Migration Results
 
 **All migrations executed successfully:**
+
 ```
 ✅ Initial DataForge schema (users, domains, documents, tags, chunks)
 ✅ AuthorForge tables (projects, manuscripts, characters, locations, story_arcs, brainstorm_sessions)
@@ -42,6 +46,7 @@ DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/data
 **Total tables created: 14**
 
 #### DataForge Tables (7):
+
 1. users
 2. domains
 3. documents
@@ -51,6 +56,7 @@ DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/data
 7. alembic_version
 
 #### AuthorForge Tables (7):
+
 1. projects - Main project data with multi-genre support
 2. project_genres - Many-to-many relationship (projects ↔ genres)
 3. manuscripts - Chapter/section content
@@ -60,6 +66,7 @@ DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/data
 7. brainstorm_sessions - AI brainstorming history
 
 #### Enum Types (2):
+
 1. genreenum - `fantasy`, `scifi`, `christian_fiction`, `general`
 2. projectstatus - `draft`, `active`, `completed`, `archived`
 
@@ -85,6 +92,7 @@ DATABASE_URL=postgresql://tradeforge:tradeforge_dev_password@localhost:5432/data
 ## Docker Container Info
 
 The PostgreSQL server is running in a Docker container:
+
 - **Container name**: `news-tunneler-postgres`
 - **PostgreSQL version**: 16.10 (Alpine Linux)
 - **Superuser**: `news_tunneler` (for admin tasks)
@@ -93,6 +101,7 @@ The PostgreSQL server is running in a Docker container:
 ## Database Schema Details
 
 ### Projects Table
+
 ```sql
 Column             | Type                      | Description
 -------------------|---------------------------|------------------------------------
@@ -110,17 +119,21 @@ last_edited_at     | timestamp with time zone  | Last edit timestamp
 ```
 
 **Indexes:**
+
 - `ix_projects_id` - Primary key index
 - `ix_projects_user_id` - User lookup
 - `ix_projects_status` - Status filtering
 
 **Relationships:**
+
 - Many-to-many with genres via `project_genres`
 - One-to-many with manuscripts, characters, locations, story_arcs
 - All relationships have CASCADE delete
 
 ### Multi-Genre Support
+
 Projects can have multiple genres simultaneously:
+
 ```sql
 project_genres (association table)
 - project_id → projects.id (CASCADE delete)
@@ -128,7 +141,9 @@ project_genres (association table)
 ```
 
 ### Word Count Auto-Calculation
+
 The `projects.word_count` field automatically updates when:
+
 - Manuscripts are added
 - Manuscript content is modified
 - Manuscripts are deleted
@@ -140,18 +155,21 @@ This is handled by the CRUD operations in `projects_crud.py`.
 ### 1. Test API Endpoints
 
 Start DataForge backend:
+
 ```bash
 cd /home/charles/projects/Coding2025/Forge/DataForge
 uvicorn app.main:app --reload --port 8001
 ```
 
 API will be available at:
+
 - **API Docs**: http://localhost:8001/docs
 - **Projects API**: http://localhost:8001/api/projects
 
 ### 2. Create Test Data
 
-See [SQL_INTEGRATION_GUIDE.md](SQL_INTEGRATION_GUIDE.md) for complete testing instructions including:
+See [SQL_INTEGRATION_GUIDE.md](../guides/SQL_INTEGRATION_GUIDE.md) for complete testing instructions including:
+
 - Creating test users
 - Getting authentication tokens
 - Creating projects with multiple genres
@@ -161,6 +179,7 @@ See [SQL_INTEGRATION_GUIDE.md](SQL_INTEGRATION_GUIDE.md) for complete testing in
 ### 3. Update Frontend
 
 The frontend hooks in `AuthorForge_Solid_new/src/hooks/` are ready to connect:
+
 - Update `useProjects.ts` to fetch from `/api/projects`
 - Configure API URL in frontend `.env`
 - Remove IndexedDB dependencies
@@ -168,6 +187,7 @@ The frontend hooks in `AuthorForge_Solid_new/src/hooks/` are ready to connect:
 ### 4. Full Integration Testing
 
 Once frontend is connected:
+
 1. Login to frontend
 2. Navigate to Foundry (TheForge)
 3. Click "New Project"
@@ -181,6 +201,7 @@ Once frontend is connected:
 All endpoints require JWT Bearer token authentication:
 
 **Projects:**
+
 ```
 GET    /api/projects              - List user's projects
 POST   /api/projects              - Create project
@@ -190,6 +211,7 @@ DELETE /api/projects/{id}         - Delete project
 ```
 
 **Manuscripts:**
+
 ```
 GET    /api/projects/{id}/manuscripts      - List manuscripts
 POST   /api/projects/manuscripts           - Create manuscript
@@ -198,6 +220,7 @@ DELETE /api/projects/manuscripts/{id}      - Delete manuscript
 ```
 
 **Characters, Locations, Story Arcs:**
+
 ```
 POST   /api/projects/characters            - Create character
 PATCH  /api/projects/characters/{id}       - Update character
@@ -213,6 +236,7 @@ DELETE /api/projects/story-arcs/{id}       - Delete story arc
 ```
 
 **Brainstorm Sessions:**
+
 ```
 GET    /api/projects/brainstorm-sessions   - List sessions
 POST   /api/projects/brainstorm-sessions   - Create session
@@ -226,16 +250,19 @@ POST   /api/projects/brainstorm-sessions   - Create session
 ## Database Maintenance
 
 ### Backup Database
+
 ```bash
 pg_dump -h localhost -U tradeforge -d dataforge > dataforge_backup.sql
 ```
 
 ### Restore Database
+
 ```bash
 psql -h localhost -U tradeforge -d dataforge < dataforge_backup.sql
 ```
 
 ### View Migration History
+
 ```bash
 cd /home/charles/projects/Coding2025/Forge/DataForge
 python3 -m alembic history
@@ -243,6 +270,7 @@ python3 -m alembic current
 ```
 
 ### Rollback Migration (if needed)
+
 ```bash
 # Rollback one migration
 python3 -m alembic downgrade -1
@@ -261,6 +289,7 @@ python3 -m alembic downgrade 9fe94997bec5
 - ⚠️ Development password in use - change for production
 
 **For production deployment:**
+
 1. Change `tradeforge_dev_password` to a secure random password
 2. Update `SECRET_KEY` in .env with a cryptographically secure key
 3. Enable SSL/TLS for database connections
@@ -271,14 +300,18 @@ python3 -m alembic downgrade 9fe94997bec5
 ## Troubleshooting
 
 ### Connection Issues
+
 If you get authentication errors:
+
 ```bash
 # Test connection
 PGPASSWORD=tradeforge_dev_password psql -h localhost -U tradeforge -d dataforge -c "SELECT current_user, current_database();"
 ```
 
 ### Migration Issues
+
 If migrations fail:
+
 ```bash
 # Check current version
 python3 -m alembic current
@@ -291,7 +324,9 @@ python3 -m alembic upgrade head
 ```
 
 ### Extension Issues
+
 If pgvector extension is missing:
+
 ```bash
 # Enable as superuser
 PGPASSWORD=news_tunneler_dev_password psql -h localhost -U news_tunneler -d dataforge -c "CREATE EXTENSION IF NOT EXISTS vector;"
@@ -299,9 +334,9 @@ PGPASSWORD=news_tunneler_dev_password psql -h localhost -U news_tunneler -d data
 
 ## Documentation References
 
-- [SQL_INTEGRATION_GUIDE.md](SQL_INTEGRATION_GUIDE.md) - Complete setup and testing guide
+- [SQL_INTEGRATION_GUIDE.md](../guides/SQL_INTEGRATION_GUIDE.md) - Complete setup and testing guide
 - [INTEGRATION_STATUS.md](INTEGRATION_STATUS.md) - Implementation status and architecture
-- [ANTHROPIC_SETUP.md](ANTHROPIC_SETUP.md) - Voyage AI / Anthropic configuration
+- [ANTHROPIC_SETUP.md](../setup/ANTHROPIC_SETUP.md) - Voyage AI / Anthropic configuration
 
 ---
 

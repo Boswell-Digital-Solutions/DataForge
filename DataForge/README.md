@@ -61,15 +61,15 @@
 
 ### Project Status at a Glance
 
-| Metric | Value |
-|--------|-------|
-| **Completion** | 18/18 phases (100%) ✅ |
-| **Tests Passing** | 296/296 (100%) ✅ |
-| **Production Code** | 27,857 lines |
-| **Total Documentation** | 10,221+ lines |
-| **Current Version** | 5.1 |
-| **Production Ready** | **✅ YES** |
-| **Commercial License** | ✅ [LICENSE.md](./LICENSE.md) |
+| Metric                  | Value                         |
+| ----------------------- | ----------------------------- |
+| **Completion**          | 18/18 phases (100%) ✅        |
+| **Tests Passing**       | 296/296 (100%) ✅             |
+| **Production Code**     | 27,857 lines                  |
+| **Total Documentation** | 10,221+ lines                 |
+| **Current Version**     | 5.1                           |
+| **Production Ready**    | **✅ YES**                    |
+| **Commercial License**  | ✅ [LICENSE.md](./LICENSE.md) |
 
 ---
 
@@ -77,16 +77,17 @@
 
 DataForge acts as the **shared intelligence layer** for the Forge Suite of products:
 
-| Product | Role |
-|---------|------|
-| **AuthorForge** | Writing knowledge, narrative structures, pacing, genre-level analysis |
-| **NeuroForge** | Model routing, embeddings generation, context retrieval, inference tracking |
-| **VibeForge** | Execution context, prompt performance analytics, evaluation datasets |
-| **TradeForge** | Market signals, historical feeds, structured financial datasets |
-| **Leopold** | Ecological observations, biological datasets, environmental tracking |
-| **Livy** | Historical data, geospatial narratives, temporal analysis |
+| Product         | Role                                                                        |
+| --------------- | --------------------------------------------------------------------------- |
+| **AuthorForge** | Writing knowledge, narrative structures, pacing, genre-level analysis       |
+| **NeuroForge**  | Model routing, embeddings generation, context retrieval, inference tracking |
+| **VibeForge**   | Execution context, prompt performance analytics, evaluation datasets        |
+| **TradeForge**  | Market signals, historical feeds, structured financial datasets             |
+| **Leopold**     | Ecological observations, biological datasets, environmental tracking        |
+| **Livy**        | Historical data, geospatial narratives, temporal analysis                   |
 
 Every Forge product consumes DataForge as the **source of truth**, ensuring:
+
 - ✅ Consistency across the ecosystem
 - ✅ Enterprise-grade compliance
 - ✅ Cross-product intelligence and analytics
@@ -97,6 +98,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 ## ✨ Key Features
 
 ### 🔐 Security & Compliance
+
 - **OAuth2 + OIDC** – Enterprise identity provider integration
 - **Multi-factor authentication** – TOTP, backup codes, device tracking, SSO
 - **Field-level encryption** – AES-256 encryption at rest with transparent decryption
@@ -107,6 +109,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Zero-trust architecture** – Certificate pinning, rate limiting, Fail2Ban, segmented networks
 
 ### 📦 Data Management
+
 - **PostgreSQL 13+** – Battle-tested relational database
 - **pgvector extension** – Vector embeddings with similarity search
 - **Field-level encryption** – Transparent AES-256 for sensitive columns
@@ -115,6 +118,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Connection pooling** – PgBouncer for optimal resource utilization
 
 ### 🧠 Semantic Capabilities
+
 - **Vector embeddings** – OpenAI, Anthropic, or local model support
 - **Similarity search** – Fast cosine/L2 distance queries over embeddings
 - **Context retrieval** – Intelligent chunk selection for RAG pipelines
@@ -123,6 +127,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Embedding versioning** – Track embedding model changes over time
 
 ### 🚀 High Availability & Reliability
+
 - **Multi-node replication** – Streaming replication with automatic failover
 - **Redis Sentinel** – Automatic cache cluster failover
 - **RabbitMQ mirroring** – High-availability message broker
@@ -134,6 +139,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Point-in-time recovery** – Restore to any point in the last 90 days
 
 ### 📊 Observability & Operations
+
 - **Prometheus metrics** – 40+ application-level metrics
 - **OpenTelemetry tracing** – Distributed traces for all HTTP requests and database operations
 - **Structured logging** – JSON logs with correlation IDs and trace context
@@ -144,6 +150,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Incident playbooks** – Automated runbook procedures for common issues
 
 ### ⚙️ Async Processing
+
 - **Celery task queue** – Background jobs for heavy computations, exports, notifications
 - **RabbitMQ integration** – Reliable message delivery with persistent queues
 - **Job scheduling** – Periodic tasks (health checks, cache warming, log rotation)
@@ -151,6 +158,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Task prioritization** – Multiple queues for different workload types
 
 ### 🔄 Kubernetes & Cloud-Native
+
 - **Kubernetes-native** – Full Helm charts and manifests
 - **Liveness/readiness probes** – Automatic pod health checking
 - **Horizontal pod autoscaling** – Scale based on CPU/memory/custom metrics
@@ -200,6 +208,7 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 ```
 
 **5-Layer Architecture:**
+
 1. **Client Layer** – Forge products and external applications
 2. **Gateway Layer** – Load balancing, rate limiting, TLS
 3. **Application Layer** – FastAPI services, business logic, validation
@@ -265,39 +274,39 @@ open http://localhost:8000/redoc
 
 All **18 phases completed (100%)**:
 
-| Phase | Focus Area | Status |
-|-------|-----------|--------|
-| **0** | Automated Backups | ✅ Complete |
-| **1** | Operational Excellence | ✅ Complete |
-| **2** | Fault Tolerance | ✅ Complete |
-| **3** | High Availability | ✅ Complete |
-| **4** | Security Hardening | ✅ Complete |
-| **5** | Documentation & Testing | ✅ Complete |
+| Phase   | Focus Area              | Status      |
+| ------- | ----------------------- | ----------- |
+| **0**   | Automated Backups       | ✅ Complete |
+| **1**   | Operational Excellence  | ✅ Complete |
+| **2**   | Fault Tolerance         | ✅ Complete |
+| **3**   | High Availability       | ✅ Complete |
+| **4**   | Security Hardening      | ✅ Complete |
+| **5**   | Documentation & Testing | ✅ Complete |
 | **5.1** | Final Deployment Polish | ✅ Complete |
 
 ---
 
 ## 🧪 Technology Stack
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| **Language** | Python | 3.11+ | Core application |
-| **Web Framework** | FastAPI | 0.104+ | API and routing |
-| **ORM** | SQLAlchemy | 2.0+ | Database abstraction |
-| **Migration** | Alembic | 1.13+ | Schema management |
-| **Primary Database** | PostgreSQL | 13+ | Main datastore |
-| **Vector Search** | pgvector | 0.5+ | Embeddings storage |
-| **Cache & Sessions** | Redis | 6+ | High-speed data access |
-| **Message Queue** | RabbitMQ | 3.8+ | Async task processing |
-| **Task Worker** | Celery | 5.3+ | Background jobs |
-| **Metrics** | Prometheus | 2.48+ | Performance monitoring |
-| **Tracing** | OpenTelemetry | 1.21+ | Distributed tracing |
-| **Dashboards** | Grafana | 10.2+ | Visualization |
-| **Container Orchestration** | Kubernetes | 1.28+ | Deployment (optional) |
-| **Container Runtime** | Docker | 24+ | Containerization |
-| **Testing Framework** | pytest | 7.4+ | Unit & integration tests |
-| **Load Testing** | k6 | 0.48+ | Performance benchmarks |
-| **API Documentation** | OpenAPI 3.0 | - | Auto-generated docs |
+| Layer                       | Technology    | Version | Purpose                  |
+| --------------------------- | ------------- | ------- | ------------------------ |
+| **Language**                | Python        | 3.11+   | Core application         |
+| **Web Framework**           | FastAPI       | 0.104+  | API and routing          |
+| **ORM**                     | SQLAlchemy    | 2.0+    | Database abstraction     |
+| **Migration**               | Alembic       | 1.13+   | Schema management        |
+| **Primary Database**        | PostgreSQL    | 13+     | Main datastore           |
+| **Vector Search**           | pgvector      | 0.5+    | Embeddings storage       |
+| **Cache & Sessions**        | Redis         | 6+      | High-speed data access   |
+| **Message Queue**           | RabbitMQ      | 3.8+    | Async task processing    |
+| **Task Worker**             | Celery        | 5.3+    | Background jobs          |
+| **Metrics**                 | Prometheus    | 2.48+   | Performance monitoring   |
+| **Tracing**                 | OpenTelemetry | 1.21+   | Distributed tracing      |
+| **Dashboards**              | Grafana       | 10.2+   | Visualization            |
+| **Container Orchestration** | Kubernetes    | 1.28+   | Deployment (optional)    |
+| **Container Runtime**       | Docker        | 24+     | Containerization         |
+| **Testing Framework**       | pytest        | 7.4+    | Unit & integration tests |
+| **Load Testing**            | k6            | 0.48+   | Performance benchmarks   |
+| **API Documentation**       | OpenAPI 3.0   | -       | Auto-generated docs      |
 
 ---
 
@@ -306,6 +315,7 @@ All **18 phases completed (100%)**:
 DataForge exposes **24 REST endpoints** organized by domain:
 
 ### Categories
+
 - **Health & Status** (2 endpoints) – System status, readiness
 - **Authentication** (4 endpoints) – Login, token refresh, MFA setup
 - **Data Operations** (8 endpoints) – CRUD operations on core entities
@@ -346,12 +356,12 @@ GET /api/v1/audit/logs
 
 Three deployment options with increasing complexity and reliability:
 
-| Mode | Setup Time | Nodes | SLA | Best For |
-|------|-----------|-------|-----|----------|
-| **Development** | 15 min | 1 | - | Local testing |
-| **Single-Node Production** | 30 min | 1 | 99.0% | Small-scale production |
-| **Multi-Node Production** | 2 hours | 3+ | 99.99% | Enterprise deployments |
-| **Kubernetes** | 1–2 hours | 3+ | 99.99% | Cloud-native deployments |
+| Mode                       | Setup Time | Nodes | SLA    | Best For                 |
+| -------------------------- | ---------- | ----- | ------ | ------------------------ |
+| **Development**            | 15 min     | 1     | -      | Local testing            |
+| **Single-Node Production** | 30 min     | 1     | 99.0%  | Small-scale production   |
+| **Multi-Node Production**  | 2 hours    | 3+    | 99.99% | Enterprise deployments   |
+| **Kubernetes**             | 1–2 hours  | 3+    | 99.99% | Cloud-native deployments |
 
 ### Quick Deploy Commands
 
@@ -373,6 +383,7 @@ helm install dataforge ./k8s/helm-chart -f values-prod.yaml
 ## 📈 Performance & Scaling
 
 ### Target Metrics
+
 - **API Latency:** <100ms (p95)
 - **Throughput:** 1,000+ RPS sustained
 - **Concurrent Clients:** 10,000+
@@ -396,12 +407,14 @@ cat results/k6-summary.json
 ### Scaling Strategies
 
 **Vertical Scaling:**
+
 - Increase CPU/memory allocation
 - Tune database parameters (shared_buffers, work_mem)
 - Optimize connection pooling
 - Enable compression for large payloads
 
 **Horizontal Scaling:**
+
 - Multiple application instances behind load balancer
 - PostgreSQL read replicas
 - Redis Sentinel for cache failover
@@ -413,20 +426,20 @@ cat results/k6-summary.json
 
 All guides, references, and runbooks are organized consistently:
 
-| Guide | Purpose | Lines |
-|-------|---------|-------|
+| Guide                                                                              | Purpose                                            | Lines |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- | ----- |
 | **[COMPREHENSIVE_DOCUMENTATION.md](./docs/guides/COMPREHENSIVE_DOCUMENTATION.md)** | Complete system overview, all phases, architecture | 1,158 |
-| **[API_REFERENCE.md](./docs/guides/API_REFERENCE.md)** | All 24 endpoints with examples, error codes | 884 |
-| **[DEPLOYMENT_GUIDE.md](./docs/guides/DEPLOYMENT_GUIDE.md)** | Step-by-step deployment procedures | 729 |
-| **[OPERATIONS_RUNBOOK.md](./docs/guides/OPERATIONS_RUNBOOK.md)** | Daily ops, monitoring, incident response | 686 |
-| **[TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)** | Diagnostics and solutions for common issues | 752 |
-| **[SETUP.md](./docs/setup/SETUP.md)** | Development environment setup | 340 |
-| **[SECURITY.md](./SECURITY.md)** | Security architecture and audit procedures | 117 |
-| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System design, components, scaling | 164 |
-| **[LICENSE.md](./LICENSE.md)** | Commercial license terms | 93 |
-| **[LEGAL.md](./LEGAL.md)** | IP rights and legal protections | 113 |
+| **[API_REFERENCE.md](./docs/guides/API_REFERENCE.md)**                             | All 24 endpoints with examples, error codes        | 884   |
+| **[DEPLOYMENT_GUIDE.md](./docs/guides/DEPLOYMENT_GUIDE.md)**                       | Step-by-step deployment procedures                 | 729   |
+| **[OPERATIONS_RUNBOOK.md](./docs/guides/OPERATIONS_RUNBOOK.md)**                   | Daily ops, monitoring, incident response           | 686   |
+| **[TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)**             | Diagnostics and solutions for common issues        | 752   |
+| **[SETUP.md](./docs/setup/SETUP.md)**                                              | Development environment setup                      | 340   |
+| **[SECURITY.md](./SECURITY.md)**                                                   | Security architecture and audit procedures         | 117   |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)**                                           | System design, components, scaling                 | 164   |
+| **[LICENSE.md](./LICENSE.md)**                                                     | Commercial license terms                           | 93    |
+| **[LEGAL.md](./LEGAL.md)**                                                         | IP rights and legal protections                    | 113   |
 
-**Master index:** [CONSOLIDATED_DOCUMENTATION_INDEX.md](./CONSOLIDATED_DOCUMENTATION_INDEX.md)
+**Master index:** [CONSOLIDATED_DOCUMENTATION_INDEX.md](../CONSOLIDATED_DOCUMENTATION_INDEX.md) (project root)
 
 ---
 
@@ -434,15 +447,15 @@ All guides, references, and runbooks are organized consistently:
 
 Common issues and solutions:
 
-| Issue | Solution |
-|-------|----------|
-| **Port already in use** | `lsof -i :8000` and kill the process, or use different port |
-| **PostgreSQL connection failed** | Check `DATABASE_URL` in `.env`, verify PostgreSQL is running |
-| **Redis connection refused** | Verify Redis is running on `localhost:6379`, check firewall rules |
-| **RabbitMQ connection error** | Check `RABBITMQ_URL`, ensure RabbitMQ service is running |
-| **Slow API responses** | Enable slow query logging in PostgreSQL, check Redis memory |
-| **MFA code invalid** | Verify system clock is synchronized, check TOTP secret |
-| **Audit log bloat** | Run `python scripts/rotate-audit-logs.sh` monthly |
+| Issue                            | Solution                                                          |
+| -------------------------------- | ----------------------------------------------------------------- |
+| **Port already in use**          | `lsof -i :8000` and kill the process, or use different port       |
+| **PostgreSQL connection failed** | Check `DATABASE_URL` in `.env`, verify PostgreSQL is running      |
+| **Redis connection refused**     | Verify Redis is running on `localhost:6379`, check firewall rules |
+| **RabbitMQ connection error**    | Check `RABBITMQ_URL`, ensure RabbitMQ service is running          |
+| **Slow API responses**           | Enable slow query logging in PostgreSQL, check Redis memory       |
+| **MFA code invalid**             | Verify system clock is synchronized, check TOTP secret            |
+| **Audit log bloat**              | Run `python scripts/rotate-audit-logs.sh` monthly                 |
 
 **Detailed troubleshooting:** [docs/guides/TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)
 
@@ -453,6 +466,7 @@ Common issues and solutions:
 DataForge is built with enterprise security as a first-class requirement:
 
 ### Authentication & Authorization
+
 - OAuth2 / OIDC integration for enterprise identity
 - Multi-factor authentication (TOTP + backup codes)
 - Device tracking and session management
@@ -460,6 +474,7 @@ DataForge is built with enterprise security as a first-class requirement:
 - Automatic token expiration and revocation
 
 ### Data Protection
+
 - AES-256 encryption at rest (field-level)
 - TLS 1.3 for all in-transit communication
 - Automatic key rotation without downtime
@@ -467,6 +482,7 @@ DataForge is built with enterprise security as a first-class requirement:
 - Secure secret storage (HashiCorp Vault / AWS KMS compatible)
 
 ### Audit & Logging
+
 - Immutable, cryptographically-signed event logs
 - HMAC-SHA256 signatures on all audit records
 - 90+ day event retention
@@ -474,6 +490,7 @@ DataForge is built with enterprise security as a first-class requirement:
 - Compliance reports (GDPR, CCPA, HIPAA, SOC2, PCI-DSS)
 
 ### Infrastructure Security
+
 - Zero-trust architecture with network segmentation
 - Rate limiting on all public endpoints
 - Fail2Ban integration for brute-force protection
