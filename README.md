@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://firebasestorage.googleapis.com/v0/b/endless-fire-467204-n2.firebasestorage.app/o/Forge%2FDataForge_icon.avif?alt=media&token=1e81b1bd-9cf2-4e56-9f3a-e9aa14b9cd0a"
+  <img src="https://firebasestorage.googleapis.com/v0/b/endless-fire-467204-n2.firebasestorage.app/o/Forge%2FForge_Ecosystem_icon.avif?alt=media&token=4f342440-6299-46c0-a825-c37b1f75170d"
        alt="Forge Ecosystem Logo"
        width="200"
        style="border-radius: 12px;" />
@@ -45,6 +45,7 @@
 ### What is Forge?
 
 Forge is a **production-ready ecosystem** of interconnected products that share:
+
 - ✅ **Unified data layer** (DataForge) – single source of truth for all products
 - ✅ **Enterprise security** – OAuth2, MFA, field-level encryption, audit logs
 - ✅ **Compliance automation** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS ready
@@ -54,15 +55,15 @@ Forge is a **production-ready ecosystem** of interconnected products that share:
 
 ### Quick Facts
 
-| Metric | Value |
-|--------|-------|
-| **Ecosystem Status** | 🟢 Production Ready ✅ |
-| **Core Products** | 6 (AuthorForge, NeuroForge, VibeForge, TradeForge, Leopold, Livy) |
-| **Data Engine (DataForge)** | 18/18 phases (100%) ✅ |
-| **Tests Passing** | 296/296 (100%) ✅ |
-| **Total Documentation** | 10,221+ lines |
-| **Production Code** | 27,857+ lines |
-| **Version** | 5.1 |
+| Metric                      | Value                                                             |
+| --------------------------- | ----------------------------------------------------------------- |
+| **Ecosystem Status**        | 🟢 Production Ready ✅                                            |
+| **Core Products**           | 6 (AuthorForge, NeuroForge, VibeForge, TradeForge, Leopold, Livy) |
+| **Data Engine (DataForge)** | 18/18 phases (100%) ✅                                            |
+| **Tests Passing**           | 296/296 (100%) ✅                                                 |
+| **Total Documentation**     | 10,221+ lines                                                     |
+| **Production Code**         | 27,857+ lines                                                     |
+| **Version**                 | 5.1                                                               |
 
 ---
 
@@ -71,6 +72,7 @@ Forge is a **production-ready ecosystem** of interconnected products that share:
 The Forge Ecosystem consists of 6 tightly integrated products, all powered by the **DataForge** core engine:
 
 ### 1. **DataForge** 🗄️ – Core Data & Knowledge Engine
+
 - **Purpose:** Unified data storage, semantic retrieval, event auditing, compliance automation
 - **Status:** ✅ Production Ready (18/18 phases)
 - **Repository:** `./DataForge/`
@@ -85,6 +87,7 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
 - **Documentation:** [DataForge/README.md](./DataForge/README.md) (562 lines)
 
 ### 2. **AuthorForge** ✍️ – AI Writing Platform
+
 - **Purpose:** Genre-aware creative writing with narrative structuring
 - **Status:** ✅ In Production
 - **Repository:** `./AuthorForge/`
@@ -97,6 +100,7 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
 - **Documentation:** `./AuthorForge/README.md`
 
 ### 3. **NeuroForge** 🧠 – AI Model Infrastructure
+
 - **Purpose:** Model routing, inference optimization, embeddings generation
 - **Status:** ✅ In Production
 - **Repository:** `./NeuroForge/`
@@ -109,6 +113,7 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
 - **Documentation:** `./NeuroForge/README.md`
 
 ### 4. **VibeForge** 🎨 – Execution Context & Analytics
+
 - **Purpose:** Prompt execution, performance analytics, evaluation datasets
 - **Status:** ✅ In Production
 - **Repository:** `./vibeforge/`
@@ -121,6 +126,7 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
 - **Documentation:** `./vibeforge/README.md`
 
 ### 5. **TradeForge** 📈 – Market Intelligence Platform
+
 - **Purpose:** Market signals, historical feeds, financial datasets
 - **Status:** ✅ In Production
 - **Repository:** (External reference)
@@ -132,6 +138,7 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
   - Full DataForge integration for data consistency
 
 ### 6. **Leopold** 🌿 – Ecological Analysis Platform
+
 - **Purpose:** Ecological observations, biological datasets, environmental tracking
 - **Status:** ✅ In Production
 - **Key Features:**
@@ -227,12 +234,12 @@ open http://localhost:8000/docs
 
 ### Deployment Options
 
-| Option | Setup Time | Nodes | SLA | Best For |
-|--------|-----------|-------|-----|----------|
-| **Development** | 15 min | 1 | - | Local testing |
-| **Single-Node Production** | 30 min | 1 | 99.0% | Small-scale production |
-| **Multi-Node Production** | 2 hours | 3+ | 99.99% | Enterprise deployments |
-| **Kubernetes** | 1–2 hours | 3+ | 99.99% | Cloud-native environments |
+| Option                     | Setup Time | Nodes | SLA    | Best For                  |
+| -------------------------- | ---------- | ----- | ------ | ------------------------- |
+| **Development**            | 15 min     | 1     | -      | Local testing             |
+| **Single-Node Production** | 30 min     | 1     | 99.0%  | Small-scale production    |
+| **Multi-Node Production**  | 2 hours    | 3+    | 99.99% | Enterprise deployments    |
+| **Kubernetes**             | 1–2 hours  | 3+    | 99.99% | Cloud-native environments |
 
 **Full deployment guide:** [DataForge/docs/guides/DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)
 
@@ -254,14 +261,14 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 
 ### DataForge Status
 
-| Metric | Value |
-|--------|-------|
-| **Completion** | 18/18 phases (100%) ✅ |
-| **Tests Passing** | 296/296 (100%) ✅ |
-| **Production Code** | 27,857 lines |
-| **Documentation** | 5,742+ lines |
-| **Version** | 5.1 |
-| **SLA Target** | 99.99% (multi-node) |
+| Metric              | Value                  |
+| ------------------- | ---------------------- |
+| **Completion**      | 18/18 phases (100%) ✅ |
+| **Tests Passing**   | 296/296 (100%) ✅      |
+| **Production Code** | 27,857 lines           |
+| **Documentation**   | 5,742+ lines           |
+| **Version**         | 5.1                    |
+| **SLA Target**      | 99.99% (multi-node)    |
 
 ### Documentation
 
@@ -280,18 +287,19 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 
 ### Completion Metrics
 
-| Category | Metric | Status |
-|----------|--------|--------|
-| **DataForge Phases** | 18/18 Complete | ✅ 100% |
-| **Tests** | 296 Passing | ✅ 100% |
-| **Documentation** | 10,221+ lines | ✅ Comprehensive |
-| **Security Phases** | 3/3 (Auth, Encryption, Audit) | ✅ Complete |
-| **HA Phases** | 4/4 (Backups, Tolerance, HA, Monitoring) | ✅ Complete |
-| **Production Ready** | Verified & Tested | ✅ YES |
+| Category             | Metric                                   | Status           |
+| -------------------- | ---------------------------------------- | ---------------- |
+| **DataForge Phases** | 18/18 Complete                           | ✅ 100%          |
+| **Tests**            | 296 Passing                              | ✅ 100%          |
+| **Documentation**    | 10,221+ lines                            | ✅ Comprehensive |
+| **Security Phases**  | 3/3 (Auth, Encryption, Audit)            | ✅ Complete      |
+| **HA Phases**        | 4/4 (Backups, Tolerance, HA, Monitoring) | ✅ Complete      |
+| **Production Ready** | Verified & Tested                        | ✅ YES           |
 
 ### Feature Coverage
 
 **Security & Compliance:**
+
 - ✅ OAuth2 / OIDC authentication
 - ✅ Multi-factor authentication (TOTP + backup codes)
 - ✅ Field-level AES-256 encryption
@@ -300,6 +308,7 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 - ✅ GDPR, CCPA, HIPAA, SOC2, PCI-DSS compliance frameworks
 
 **High Availability:**
+
 - ✅ Multi-node replication with automatic failover
 - ✅ Redis Sentinel for cache failover
 - ✅ RabbitMQ mirroring for queue reliability
@@ -309,6 +318,7 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 - ✅ 99.99% SLA for multi-node deployments
 
 **Observability:**
+
 - ✅ Prometheus metrics (40+ application metrics)
 - ✅ OpenTelemetry distributed tracing
 - ✅ Structured JSON logging with correlation IDs
@@ -327,19 +337,19 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 
 ### DataForge Documentation Suite
 
-| Document | Purpose | Lines |
-|----------|---------|-------|
-| [README.md](./DataForge/README.md) | Enterprise overview | 562 |
-| [COMPREHENSIVE_DOCUMENTATION.md](./DataForge/docs/guides/COMPREHENSIVE_DOCUMENTATION.md) | Complete architecture | 1,158 |
-| [API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md) | 24 API endpoints | 884 |
-| [DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md) | Deployment procedures | 729 |
-| [OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md) | Daily operations | 686 |
-| [TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md) | Problem diagnostics | 752 |
-| [SECURITY.md](./DataForge/SECURITY.md) | Security architecture | 117 |
-| [ARCHITECTURE.md](./DataForge/ARCHITECTURE.md) | System design | 164 |
-| [LICENSE.md](./DataForge/LICENSE.md) | Commercial license | 93 |
-| [LEGAL.md](./DataForge/LEGAL.md) | IP protections | 113 |
-| **Total** | **All guides** | **5,742 lines** |
+| Document                                                                                 | Purpose               | Lines           |
+| ---------------------------------------------------------------------------------------- | --------------------- | --------------- |
+| [README.md](./DataForge/README.md)                                                       | Enterprise overview   | 562             |
+| [COMPREHENSIVE_DOCUMENTATION.md](./DataForge/docs/guides/COMPREHENSIVE_DOCUMENTATION.md) | Complete architecture | 1,158           |
+| [API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md)                             | 24 API endpoints      | 884             |
+| [DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)                       | Deployment procedures | 729             |
+| [OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md)                   | Daily operations      | 686             |
+| [TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md)             | Problem diagnostics   | 752             |
+| [SECURITY.md](./DataForge/SECURITY.md)                                                   | Security architecture | 117             |
+| [ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)                                           | System design         | 164             |
+| [LICENSE.md](./DataForge/LICENSE.md)                                                     | Commercial license    | 93              |
+| [LEGAL.md](./DataForge/LEGAL.md)                                                         | IP protections        | 113             |
+| **Total**                                                                                | **All guides**        | **5,742 lines** |
 
 ### Directory Structure
 
@@ -379,23 +389,23 @@ Forge/
 
 ### Core Technologies (DataForge)
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| **Language** | Python | 3.11+ | Backend application |
-| **Web Framework** | FastAPI | 0.104+ | REST API and routing |
-| **ORM** | SQLAlchemy | 2.0+ | Database abstraction |
-| **Database** | PostgreSQL | 13+ | Primary datastore |
-| **Vector Search** | pgvector | 0.5+ | Embeddings storage |
-| **Cache** | Redis | 6+ | Session & cache layer |
-| **Queue** | RabbitMQ | 3.8+ | Async message broker |
-| **Task Worker** | Celery | 5.3+ | Background job processing |
-| **Metrics** | Prometheus | 2.48+ | Performance monitoring |
-| **Tracing** | OpenTelemetry | 1.21+ | Distributed tracing |
-| **Dashboards** | Grafana | 10.2+ | Visualization & alerts |
-| **Orchestration** | Kubernetes | 1.28+ | Container orchestration |
-| **Container Runtime** | Docker | 24+ | Containerization |
-| **Testing** | pytest | 7.4+ | Unit & integration tests |
-| **Load Testing** | k6 | 0.48+ | Performance benchmarking |
+| Layer                 | Technology    | Version | Purpose                   |
+| --------------------- | ------------- | ------- | ------------------------- |
+| **Language**          | Python        | 3.11+   | Backend application       |
+| **Web Framework**     | FastAPI       | 0.104+  | REST API and routing      |
+| **ORM**               | SQLAlchemy    | 2.0+    | Database abstraction      |
+| **Database**          | PostgreSQL    | 13+     | Primary datastore         |
+| **Vector Search**     | pgvector      | 0.5+    | Embeddings storage        |
+| **Cache**             | Redis         | 6+      | Session & cache layer     |
+| **Queue**             | RabbitMQ      | 3.8+    | Async message broker      |
+| **Task Worker**       | Celery        | 5.3+    | Background job processing |
+| **Metrics**           | Prometheus    | 2.48+   | Performance monitoring    |
+| **Tracing**           | OpenTelemetry | 1.21+   | Distributed tracing       |
+| **Dashboards**        | Grafana       | 10.2+   | Visualization & alerts    |
+| **Orchestration**     | Kubernetes    | 1.28+   | Container orchestration   |
+| **Container Runtime** | Docker        | 24+     | Containerization          |
+| **Testing**           | pytest        | 7.4+    | Unit & integration tests  |
+| **Load Testing**      | k6            | 0.48+   | Performance benchmarking  |
 
 ---
 
@@ -404,6 +414,7 @@ Forge/
 ### Enterprise Security Features
 
 **Authentication & Authorization:**
+
 - OAuth2 / OIDC integration for enterprise identity
 - Multi-factor authentication (TOTP + backup codes)
 - Device tracking and session management
@@ -411,6 +422,7 @@ Forge/
 - Resource-level permission enforcement
 
 **Data Protection:**
+
 - AES-256 encryption at rest (field-level)
 - TLS 1.3 for all in-transit communication
 - Automatic key rotation
@@ -418,6 +430,7 @@ Forge/
 - Secure secret storage (HashiCorp Vault / AWS KMS compatible)
 
 **Audit & Compliance:**
+
 - Immutable, cryptographically-signed event logs
 - HMAC-SHA256 signatures on all audit records
 - 90+ day event retention
@@ -425,6 +438,7 @@ Forge/
 - Compliance reports (GDPR, CCPA, HIPAA, SOC2, PCI-DSS)
 
 **Infrastructure Security:**
+
 - Zero-trust architecture with network segmentation
 - Rate limiting on all public endpoints
 - Fail2Ban integration for brute-force protection
@@ -432,6 +446,7 @@ Forge/
 - Supply chain integrity (pinned dependencies)
 
 **See Also:**
+
 - 🔐 [DataForge/SECURITY.md](./DataForge/SECURITY.md) – Complete security documentation
 - ⚖️ [DataForge/LICENSE.md](./DataForge/LICENSE.md) – Commercial licensing terms
 - 📋 [DataForge/LEGAL.md](./DataForge/LEGAL.md) – IP protections and legal framework
@@ -496,7 +511,7 @@ All code, documentation, schemas, diagrams, and business logic are protected int
 ✅ **99.99% SLA** – Multi-node deployments with automatic failover  
 ✅ **Full Compliance** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS frameworks  
 ✅ **Complete Documentation** – 10,221+ lines across 18+ guides  
-✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting  
+✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting
 
 ### Status
 
@@ -504,7 +519,7 @@ All code, documentation, schemas, diagrams, and business logic are protected int
 
 **Maintained by:** Boswell Digital Solutions LLC  
 **Version:** 5.1  
-**Last Updated:** November 21, 2025  
+**Last Updated:** November 21, 2025
 
 ---
 
