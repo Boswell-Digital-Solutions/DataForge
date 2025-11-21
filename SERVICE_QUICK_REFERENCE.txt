@@ -1,0 +1,209 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  FORGE SERVICES - QUICK REFERENCE CARD                     ║
+║                    Documentation Navigation Guide                          ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📌 EVERY SERVICE NOW HAS:
+═════════════════════════════════════════════════════════════════════════════
+
+✅ DOCUMENTATION_MAP.md (in service root)
+   Your primary navigation hub with:
+   • Role-based paths (New Dev, Quick Start, etc.)
+   • Common tasks with links
+   • File structure reference
+   • Project status
+   • Key files guide
+
+✅ Clear Root Files
+   • README.md - Overview
+   • INDEX.md - Master index (when applicable)
+   • ARCHITECTURE.md - Design (when applicable)
+   • Setup & reference docs
+
+✅ Organized Archives
+   • docs/archive/ - History by phase
+   • docs/setup/ - Getting started
+   • docs/guides/ - Features & integration
+   • docs/references/ - Technical reviews
+
+
+🚀 NAVIGATION PATHS
+═════════════════════════════════════════════════════════════════════════════
+
+For Any Service:
+  1. Start: [Service]/DOCUMENTATION_MAP.md ← PRIMARY HUB
+  2. Find: Your role-based path or task
+  3. Jump: Follow link to relevant doc
+  4. Reference: docs/archive/ for history
+
+
+Specific Services:
+
+📦 DataForge (Knowledge Base Backend)
+   START → DataForge/DOCUMENTATION_MAP.md
+   Keys: README.md, ARCHITECTURE.md, API.md, TESTING.md
+   
+🧠 NeuroForge (LLM Orchestration)
+   START → NeuroForge/DOCUMENTATION_MAP.md
+   Keys: INDEX.md, docs/setup/, 5-stage pipeline
+   
+✍️  AuthorForge_Solid (Writing Suite)
+   START → AuthorForge_Solid_new/DOCUMENTATION_MAP.md
+   Keys: README.md, docs/setup/CLAUDE.md, 7 pages
+   
+💬 VibeForge (Prompt Workbench)
+   START → vibeforge/DOCUMENTATION_MAP.md
+   Keys: README.md, ARCHITECTURE.md, 9 pages
+   
+🔧 vibeforge-backend (Unified LLM)
+   START → vibeforge-backend/DOCUMENTATION_MAP.md
+   Keys: README.md, docs/guides/API_REFERENCE.md
+
+
+📂 FILE STRUCTURE IN EACH SERVICE
+═════════════════════════════════════════════════════════════════════════════
+
+[Service]/
+├── DOCUMENTATION_MAP.md ⭐ (START HERE)
+│
+├── Root Level Core Docs
+│   ├── README.md
+│   ├── INDEX.md (some services)
+│   ├── ARCHITECTURE.md (some services)
+│   └── API.md, TESTING.md, etc.
+│
+└── docs/
+    ├── archive/
+    │   ├── phase-1/, phase-2/, etc.
+    │   └── *_COMPLETE.md, *_SUMMARY.md
+    │
+    ├── setup/
+    │   ├── Quick reference & dev guides
+    │   └── Setup instructions
+    │
+    ├── guides/
+    │   ├── Integration procedures
+    │   ├── API documentation
+    │   ├── Feature implementation
+    │   └── Deployment guides
+    │
+    └── references/ (optional)
+        └── Technical reviews
+
+
+🎯 COMMON TASKS BY SERVICE
+═════════════════════════════════════════════════════════════════════════════
+
+DataForge:
+  Set up locally? → docs/setup/ + SETUP.md
+  See API? → API.md
+  Run tests? → TESTING.md
+  Deploy? → DEPLOYMENT.md
+
+NeuroForge:
+  Understand pipeline? → INDEX.md
+  Set up backend? → docs/setup/BACKEND_SETUP_COMPLETE.md
+  Quick commands? → docs/setup/DEVELOPER_QUICK_REFERENCE.md
+  Check fixes? → docs/archive/FIXES_APPLIED.md
+
+AuthorForge_Solid:
+  Design system? → docs/setup/CLAUDE.md ⭐
+  Implement page? → docs/guides/[PAGE]_*.md
+  Add feature? → DOCUMENTATION_MAP.md → guides section
+  Review history? → docs/archive/
+
+VibeForge:
+  3-column design? → ARCHITECTURE.md
+  Set up? → SETUP.md
+  Develop? → DEVELOPMENT.md
+  Test? → TESTING.md
+
+vibeforge-backend:
+  Quick start? → docs/setup/DEVELOPER_QUICKSTART.md
+  API endpoints? → docs/guides/API_REFERENCE.md
+  Integration? → docs/guides/INTEGRATION_GUIDE.md
+  Deploy? → docs/guides/DEPLOYMENT_GUIDE.md
+
+
+✅ STATISTICS
+═════════════════════════════════════════════════════════════════════════════
+
+Total Files Organized: 235+ across 5 services
+Root Active Files: 29
+Archived Files: 206
+
+Per Service:
+  DataForge:         9 active | 93 archived (102 total)
+  NeuroForge:        1 active | 10 archived (11 total)
+  AuthorForge_Solid: 2 active | 35 archived (37 total)
+  VibeForge:        10 active | 40 archived (50 total)
+  vibeforge-backend: 7 active | 28 archived (35 total)
+
+
+🎓 LEARNING PATHS
+═════════════════════════════════════════════════════════════════════════════
+
+New Developer:
+  1. /Forge/README.md (5 min)
+  2. /Forge/00_DOCUMENTATION_MAP.md (5 min)
+  3. /Forge/[Service]/DOCUMENTATION_MAP.md (5 min)
+  4. Follow service guide → Ready to code!
+
+Experienced Developer:
+  1. /Forge/[Service]/DOCUMENTATION_MAP.md (30 sec reference)
+  2. Jump to needed doc
+  3. Done!
+
+AI Agent:
+  1. Root: .github/copilot-instructions.md
+  2. Service: DOCUMENTATION_MAP.md
+  3. Deep dive: Service guides & archives
+
+
+🔍 QUICK LOOKUP
+═════════════════════════════════════════════════════════════════════════════
+
+Find docs fast:
+  Start → DOCUMENTATION_MAP.md (any service)
+  Search: "I want to..." table
+  Click: Direct link
+  Read: Done!
+
+Need history?
+  Go → docs/archive/ in service
+  Browse: Organized by phase
+  Find: What you need
+
+Need API reference?
+  Go → docs/guides/
+  Look: API_REFERENCE.md or similar
+  Copy: Examples & endpoints
+
+
+🌍 ECOSYSTEM NAVIGATION
+═════════════════════════════════════════════════════════════════════════════
+
+Root Level (Master):
+  /Forge/README.md → Overview
+  /Forge/00_DOCUMENTATION_MAP.md → Master map
+
+Service Level (Specific):
+  /Forge/[Service]/DOCUMENTATION_MAP.md → Service hub
+  /Forge/[Service]/README.md → Service overview
+  /Forge/[Service]/docs/ → All organized docs
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+KEY INSIGHT:
+Each service is self-contained but cross-linked
+to the root ecosystem documentation.
+
+START HERE:
+  Root: /Forge/README.md → 00_DOCUMENTATION_MAP.md
+  Service: /Forge/[Service]/DOCUMENTATION_MAP.md
+
+BOOKMARK THIS:
+  /Forge/[Service]/DOCUMENTATION_MAP.md in your service
+
+═════════════════════════════════════════════════════════════════════════════
