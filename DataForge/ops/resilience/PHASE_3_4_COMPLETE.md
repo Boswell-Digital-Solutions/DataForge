@@ -137,21 +137,21 @@ The system provides complete end-to-end request tracing across multiple services
 
 ### Span Kinds
 
-| Kind | Purpose | Example |
-|------|---------|---------|
-| **INTERNAL** | Operation within single service | Database query, cache lookup |
-| **SERVER** | Service receiving request | HTTP request handler, RPC server |
-| **CLIENT** | Service making outbound request | HTTP client, database client |
-| **PRODUCER** | Message producer | Kafka producer, message queue |
-| **CONSUMER** | Message consumer | Kafka consumer, task worker |
+| Kind         | Purpose                         | Example                          |
+| ------------ | ------------------------------- | -------------------------------- |
+| **INTERNAL** | Operation within single service | Database query, cache lookup     |
+| **SERVER**   | Service receiving request       | HTTP request handler, RPC server |
+| **CLIENT**   | Service making outbound request | HTTP client, database client     |
+| **PRODUCER** | Message producer                | Kafka producer, message queue    |
+| **CONSUMER** | Message consumer                | Kafka consumer, task worker      |
 
 ### Span Status
 
-| Status | Meaning | Next Action |
-|--------|---------|-------------|
-| **UNSET** | Not yet determined | Monitor and update |
-| **OK** | Operation succeeded | End span, propagate success |
-| **ERROR** | Operation failed | Add error details, end span |
+| Status    | Meaning             | Next Action                 |
+| --------- | ------------------- | --------------------------- |
+| **UNSET** | Not yet determined  | Monitor and update          |
+| **OK**    | Operation succeeded | End span, propagate success |
+| **ERROR** | Operation failed    | Add error details, end span |
 
 ### Example: Tracing a Database Query
 
@@ -166,7 +166,7 @@ with tracer.trace_operation("db.query", SpanKind.INTERNAL) as span:
     span.set_attribute("db.name", "users")
     span.set_attribute("db.statement", "SELECT * FROM users WHERE id = ?")
     span.set_attribute("db.client", "psycopg2")
-    
+
     try:
         result = execute_query("SELECT * FROM users WHERE id = ?", [123])
         span.set_status(SpanStatus.OK)
@@ -249,10 +249,10 @@ span.end()
 ```python
 with tracer.trace_operation("expensive_operation") as span:
     span.set_attribute("param", "value")
-    
+
     # Code here is automatically timed
     result = expensive_function()
-    
+
     # Span automatically ends on exit
     # Status auto-set to OK unless exception occurs
 ```
@@ -796,14 +796,15 @@ curl http://localhost:8000/api/tracing/cross-region-traces/$TRACE_ID
 
 ### Memory Usage
 
-| Component | Memory Per Item | Notes |
-|-----------|-----------------|-------|
-| Trace | ~2 KB | Includes all metadata |
-| Span | ~500 B | Average span |
-| Event | ~200 B | Per event |
-| Attribute | ~100 B | Per attribute |
+| Component | Memory Per Item | Notes                 |
+| --------- | --------------- | --------------------- |
+| Trace     | ~2 KB           | Includes all metadata |
+| Span      | ~500 B          | Average span          |
+| Event     | ~200 B          | Per event             |
+| Attribute | ~100 B          | Per attribute         |
 
 **Sizing Example (1000 concurrent traces):**
+
 - 1000 traces × 2 KB = 2 MB
 - 5000 spans × 500 B = 2.5 MB
 - Total: ~5 MB (acceptable in-memory)
@@ -872,12 +873,12 @@ elif request.path.startswith("/user/profile"):
 
 ### Integration Points
 
-| Phase | Integration | Usage |
-|-------|-----------|-------|
-| Phase 2.2 (DLQ) | Trace task lifecycle | Track task retries and failures |
-| Phase 3.1 (DB HA) | Trace database calls | Monitor replication lag |
-| Phase 3.2 (Cache HA) | Trace cache operations | Identify cache misses |
-| Phase 3.3 (API HA) | Trace cross-instance routing | Track instance selection and failover |
+| Phase                | Integration                  | Usage                                 |
+| -------------------- | ---------------------------- | ------------------------------------- |
+| Phase 2.2 (DLQ)      | Trace task lifecycle         | Track task retries and failures       |
+| Phase 3.1 (DB HA)    | Trace database calls         | Monitor replication lag               |
+| Phase 3.2 (Cache HA) | Trace cache operations       | Identify cache misses                 |
+| Phase 3.3 (API HA)   | Trace cross-instance routing | Track instance selection and failover |
 
 ### Recommended Architecture
 
@@ -919,6 +920,7 @@ Client
 ### Core Implementation (1,682 lines)
 
 1. **app/utils/distributed_tracing.py** (799 lines)
+
    - DistributedTracer class with full OpenTelemetry support
    - SpanContext, Span, Trace classes with lifecycle management
    - TraceCollector for in-memory trace storage
@@ -927,6 +929,7 @@ Client
    - @trace_decorator for automatic instrumentation
 
 2. **app/utils/cross_region_tracing.py** (392 lines)
+
    - CrossRegionTraceCoordinator for multi-region correlation
    - RegionHealthMonitor with latency and failure tracking
    - RegionInfo and RegionSpan dataclasses
@@ -956,33 +959,36 @@ Client
 
 ## Metrics Summary
 
-| Metric | Value |
-|--------|-------|
-| **Lines of Code** | 1,682 (production) + 688 (tests) |
-| **Test Success** | 32/32 (100%) |
-| **Code Coverage** | 82% (distributed_tracing.py), 70% (cross_region_tracing.py) |
-| **Dependencies Added** | 0 (all stdlib) |
-| **API Endpoints** | 20+ fully documented |
-| **Span Kinds** | 5 (INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER) |
-| **Regions Supported** | Unlimited |
+| Metric                 | Value                                                       |
+| ---------------------- | ----------------------------------------------------------- |
+| **Lines of Code**      | 1,682 (production) + 688 (tests)                            |
+| **Test Success**       | 32/32 (100%)                                                |
+| **Code Coverage**      | 82% (distributed_tracing.py), 70% (cross_region_tracing.py) |
+| **Dependencies Added** | 0 (all stdlib)                                              |
+| **API Endpoints**      | 20+ fully documented                                        |
+| **Span Kinds**         | 5 (INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER)            |
+| **Regions Supported**  | Unlimited                                                   |
 
 ---
 
 ## Future Enhancements
 
 ### Short Term
+
 - [ ] Jaeger UI integration
 - [ ] Trace analytics dashboard
 - [ ] Automated anomaly detection
 - [ ] Request dependency graphs
 
 ### Medium Term
+
 - [ ] Distributed trace sampling strategies (adaptive)
 - [ ] Trace correlation with metrics (Prometheus)
 - [ ] Distributed tracing with Datadog backend
 - [ ] Trace-based alerts
 
 ### Long Term
+
 - [ ] Machine learning for anomaly detection in traces
 - [ ] Automatic performance optimization suggestions
 - [ ] OpenTelemetry collector support (OTEL Collector)
@@ -1001,7 +1007,7 @@ PHASE 3.4 provides production-grade distributed tracing with:
 ✅ **Trace sampling** for production efficiency  
 ✅ **20+ REST endpoints** for complete trace management  
 ✅ **100% test coverage** ensuring reliability  
-✅ **Zero new dependencies** maintaining project purity  
+✅ **Zero new dependencies** maintaining project purity
 
 The system enables rapid debugging and performance analysis across multi-service, multi-region deployments.
 
