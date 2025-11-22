@@ -1,6 +1,6 @@
 # Consolidated Forge Documentation Index
 
-**Last Updated:** November 21, 2024  
+**Last Updated:** November 22, 2025  
 **Status:** All projects consolidated and organized  
 **Total Documentation:** 1,720+ markdown files across 5 major projects
 
@@ -37,6 +37,13 @@
 - **[MULTI_GENRE_SETUP_GUIDE.md](./MULTI_GENRE_SETUP_GUIDE.md)** - Multi-genre setup and configuration (16,378 lines)
 - **[COMPREHENSIVE_SYSTEM_REVIEW.md](./COMPREHENSIVE_SYSTEM_REVIEW.md)** - Complete system architecture and implementation review
 - **[IMPLEMENTATION_COMPLETE.md](./IMPLEMENTATION_COMPLETE.md)** - Implementation completion summary
+- **[BACKEND_MIGRATION_PLAN.md](./BACKEND_MIGRATION_PLAN.md)** - vibeforge-backend → NeuroForge + DataForge migration plan
+
+### Completion Documents
+
+- **[LLM_PROVIDER_INTEGRATION_COMPLETE.md](./LLM_PROVIDER_INTEGRATION_COMPLETE.md)** - Phase 1.2: LLM Provider Integration (OpenAI, Anthropic, Ollama) ✅ Nov 22, 2025
+- **[AUTHENTICATION_COMPLETE.md](./NeuroForge/AUTHENTICATION_COMPLETE.md)** - JWT authentication implementation ✅
+- **[DATAFORGE_INTEGRATION_COMPLETE.md](./NeuroForge/DATAFORGE_INTEGRATION_COMPLETE.md)** - DataForge stateless integration ✅
 
 ### Phase Summaries
 

@@ -84,6 +84,8 @@ class RunSummary(BaseModel):
     total_tokens: int
     total_cost_usd: float
     status: str
+    tags: List[str] = Field(default_factory=list, description="User-defined tags")
+    notes: Optional[str] = Field(default=None, description="User notes")
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -257,8 +257,15 @@ class RunsRepository:
         
         if tags:
             # Filter by any tag match (OR condition)
+            # For PostgreSQL JSON arrays, cast to text and use simple contains check
+            from sqlalchemy import cast, Text
+            tag_conditions = []
             for tag in tags:
-                query = query.filter(Run.tags.contains([tag]))
+                # Cast JSON to text and check if tag is in the serialized array
+                # This works for simple tag matching
+                tag_conditions.append(cast(Run.tags, Text).contains(f'"{tag}"'))
+            if tag_conditions:
+                query = query.filter(or_(*tag_conditions))
         
         if model_id:
             # Join with model_results to filter by model
@@ -437,6 +444,8 @@ class RunsService:
                 total_tokens=run.total_tokens,
                 total_cost_usd=run.total_cost_usd,
                 status=run.status,
+                tags=run.tags or [],
+                notes=run.notes,
                 created_at=run.created_at
             ))
         

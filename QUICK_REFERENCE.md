@@ -1,22 +1,35 @@
 # The Forge - Quick Reference Guide
 
-**Last Updated:** 2025-11-16
+**Last Updated:** 2025-11-22
+
+---
+
+## 🎉 Latest Updates
+
+### **November 22, 2025** - LLM Provider Integration ✅
+
+- NeuroForge now supports **3 LLM providers**: OpenAI, Anthropic, and Ollama (local)
+- **8 models available**: GPT-4o, GPT-4 Turbo, GPT-3.5, Claude 3.5 Sonnet/Haiku, Llama 3.2, Mistral, Code Llama
+- New endpoints: `GET /api/v1/providers`, enhanced `GET /api/v1/models`
+- Full JWT authentication integration
+- 📖 Details: [LLM_PROVIDER_INTEGRATION_COMPLETE.md](LLM_PROVIDER_INTEGRATION_COMPLETE.md)
 
 ---
 
 ## System Overview
 
-| System | Port | Purpose | Status |
-|--------|------|---------|--------|
-| **DataForge** | 8001 | Knowledge Base + Projects API | ✅ Production Ready |
-| **AuthorForge** | 8000 | AI Writing Assistant API | ✅ Production Ready |
-| **PostgreSQL** | 5432 | Database (pgvector) | ✅ Running |
+| System          | Port | Purpose                       | Status              |
+| --------------- | ---- | ----------------------------- | ------------------- |
+| **DataForge**   | 8001 | Knowledge Base + Projects API | ✅ Production Ready |
+| **AuthorForge** | 8000 | AI Writing Assistant API      | ✅ Production Ready |
+| **PostgreSQL**  | 5432 | Database (pgvector)           | ✅ Running          |
 
 ---
 
 ## Quick Start
 
 ### DataForge
+
 ```bash
 cd DataForge
 
@@ -34,11 +47,13 @@ uvicorn app.main:app --reload --port 8001
 ```
 
 **Access:**
+
 - API Docs: http://localhost:8001/docs
 - Admin UI: http://localhost:8001/admin-ui
 - Health: http://localhost:8001/health
 
 ### AuthorForge
+
 ```bash
 cd AuthorForge
 
@@ -54,8 +69,40 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 **Access:**
+
 - API Docs: http://localhost:8000/docs
 - Health: http://localhost:8000/health
+
+### NeuroForge (NEW!)
+
+```bash
+cd NeuroForge
+
+# Install dependencies
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configure environment (optional for testing)
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OLLAMA_BASE_URL="http://localhost:11434"
+
+# Start server
+uvicorn workbench_app:app --reload --port 8000
+```
+
+**Access:**
+
+- API Docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
+- Provider Status: http://localhost:8000/api/v1/providers (requires JWT)
+
+**Key Features:**
+
+- Multi-provider LLM execution (OpenAI, Anthropic, Ollama)
+- JWT authentication
+- 8 models available (5 API + 3 local)
+- Stateless architecture (persists to DataForge)
 
 ---
 
@@ -64,6 +111,7 @@ uvicorn app.main:app --reload --port 8000
 ### DataForge (Port 8001)
 
 #### Public (No Auth)
+
 ```bash
 # Semantic search
 curl -X POST http://localhost:8001/api/search \
@@ -75,6 +123,7 @@ curl http://localhost:8001/api/search/stats
 ```
 
 #### Admin (JWT Required)
+
 ```bash
 # Get token
 TOKEN=$(curl -X POST http://localhost:8001/auth/token \
@@ -96,6 +145,7 @@ curl -X POST http://localhost:8001/admin/documents \
 ### AuthorForge (Port 8000)
 
 #### Research
+
 ```bash
 # Research query
 curl -X POST http://localhost:8000/research/query \
@@ -108,6 +158,7 @@ curl -X POST http://localhost:8000/research/query \
 ```
 
 #### Smithy (Brainstorming)
+
 ```bash
 # Generate story ideas
 curl -X POST http://localhost:8000/smithy/brainstorm \
@@ -134,6 +185,7 @@ curl -X POST http://localhost:8000/smithy/expand \
 ## Database Schema
 
 ### DataForge Tables
+
 - **users** - Authentication (JWT + bcrypt)
 - **domains** - Knowledge hierarchy (parent-child)
 - **documents** - Content storage
@@ -142,6 +194,7 @@ curl -X POST http://localhost:8000/smithy/expand \
 - **document_tags** - Many-to-many
 
 ### AuthorForge Tables
+
 - **projects** - Writing projects (multi-genre)
 - **manuscripts** - Chapters/scenes
 - **characters** - Character profiles
@@ -155,6 +208,7 @@ curl -X POST http://localhost:8000/smithy/expand \
 ## Testing
 
 ### DataForge
+
 ```bash
 cd DataForge
 
@@ -173,6 +227,7 @@ pytest tests/test_sql_integration.py -v # SQL tests (21)
 ```
 
 ### AuthorForge
+
 ```bash
 cd AuthorForge
 
@@ -184,6 +239,7 @@ cd AuthorForge
 ## Configuration
 
 ### DataForge (.env)
+
 ```bash
 # Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
@@ -201,6 +257,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 ### AuthorForge (.env)
+
 ```bash
 # Required
 ANTHROPIC_API_KEY=sk-ant-...
@@ -223,20 +280,23 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ## Common Tasks
 
 ### Add Knowledge to DataForge
+
 1. Login to Admin UI: http://localhost:8001/admin-ui
 2. Create domain (e.g., "writing_craft")
 3. Add documents (auto-chunks & embeds)
 4. Test search in UI
 
 ### Query from AuthorForge
+
 1. Ensure DataForge is running
 2. Send research query with genre
 3. AuthorForge queries DataForge domains
 4. Claude synthesizes answer from sources
 
 ### Manage Projects
+
 1. Get JWT token from DataForge
-2. Use /api/projects/* endpoints
+2. Use /api/projects/\* endpoints
 3. Create projects, manuscripts, characters
 4. Track word counts automatically
 
@@ -245,6 +305,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ## Troubleshooting
 
 ### Database Connection Failed
+
 ```bash
 # Check PostgreSQL is running
 docker ps | grep postgres
@@ -256,6 +317,7 @@ sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
 ```
 
 ### Tests Failing
+
 ```bash
 # Check database is accessible
 psql -h localhost -U postgres -c "SELECT version();"
@@ -268,6 +330,7 @@ rm -rf .pytest_cache __pycache__
 ```
 
 ### API Not Responding
+
 ```bash
 # Check server is running
 curl http://localhost:8001/health  # DataForge
@@ -310,14 +373,14 @@ Forge/
 
 ## Key Metrics
 
-| Metric | DataForge | AuthorForge |
-|--------|-----------|-------------|
-| Python Files | 21 | 8 |
-| Database Tables | 13 | 7 (in DataForge DB) |
-| API Endpoints | 40+ | 4 |
-| Tests | 76 (100% pass) | 0 |
-| Code Coverage | 55% | N/A |
-| Documentation | 14 files | 2 files |
+| Metric          | DataForge      | AuthorForge         |
+| --------------- | -------------- | ------------------- |
+| Python Files    | 21             | 8                   |
+| Database Tables | 13             | 7 (in DataForge DB) |
+| API Endpoints   | 40+            | 4                   |
+| Tests           | 76 (100% pass) | 0                   |
+| Code Coverage   | 55%            | N/A                 |
+| Documentation   | 14 files       | 2 files             |
 
 ---
 
@@ -332,7 +395,7 @@ Forge/
 ---
 
 **For detailed information, see:**
+
 - DataForge: `DataForge/README.md`, `DataForge/PROJECT_STATUS.md`
 - AuthorForge: `AuthorForge/README.md`
 - Full Review: `COMPREHENSIVE_SYSTEM_REVIEW.md`
-

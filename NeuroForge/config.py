@@ -34,6 +34,14 @@ class Config:
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
         self.anthropic_api_key: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
         
+        # Security & Authentication
+        self.secret_key: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+        self.access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+        self.allow_x_user_id_header: bool = os.getenv("ALLOW_X_USER_ID_HEADER", "true").lower() == "true"
+        
+        # Environment
+        self.environment: str = os.getenv("ENVIRONMENT", "development")  # development, staging, production
+        
         # Rate limiting
         self.rate_limit_enabled: bool = os.getenv(
             "RATE_LIMIT_ENABLED",
