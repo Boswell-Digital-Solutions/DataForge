@@ -27,6 +27,7 @@ from app.config import (
     HOST,
     PORT
 )
+from app.security_config import configure_security_headers
 
 # Load environment variables
 load_dotenv()
@@ -90,6 +91,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Configure security headers middleware (must be added before CORS)
+logger.info("Adding security headers middleware...")
+configure_security_headers(app)
 
 # Configure CORS
 logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
