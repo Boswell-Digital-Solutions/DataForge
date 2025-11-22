@@ -10,7 +10,7 @@
 
 1. [Root Documentation](#root-documentation)
 2. [DataForge](#dataforge)
-3. [vibeforge-backend](#vibeforge-backend)
+3. [~~vibeforge-backend~~ (DEPRECATED)](#️-vibeforge-backend-deprecated)
 4. [vibeforge](#vibeforge-frontend)
 5. [AuthorForge](#authorforge)
 6. [AuthorForge_Solid_new](#authorforge_solid_new)
@@ -97,11 +97,18 @@
 
 ---
 
-## vibeforge-backend
+## ⚠️ vibeforge-backend (DEPRECATED)
 
 **Location:** `./vibeforge-backend/`  
-**Status:** ✅ Consolidated and organized  
-**Root Files:** README.md, INDEX.md
+**Status:** ⛔ DEPRECATED - DO NOT USE  
+**Migration:** See `vibeforge-backend/DEPRECATED.md`  
+**Root Files:** README.md, INDEX.md, DEPRECATED.md
+
+> **All functionality migrated to:**
+>
+> - LLM execution → NeuroForge (`/neuroforge_backend/workbench/`)
+> - Storage/analytics → DataForge (`/app/api/runs_router.py`)
+> - Frontend integration → VibeForge (`/vibeforge/src/lib/stores/`)
 
 ### Setup Documentation
 
@@ -254,15 +261,15 @@
 - First Time? → [INDEX.md](./INDEX.md)
 - Quick Overview? → [QUICK_REFERENCE.md](./QUICK_REFERENCE.md)
 - DataForge Setup? → [DataForge/docs/setup/SETUP.md](./DataForge/docs/setup/SETUP.md)
-- vibeforge-backend Setup? → [vibeforge-backend/docs/setup/QUICKSTART.md](./vibeforge-backend/docs/setup/QUICKSTART.md)
+- ~~vibeforge-backend Setup?~~ → **DEPRECATED** - Use NeuroForge + DataForge
 
 #### 📚 Architecture & Design
 
 - System Overview? → [COMPREHENSIVE_SYSTEM_REVIEW.md](./COMPREHENSIVE_SYSTEM_REVIEW.md)
 - DataForge Architecture? → [DataForge/docs/guides/COMPREHENSIVE_DOCUMENTATION.md](./DataForge/docs/guides/COMPREHENSIVE_DOCUMENTATION.md)
-- Backend Architecture? → [vibeforge-backend/docs/guides/ARCHITECTURE.md](./vibeforge-backend/docs/guides/ARCHITECTURE.md)
+- NeuroForge Workbench? → [NeuroForge/neuroforge_backend/workbench/](./NeuroForge/neuroforge_backend/workbench/)
 - Frontend Architecture? → [vibeforge/docs/guides/ARCHITECTURE.md](./vibeforge/docs/guides/ARCHITECTURE.md)
-- Ecosystem Integration? → [vibeforge-backend/docs/guides/FORGE_ECOSYSTEM_INTEGRATION_ARCHITECTURE.md](./vibeforge-backend/docs/guides/FORGE_ECOSYSTEM_INTEGRATION_ARCHITECTURE.md)
+- Migration Details? → [vibeforge-backend/DEPRECATED.md](./vibeforge-backend/DEPRECATED.md)
 
 #### 🔧 Deployment & Operations
 

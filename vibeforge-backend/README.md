@@ -1,4 +1,16 @@
-# VibeForge Backend Development Setup
+# ⚠️ DEPRECATED: VibeForge Backend
+
+> **WARNING: This backend is deprecated and should not be used.**  
+> See [DEPRECATED.md](./DEPRECATED.md) for migration details.
+>
+> **Use instead:**
+>
+> - **NeuroForge** for LLM execution: `http://localhost:8002/api/v1/workbench/execute`
+> - **DataForge** for storage: `http://localhost:8001/api/v1/runs`
+
+---
+
+# VibeForge Backend Development Setup (ARCHIVED)
 
 ## Project Structure
 

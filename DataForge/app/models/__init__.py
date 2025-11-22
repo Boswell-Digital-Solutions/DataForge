@@ -6,6 +6,7 @@ from .authorforge_models import (
     Project, Manuscript, Character, Location, StoryArc, BrainstormSession,
     project_genres
 )
+from .runs_models import Run, ModelResult
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -25,6 +26,12 @@ from .authorforge_schemas import (
     StoryArcBase, StoryArcCreate, StoryArcUpdate, StoryArc as StoryArcSchema,
     BrainstormSessionCreate, BrainstormSession as BrainstormSessionSchema
 )
+from .runs_schemas import (
+    ModelResultBase, ModelResultCreate, ModelResult as ModelResultSchema,
+    RunBase, RunCreate, Run as RunSchema, RunSummary,
+    RunFilters, PaginationParams,
+    ListRunsResponse, UsageMetrics, RunDetailResponse, DeleteRunResponse
+)
 
 __all__ = [
     # DataForge Models
@@ -33,6 +40,8 @@ __all__ = [
     "GenreEnum", "ProjectStatus",
     "Project", "Manuscript", "Character", "Location", "StoryArc", "BrainstormSession",
     "project_genres",
+    # VibeForge/Runs Models
+    "Run", "ModelResult",
     # DataForge Schemas
     "UserBase", "UserCreate", "UserSchema",
     "DomainBase", "DomainCreate", "DomainSchema",
@@ -49,5 +58,10 @@ __all__ = [
     "CharacterBase", "CharacterCreate", "CharacterUpdate", "CharacterSchema",
     "LocationBase", "LocationCreate", "LocationUpdate", "LocationSchema",
     "StoryArcBase", "StoryArcCreate", "StoryArcUpdate", "StoryArcSchema",
-    "BrainstormSessionCreate", "BrainstormSessionSchema"
+    "BrainstormSessionCreate", "BrainstormSessionSchema",
+    # VibeForge/Runs Schemas
+    "ModelResultBase", "ModelResultCreate", "ModelResultSchema",
+    "RunBase", "RunCreate", "RunSchema", "RunSummary",
+    "RunFilters", "PaginationParams",
+    "ListRunsResponse", "UsageMetrics", "RunDetailResponse", "DeleteRunResponse"
 ]
