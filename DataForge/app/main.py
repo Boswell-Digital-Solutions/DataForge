@@ -28,20 +28,18 @@ from app.config import (
     PORT
 )
 from app.security_config import configure_security_headers
+from app.logging_config import initialize_logging, get_logger, log_security_event
 
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL.upper()),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+# Initialize structured logging with JSON format
+logger = initialize_logging(
+    log_level=LOG_LEVEL,
+    log_dir="logs",
+    json_format=True
 )
-
-logger = logging.getLogger(__name__)
+main_logger = get_logger(__name__)
 
 # Lifespan context manager for startup/shutdown events
 @asynccontextmanager
@@ -51,36 +49,46 @@ async def lifespan(app: FastAPI):
     Creates database tables on startup.
     """
     # Startup: Validate configuration
-    logger.info("🚀 Starting DataForge...")
+    main_logger.info("🚀 Starting DataForge...")
 
     try:
         validate_config()
-        logger.info("✅ Configuration validated")
+        main_logger.info("✅ Configuration validated")
     except ValueError as e:
-        logger.error(f"❌ Configuration error: {e}")
-        logger.error("Please check your .env file and ensure all required variables are set")
+        main_logger.error(f"❌ Configuration error: {e}")
+        main_logger.error("Please check your .env file and ensure all required variables are set")
+        log_security_event(
+            main_logger,
+            "STARTUP_FAILURE",
+            f"Configuration validation failed: {e}"
+        )
         sys.exit(1)
 
     # Check embedding provider
     provider, api_key = get_embedding_provider()
     if provider:
-        logger.info(f"✅ Using {provider} for embeddings")
+        main_logger.info(f"✅ Using {provider} for embeddings")
     else:
-        logger.warning("⚠️  No embedding provider configured")
+        main_logger.warning("⚠️  No embedding provider configured")
 
     # Create database tables
-    logger.info("📊 Creating database tables...")
+    main_logger.info("📊 Creating database tables...")
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database tables created")
+        main_logger.info("✅ Database tables created")
     except Exception as e:
-        logger.error(f"❌ Failed to create database tables: {e}")
+        main_logger.error(f"❌ Failed to create database tables: {e}")
+        log_security_event(
+            main_logger,
+            "DATABASE_INIT_FAILURE",
+            f"Failed to create database tables: {e}"
+        )
         sys.exit(1)
 
     yield
 
     # Shutdown
-    logger.info("👋 Shutting down DataForge...")
+    main_logger.info("👋 Shutting down DataForge...")
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -93,11 +101,11 @@ app = FastAPI(
 )
 
 # Configure security headers middleware (must be added before CORS)
-logger.info("Adding security headers middleware...")
+main_logger.info("Adding security headers middleware...")
 configure_security_headers(app)
 
 # Configure CORS
-logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
+main_logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
