@@ -15,15 +15,16 @@ from app.utils.auth import (
     ALGORITHM
 )
 from app.models import models
+from tests.conftest_security import TestCredentials
 
 
 @pytest.mark.unit
 class TestPasswordHashing:
     """Test password hashing and verification."""
     
-    def test_password_hash_and_verify(self):
+    def test_password_hash_and_verify(self, test_password):
         """Test that password hashing and verification work correctly."""
-        password = "mysecretpassword"
+        password = test_password
         hashed = get_password_hash(password)
         
         # Hash should be different from original
@@ -32,10 +33,10 @@ class TestPasswordHashing:
         # Verification should succeed
         assert verify_password(password, hashed) is True
     
-    def test_wrong_password_fails(self):
+    def test_wrong_password_fails(self, test_credentials):
         """Test that wrong password fails verification."""
-        password = "correctpassword"
-        wrong_password = "wrongpassword"
+        password = test_credentials.get_test_password("correct")
+        wrong_password = test_credentials.get_test_password("wrong")
         hashed = get_password_hash(password)
         
         assert verify_password(wrong_password, hashed) is False

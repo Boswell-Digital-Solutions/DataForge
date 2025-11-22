@@ -244,15 +244,14 @@ class TestDatabaseQueryOptimization:
 
 
 @pytest.fixture
-def test_user(db_session):
+def test_user(db_session, test_credentials):
     """Create a test user for testing."""
     from app.models.models import User
-    import hashlib
     
     user = User(
         username="testuser",
         email="test@example.com",
-        hashed_password=hashlib.sha256(b"password").hexdigest(),
+        hashed_password=test_credentials.get_hashed_test_password(),
         is_active=True,
         is_superuser=False,
     )

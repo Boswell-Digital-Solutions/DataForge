@@ -13,6 +13,17 @@ from app.database import Base, get_db
 from app.main import app
 from app.models import models
 from app.utils.auth import get_password_hash
+from tests.conftest_security import (
+    TestCredentials,
+    test_credentials,
+    test_password,
+    test_hashed_password,
+    test_api_key,
+    test_secret,
+    test_db_credentials,
+    test_jwt_secret,
+    weak_passwords,
+)
 
 # Use in-memory SQLite for testing
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"

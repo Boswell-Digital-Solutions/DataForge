@@ -286,12 +286,12 @@ class TestChunkSQL:
 class TestUserSQL:
     """Test User table SQL operations."""
 
-    def test_create_user(self, db):
+    def test_create_user(self, db, test_hashed_password):
         """Test creating a user."""
         user = User(
             username="sqltest",
             email="sqltest@example.com",
-            hashed_password="hashed_password_here",
+            hashed_password=test_hashed_password,
             is_admin=False
         )
         db.add(user)
@@ -303,12 +303,14 @@ class TestUserSQL:
         assert result.email == "sqltest@example.com"
         assert result.is_admin is False
 
-    def test_user_unique_username(self, db):
+    def test_user_unique_username(self, db, test_credentials):
         """Test that usernames must be unique."""
+        hash1 = test_credentials.get_hashed_test_password()
+        hash2 = test_credentials.get_hashed_test_password()
         user1 = User(
             username="duplicate",
             email="user1@example.com",
-            hashed_password="hash1"
+            hashed_password=hash1
         )
         db.add(user1)
         db.commit()
@@ -316,7 +318,7 @@ class TestUserSQL:
         user2 = User(
             username="duplicate",
             email="user2@example.com",
-            hashed_password="hash2"
+            hashed_password=hash2
         )
         db.add(user2)
 
@@ -324,12 +326,14 @@ class TestUserSQL:
             db.commit()
         db.rollback()
 
-    def test_user_unique_email(self, db):
+    def test_user_unique_email(self, db, test_credentials):
         """Test that emails must be unique."""
+        hash1 = test_credentials.get_hashed_test_password()
+        hash2 = test_credentials.get_hashed_test_password()
         user1 = User(
             username="user1",
             email="same@example.com",
-            hashed_password="hash1"
+            hashed_password=hash1
         )
         db.add(user1)
         db.commit()
@@ -337,7 +341,7 @@ class TestUserSQL:
         user2 = User(
             username="user2",
             email="same@example.com",
-            hashed_password="hash2"
+            hashed_password=hash2
         )
         db.add(user2)
 
