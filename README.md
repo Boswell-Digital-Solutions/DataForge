@@ -55,15 +55,16 @@ Forge is a **production-ready ecosystem** of interconnected products that share:
 
 ### Quick Facts
 
-| Metric                      | Value                                                             |
-| --------------------------- | ----------------------------------------------------------------- |
-| **Ecosystem Status**        | 🟢 Production Ready ✅                                            |
-| **Core Products**           | 6 (AuthorForge, NeuroForge, VibeForge, TradeForge, Leopold, Livy) |
-| **Data Engine (DataForge)** | 18/18 phases (100%) ✅                                            |
-| **Tests Passing**           | 296/296 (100%) ✅                                                 |
-| **Total Documentation**     | 10,221+ lines                                                     |
-| **Production Code**         | 27,857+ lines                                                     |
-| **Version**                 | 5.1                                                               |
+| Metric                       | Value                                                             |
+| ---------------------------- | ----------------------------------------------------------------- |
+| **Ecosystem Status**         | 🟢 Production Ready ✅                                            |
+| **Core Products**            | 6 (AuthorForge, NeuroForge, VibeForge, TradeForge, Leopold, Livy) |
+| **Data Engine (DataForge)**  | 18/18 phases (100%) ✅                                            |
+| **VibeForge Learning Layer** | Phase 3.2 & 3.3 (100%) ✅                                         |
+| **Tests Passing**            | 296/296 (100%) ✅                                                 |
+| **Total Documentation**      | 10,800+ lines                                                     |
+| **Production Code**          | 30,500+ lines                                                     |
+| **Version**                  | 5.2                                                               |
 
 ---
 
@@ -112,18 +113,21 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
   - Integration with AuthorForge and VibeForge
 - **Documentation:** `./NeuroForge/README.md`
 
-### 4. **VibeForge** 🎨 – Execution Context & Analytics
+### 4. **VibeForge** 🎨 – AI-Powered Project Automation & Learning Platform
 
-- **Purpose:** Prompt execution, performance analytics, evaluation datasets
-- **Status:** ✅ In Production
-- **Repository:** `./vibeforge/`
+- **Purpose:** Intelligent project creation, adaptive recommendations, learning-based optimization
+- **Status:** ✅ In Production (Phase 3 Learning Layer Complete)
+- **Repository:** `./vibeforge/` & `./vibeforge-backend/`
 - **Key Features:**
-  - Execution context management
-  - Prompt performance tracking
-  - Evaluation framework
-  - Analytics and reporting
-  - Integration with all Forge products
-- **Documentation:** `./vibeforge/README.md`
+  - **Project Creation Wizard** – Multi-step intelligent project setup
+  - **Stack Recommendations** – 10 production-ready stack profiles with filtering
+  - **Language Selection** – 15 languages across 4 categories
+  - **Adaptive Learning** – Historical insights and personalized recommendations
+  - **Success Prediction** – ML-powered project outcome forecasting
+  - **Experience Tracking** – User preference learning and pattern detection
+  - **Full DataForge Integration** – Persistent learning data storage
+- **Recent Milestone:** Phase 3.2 & 3.3 (Backend + Frontend Learning Layer) ✅
+- **Documentation:** `./vibeforge/README.md`, `PHASE_3_2_COMPLETION_SUMMARY.md`, `PHASE_3_3_COMPLETION_SUMMARY.md`
 
 ### 5. **TradeForge** 📈 – Market Intelligence Platform
 
@@ -287,14 +291,16 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 
 ### Completion Metrics
 
-| Category             | Metric                                   | Status           |
-| -------------------- | ---------------------------------------- | ---------------- |
-| **DataForge Phases** | 18/18 Complete                           | ✅ 100%          |
-| **Tests**            | 296 Passing                              | ✅ 100%          |
-| **Documentation**    | 10,221+ lines                            | ✅ Comprehensive |
-| **Security Phases**  | 3/3 (Auth, Encryption, Audit)            | ✅ Complete      |
-| **HA Phases**        | 4/4 (Backups, Tolerance, HA, Monitoring) | ✅ Complete      |
-| **Production Ready** | Verified & Tested                        | ✅ YES           |
+| Category                 | Metric                                   | Status           |
+| ------------------------ | ---------------------------------------- | ---------------- |
+| **DataForge Phases**     | 18/18 Complete                           | ✅ 100%          |
+| **VibeForge Phase 3**    | 3.2 & 3.3 Complete (Learning Layer)      | ✅ 100%          |
+| **Tests**                | 296 Passing                              | ✅ 100%          |
+| **Documentation**        | 10,800+ lines                            | ✅ Comprehensive |
+| **Security Phases**      | 3/3 (Auth, Encryption, Audit)            | ✅ Complete      |
+| **HA Phases**            | 4/4 (Backups, Tolerance, HA, Monitoring) | ✅ Complete      |
+| **Learning Integration** | Backend + Frontend API Connected         | ✅ Complete      |
+| **Production Ready**     | Verified & Tested                        | ✅ YES           |
 
 ### Feature Coverage
 
@@ -350,6 +356,17 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 | [LICENSE.md](./DataForge/LICENSE.md)                                                     | Commercial license    | 93              |
 | [LEGAL.md](./DataForge/LEGAL.md)                                                         | IP protections        | 113             |
 | **Total**                                                                                | **All guides**        | **5,742 lines** |
+
+### VibeForge Documentation Suite
+
+| Document                                                                 | Purpose                      | Lines           |
+| ------------------------------------------------------------------------ | ---------------------------- | --------------- |
+| [PHASE_3_2_COMPLETION_SUMMARY.md](./PHASE_3_2_COMPLETION_SUMMARY.md)     | Backend integration summary  | 450             |
+| [PHASE_3_3_COMPLETION_SUMMARY.md](./PHASE_3_3_COMPLETION_SUMMARY.md)     | Frontend integration summary | 580             |
+| [TECHNICAL_DUE_DILIGENCE_REVIEW.md](./TECHNICAL_DUE_DILIGENCE_REVIEW.md) | Quality assessment           | 620             |
+| [TECHNICAL_ISSUES_RESOLVED.md](./TECHNICAL_ISSUES_RESOLVED.md)           | Issue resolution log         | 463             |
+| [VIBEFORGE_ROADMAP.md](./VIBEFORGE_ROADMAP.md)                           | Product roadmap              | 1,200           |
+| **Total**                                                                | **Phase 3 docs**             | **3,313 lines** |
 
 ### Directory Structure
 
@@ -507,19 +524,29 @@ All code, documentation, schemas, diagrams, and business logic are protected int
 
 ✅ **6 Core Products** – All in production with full DataForge integration  
 ✅ **DataForge Engine** – 18/18 phases (100%), 296/296 tests passing  
+✅ **VibeForge Learning Layer** – Phase 3.2 & 3.3 complete with adaptive recommendations  
 ✅ **Enterprise Security** – OAuth2, MFA, encryption, audit logs, anomaly detection  
 ✅ **99.99% SLA** – Multi-node deployments with automatic failover  
 ✅ **Full Compliance** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS frameworks  
-✅ **Complete Documentation** – 10,221+ lines across 18+ guides  
-✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting
+✅ **Complete Documentation** – 10,800+ lines across 22+ guides  
+✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting  
+✅ **AI-Powered Automation** – Learning-based project recommendations with success prediction
 
 ### Status
 
 🟢 **PRODUCTION READY** ✅
 
+**Recent Updates:**
+
+- ✅ Phase 3.2 & 3.3 Complete – VibeForge Learning Layer fully integrated
+- ✅ 3 Adaptive API Endpoints – Recommendations, context, success prediction
+- ✅ Frontend-Backend Connection – Real-time learning data
+- ✅ Technical Due Diligence – Critical issues resolved
+- ✅ End-to-End Testing – All learning features verified
+
 **Maintained by:** Boswell Digital Solutions LLC  
-**Version:** 5.1  
-**Last Updated:** November 21, 2025
+**Version:** 5.2  
+**Last Updated:** November 23, 2025
 
 ---
 
