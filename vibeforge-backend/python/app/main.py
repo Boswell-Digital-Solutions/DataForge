@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from app.routers import vibeforge, dataforge, neuroforge
+from app.routers import vibeforge, dataforge, neuroforge, adaptive
+from app.middleware.wizard_logging import WizardLoggingMiddleware
 
 # Create FastAPI app
 app = FastAPI(
@@ -25,10 +26,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Wizard logging middleware (Phase 3.2)
+app.add_middleware(WizardLoggingMiddleware)
+
 # Include routers
 app.include_router(vibeforge.router)
 app.include_router(dataforge.router)
 app.include_router(neuroforge.router)
+app.include_router(adaptive.router)  # Phase 3.2 - Adaptive recommendations
 
 
 @app.get("/health", tags=["System"])
