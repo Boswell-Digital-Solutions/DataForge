@@ -1,32 +1,64 @@
-# AuthorForge Backend
+# AuthorForge
 
-> AI-Powered Writing Assistant API for Fantasy, Sci-Fi, and Christian Fiction
+<h1 align="center">AuthorForge</h1>
+<h3 align="center">AI-Powered Creative Writing Platform</h3>
+<h4 align="center">Genre-aware writing assistance for the Forge Ecosystem</h4>
 
-**AuthorForge** is a FastAPI application that provides AI-powered writing assistance with genre-aware brainstorming, research, and synthesis capabilities. It integrates with [DataForge](../DataForge/) for knowledge base search and uses Claude AI for content generation.
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Alpha-blue" alt="Alpha">
+  <img src="https://img.shields.io/badge/License-Commercial-red" alt="Commercial">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/FastAPI-0.104-green" alt="FastAPI">
+</p>
 
-## Features
+---
 
-- **Multi-Genre Support**: Fantasy, Sci-Fi, Christian Fiction, and General writing
-- **Research Assistant**: AI-synthesized answers from your knowledge base
-- **Smithy Brainstorming**: Generate and expand story ideas
-- **Genre-Aware Prompts**: Tailored AI responses for each genre
-- **DataForge Integration**: Semantic search of your writing craft knowledge
+> **📄 License (Commercial)**  
+> This product is commercial, closed-source software owned by **Boswell Digital Solutions LLC (BDS)**.  
+> You may not redistribute, modify, reverse engineer, or use in derivative products.  
+> All rights reserved © 2025 Boswell Digital Solutions LLC.  
+> Commercial licensing inquiries: charlesboswell@boswelldigitalsolutions.com
+
+---
+
+**AuthorForge** is an **alpha-stage** AI-powered writing platform that provides genre-aware creative assistance with deep integration into the Forge Ecosystem. It combines narrative structuring, character development, and AI-powered research through unified DataForge knowledge bases and NeuroForge LLM orchestration.
+
+## Overview
+
+AuthorForge is a cathedral-level creative writing tool that integrates deeply with the Forge Ecosystem:
+
+- **DataForge** - Unified knowledge base for writing craft, narrative structure, genre conventions
+- **NeuroForge** - AI orchestration with genre-specific model routing and domain adapters
+- **VibeForge** (Freeware) - Entry product that can recommend AuthorForge for creative projects
+
+### Key Features
+
+- **Multi-Genre Support**: Fantasy, Sci-Fi, Christian Fiction, and General writing frameworks
+- **AI Research Assistant**: Genre-aware synthesis from your personal knowledge base
+- **Narrative Structuring**: Character arcs, plot development, pacing analysis
+- **Smithy Brainstorming**: AI-powered ideation and expansion with genre templates
+- **Genre-Aware Prompts**: Specialized domain adapters for each writing category
+- **DataForge Integration**: Semantic search across your writing craft library
+- **NeuroForge Orchestration**: Champion model selection optimized for creative content
 
 ## Supported Genres
 
 ### Fantasy
+
 - Magic system design
 - Worldbuilding and mythology
 - Epic storytelling
 - Fantasy-specific knowledge base
 
 ### Sci-Fi
+
 - Technology and science concepts
 - Future society worldbuilding
 - Space opera and hard sci-fi
 - Scientific accuracy guidance
 
 ### Christian Fiction
+
 - Biblical themes and parallels
 - Spiritual journey arcs
 - Faith integration in narrative
@@ -110,6 +142,7 @@ curl -X POST http://localhost:8000/research/query \
 ```
 
 **Response:**
+
 ```json
 {
   "query": "How do I create a unique magic system?",
@@ -140,6 +173,7 @@ curl -X POST http://localhost:8000/smithy/brainstorm \
 ```
 
 **Response:**
+
 ```json
 {
   "prompt": "A colony ship discovers...",
@@ -187,6 +221,7 @@ AuthorForge uses genre-aware prompts to tailor AI responses:
 ```
 
 Each genre has:
+
 - Specific knowledge base domains in DataForge
 - Custom AI system prompts
 - Genre-appropriate response formatting
@@ -196,12 +231,12 @@ Each genre has:
 
 AuthorForge queries DataForge domains based on genre:
 
-| Genre | DataForge Domains |
-|-------|-------------------|
-| Fantasy | fantasy_craft, worldbuilding, writing_craft |
-| Sci-Fi | scifi_craft, worldbuilding, writing_craft |
+| Genre             | DataForge Domains                                       |
+| ----------------- | ------------------------------------------------------- |
+| Fantasy           | fantasy_craft, worldbuilding, writing_craft             |
+| Sci-Fi            | scifi_craft, worldbuilding, writing_craft               |
 | Christian Fiction | christian_fiction_craft, biblical_themes, writing_craft |
-| General | writing_craft |
+| General           | writing_craft                                           |
 
 ### Setting Up Domains
 
@@ -258,12 +293,14 @@ curl -X POST http://localhost:8000/smithy/brainstorm \
 ### "ANTHROPIC_API_KEY environment variable is required"
 
 **Solution:**
+
 1. Get key from https://console.anthropic.com/
 2. Add to `.env`: `ANTHROPIC_API_KEY=sk-ant-...`
 
 ### "Failed to connect to DataForge"
 
 **Solution:**
+
 1. Ensure DataForge is running: `curl http://localhost:8001/health`
 2. Check `DATAFORGE_URL` in `.env`
 3. Verify no firewall blocking port 8001
@@ -271,6 +308,7 @@ curl -X POST http://localhost:8000/smithy/brainstorm \
 ### No research results
 
 **Solution:**
+
 1. Ensure DataForge has documents: `curl http://localhost:8001/api/search/stats`
 2. Check that domains exist in DataForge
 3. Try broader search terms
@@ -303,8 +341,28 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ## License
 
-MIT License
+**Commercial License - All Rights Reserved**
+
+AuthorForge is commercial software. This code is provided for evaluation and integration purposes only.
+
+### Terms
+
+- **Permitted**: Evaluation, internal testing, integration with authorized Forge Suite products
+- **Prohibited**: Redistribution, modification, commercial use without license, reverse engineering
+- **Intellectual Property**: All algorithms, genre models, writing strategies, and business logic are proprietary and protected
+
+### Licensing
+
+For commercial licensing, enterprise agreements, or integration with AuthorForge:
+
+**Birradat Software** (BDS)  
+Contact: charles@birradat.com  
+Web: https://birradat.com
+
+### Copyright
+
+© 2025 Birradat Software. All rights reserved.
 
 ---
 
-**AuthorForge** - Genre-aware AI assistance for writers ✨📖
+**AuthorForge** - Cathedral-level AI writing platform for creative professionals ✨📖

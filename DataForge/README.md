@@ -6,23 +6,25 @@
 </p>
 
 <h1 align="center">DataForge</h1>
-<h3 align="center">Enterprise-Grade Data & Knowledge Engine</h3>
-<h4 align="center">Core infrastructure for the Forge Ecosystem</h4>
+<h3 align="center">Core Data & Knowledge Engine</h3>
+<h4 align="center">Unified intelligence layer for the Forge Ecosystem</h4>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
+  <img src="https://img.shields.io/badge/Status-Advanced%20Alpha-blue" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
   <img src="https://img.shields.io/badge/Tests-296%20Passing-brightgreen" />
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue" />
-  <img src="https://img.shields.io/badge/Version-5.1-blue" />
-  <img src="https://img.shields.io/badge/Phases-18/18-brightgreen" />
+  <img src="https://img.shields.io/badge/Version-5.2-blue" />
+  <img src="https://img.shields.io/badge/Core%20Phases-18/18-brightgreen" />
 </p>
 
 ---
 
-> **License:** Commercial – Not open-source.  
-> **© 2025 Boswell Digital Solutions LLC. All Rights Reserved.**  
-> See [LICENSE.md](./LICENSE.md) for commercial licensing terms and [LEGAL.md](./LEGAL.md) for IP protections.
+> **📄 License (Commercial)**  
+> This product is commercial, closed-source software owned by **Boswell Digital Solutions LLC (BDS)**.  
+> You may not redistribute, modify, reverse engineer, or use in derivative products.  
+> All rights reserved © 2025 Boswell Digital Solutions LLC.  
+> See [LICENSE.md](./LICENSE.md) and [LEGAL.md](./LEGAL.md) for complete terms.
 
 ---
 
@@ -47,29 +49,30 @@
 
 ## 📘 Overview
 
-**DataForge** is the central data and knowledge engine powering the entire **Forge Ecosystem**. It serves as the shared memory layer and source of truth for all downstream products, providing high-availability data storage, semantic retrieval, comprehensive event auditing, field-level encryption, anomaly detection, and full compliance automation.
+**DataForge** is the central data and knowledge engine powering the entire **Forge Ecosystem**. As an **advanced alpha** maturing into production-grade infrastructure, it serves as the shared memory layer and source of truth for all Forge products: VibeForge (freeware), NeuroForge, AuthorForge, TradeForge, and specialized analysis modules.
 
 ### Core Capabilities
 
-- **High-availability data storage** – 99.99% uptime SLA with automatic failover and multi-region support
-- **Semantic retrieval** – pgvector embeddings for intelligent similarity search and context retrieval
-- **Event auditing** – Immutable, cryptographically signed logs with 90+ day retention
-- **Field-level encryption** – AES-256 encryption for sensitive data with automatic key rotation
-- **Anomaly detection** – 6 detector types (impossible travel, brute force, data exfiltration, suspicious patterns, after-hours access, bulk mutations)
-- **Compliance automation** – Built-in frameworks for GDPR, CCPA, HIPAA, SOC2, PCI-DSS
-- **Production observability** – Prometheus metrics, OpenTelemetry tracing, Grafana dashboards, 24/7 alerting
+- **Unified Intelligence Layer** – Single source of truth for all Forge products
+- **Semantic Retrieval** – pgvector embeddings for context-aware search and RAG pipelines
+- **Event Auditing** – Immutable, cryptographically signed logs with 90+ day retention
+- **Field-Level Encryption** – AES-256 encryption for sensitive data with key rotation
+- **Anomaly Detection** – 6 detector types (travel, brute force, exfiltration, patterns, after-hours, bulk mutations)
+- **Compliance Frameworks** – GDPR, CCPA, HIPAA automation with extensible policy engine
+- **Production Observability** – Prometheus metrics, OpenTelemetry tracing, Grafana dashboards
 
 ### Project Status at a Glance
 
 | Metric                  | Value                         |
 | ----------------------- | ----------------------------- |
-| **Completion**          | 18/18 phases (100%) ✅        |
+| **Development Stage**   | **Advanced Alpha** (Maturing) |
+| **Core Phases**         | 18/18 complete ✅             |
 | **Tests Passing**       | 296/296 (100%) ✅             |
-| **Production Code**     | 27,857 lines                  |
-| **Total Documentation** | 10,221+ lines                 |
-| **Current Version**     | 5.1                           |
-| **Production Ready**    | **✅ YES**                    |
+| **Production Code**     | 27,857+ lines                 |
+| **Total Documentation** | 10,800+ lines                 |
+| **Current Version**     | 5.2                           |
 | **Commercial License**  | ✅ [LICENSE.md](./LICENSE.md) |
+| **IP Protection**       | ✅ [LEGAL.md](./LEGAL.md)     |
 
 ---
 

@@ -6,21 +6,23 @@
 </p>
 
 <h1 align="center">🔥 The Forge Ecosystem</h1>
-<h3 align="center">Enterprise-Grade AI, Data, and Application Infrastructure</h3>
+<h3 align="center">Professional AI Development Platform</h3>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
+  <img src="https://img.shields.io/badge/Status-Active%20Development-blue" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
   <img src="https://img.shields.io/badge/Projects-6%20Core%20Products-blue" />
-  <img src="https://img.shields.io/badge/Documentation-10%2C221%2B%20lines-green" />
-  <img src="https://img.shields.io/badge/Test%20Coverage-100%25%20Passing-brightgreen" />
+  <img src="https://img.shields.io/badge/VibeForge-Freeware-purple" />
+  <img src="https://img.shields.io/badge/Documentation-10%2C800%2B%20lines-green" />
 </p>
 
 ---
 
-> **License:** Commercial – Not open-source.  
+> **License:** Commercial – All products except VibeForge are proprietary commercial software.  
+> **VibeForge:** Freeware with restrictions (entry product).  
 > **© 2025 Boswell Digital Solutions LLC. All Rights Reserved.**  
-> See [DataForge/LICENSE.md](./DataForge/LICENSE.md) for commercial licensing terms.
+> All intellectual property, code, datasets, and documentation are owned by BDS.  
+> See individual product READMEs for specific licensing terms.
 
 ---
 
@@ -40,64 +42,109 @@
 
 ## 🔥 Forge Ecosystem Overview
 
-**The Forge Ecosystem** is a comprehensive suite of enterprise-grade applications and infrastructure designed to power AI-driven content generation, data management, market intelligence, and ecological analysis. Built on top of a shared **DataForge** data engine, all products benefit from unified authentication, compliance automation, anomaly detection, and full operational transparency.
+**The Forge Ecosystem** is a cathedral-level development platform comprising six specialized products for AI-driven content creation, intelligent project automation, market intelligence, and data management. All products share a unified backend architecture powered by **DataForge** (data engine) and **NeuroForge** (AI orchestration).
 
 ### What is Forge?
 
-Forge is a **production-ready ecosystem** of interconnected products that share:
+Forge is an **integrated professional platform** where:
 
-- ✅ **Unified data layer** (DataForge) – single source of truth for all products
-- ✅ **Enterprise security** – OAuth2, MFA, field-level encryption, audit logs
-- ✅ **Compliance automation** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS ready
-- ✅ **High availability** – 99.99% SLA with automatic failover
-- ✅ **Production observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting
-- ✅ **Full documentation** – 10,221+ lines of comprehensive guides
+- 🔓 **VibeForge** (Freeware) – AI project automation and intelligent wizard (entry product)
+- 🔒 **DataForge** (Commercial) – Core data engine and knowledge layer
+- 🔒 **NeuroForge** (Commercial) – LLM orchestration and model routing
+- 🔒 **AuthorForge** (Commercial) – Genre-aware creative writing assistant
+- 🔒 **TradeForge** (Commercial) – Market intelligence and financial datasets
+- 🔒 **Leopold/Livy** (Commercial) – Ecological and historical analysis modules
+
+### Unified Architecture
+
+- ✅ **Shared Intelligence Layer** – DataForge stores all product knowledge
+- ✅ **Centralized AI Orchestration** – NeuroForge routes LLM requests across all products
+- ✅ **Commercial Backend** – All products (including VibeForge) connect to commercial services
+- ✅ **Enterprise-Grade Security** – OAuth2, field-level encryption, audit logs
+- ✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring
 
 ### Quick Facts
 
-| Metric                       | Value                                                             |
-| ---------------------------- | ----------------------------------------------------------------- |
-| **Ecosystem Status**         | 🟢 Production Ready ✅                                            |
-| **Core Products**            | 6 (AuthorForge, NeuroForge, VibeForge, TradeForge, Leopold, Livy) |
-| **Data Engine (DataForge)**  | 18/18 phases (100%) ✅                                            |
-| **VibeForge Learning Layer** | Phase 3.2 & 3.3 (100%) ✅                                         |
-| **Tests Passing**            | 296/296 (100%) ✅                                                 |
-| **Total Documentation**      | 10,800+ lines                                                     |
-| **Production Code**          | 30,500+ lines                                                     |
-| **Version**                  | 5.2                                                               |
+| Metric                       | Value                                                            |
+| ---------------------------- | ---------------------------------------------------------------- |
+| **Ecosystem Status**         | 🔵 Active Development (Alpha/Beta)                               |
+| **Free Entry Product**       | VibeForge (Freeware with restrictions)                           |
+| **Commercial Products**      | 5 (DataForge, NeuroForge, AuthorForge, TradeForge, Leopold/Livy) |
+| **Data Engine (DataForge)**  | Advanced Alpha - 18/18 core phases complete                      |
+| **VibeForge Learning Layer** | Phase 3.2 & 3.3 Complete                                         |
+| **Total Documentation**      | 10,800+ lines                                                    |
+| **Production Code**          | 30,500+ lines                                                    |
+| **Version**                  | 5.2                                                              |
 
 ---
 
 ## 🧩 Core Products
 
-The Forge Ecosystem consists of 6 tightly integrated products, all powered by the **DataForge** core engine:
+The Forge Ecosystem consists of 6 specialized products with unified backend infrastructure:
 
-### 1. **DataForge** 🗄️ – Core Data & Knowledge Engine
+### 1. **VibeForge** 🎨 – AI Project Automation (FREEWARE)
 
-- **Purpose:** Unified data storage, semantic retrieval, event auditing, compliance automation
-- **Status:** ✅ Production Ready (18/18 phases)
-- **Repository:** `./DataForge/`
+- **Purpose:** Intelligent project creation wizard with adaptive recommendations
+- **Status:** 🟣 **Freeware** - Free download, restricted modifications
+- **Repository:** `./vibeforge/`
+- **License:** Freeware with restrictions (see VibeForge README)
+- **Backend:** Uses commercial NeuroForge + DataForge services
 - **Key Features:**
-  - High-availability PostgreSQL with pgvector embeddings
-  - OAuth2/OIDC + MFA authentication
-  - AES-256 field-level encryption
-  - Immutable audit logs with HMAC-SHA256 signatures
-  - 6-type anomaly detection
-  - 99.99% SLA with multi-region support
-  - Prometheus + OpenTelemetry observability
-- **Documentation:** [DataForge/README.md](./DataForge/README.md) (562 lines)
+  - Multi-step project creation wizard
+  - 15 languages across 4 categories
+  - 10 production-ready stack profiles
+  - Learning-based recommendations
+  - Success prediction with ML
+  - Historical insights and pattern detection
+- **Entry Product:** Free to use, serves as gateway to Forge ecosystem
+- **Documentation:** [vibeforge/README.md](./vibeforge/README.md)
 
-### 2. **AuthorForge** ✍️ – AI Writing Platform
+### 2. **DataForge** 🗄️ – Core Data Engine (COMMERCIAL)
+
+- **Purpose:** Unified data storage, semantic retrieval, event auditing
+- **Status:** 🔒 **Commercial** - Advanced Alpha (18/18 phases)
+- **Repository:** `./DataForge/`
+- **License:** Commercial - All rights reserved
+- **Key Features:**
+  - PostgreSQL with pgvector embeddings
+  - Field-level AES-256 encryption
+  - Immutable audit logs
+  - 6-type anomaly detection
+  - GDPR/CCPA/HIPAA compliance frameworks
+  - Prometheus + OpenTelemetry observability
+- **Role:** Shared intelligence layer for all Forge products
+- **Documentation:** [DataForge/README.md](./DataForge/README.md)
+
+### 3. **NeuroForge** 🧠 – AI Orchestration Engine (COMMERCIAL)
+
+- **Purpose:** LLM routing, inference optimization, model management
+- **Status:** 🔒 **Commercial** - Advanced Alpha
+- **Repository:** `./NeuroForge/`
+- **License:** Commercial - All rights reserved
+- **Key Features:**
+  - Multi-provider LLM routing (Anthropic, OpenAI, Ollama)
+  - Champion model selection system
+  - Domain-specific adapters
+  - Circuit breakers and retry logic
+  - Performance tracking and optimization
+  - Context integration with DataForge
+- **Role:** Centralized AI orchestration for all products
+- **Documentation:** [NeuroForge/neuroforge_backend/README.md](./NeuroForge/neuroforge_backend/README.md)
+
+### 4. **AuthorForge** ✍️ – AI Writing Platform (COMMERCIAL)
 
 - **Purpose:** Genre-aware creative writing with narrative structuring
-- **Status:** ✅ In Production
+- **Status:** 🔒 **Commercial** - Active Development
 - **Repository:** `./AuthorForge/`
+- **License:** Commercial - All rights reserved
 - **Key Features:**
-  - Multi-genre writing framework
+  - Multi-genre writing framework (Fantasy, Sci-Fi, Christian Fiction)
+  - AI-powered research assistant
   - Character and scene management
   - Pacing and structure analysis
-  - Integration with NeuroForge for AI-assisted content
-  - Full DataForge compliance and audit trails
+  - Full DataForge + NeuroForge integration
+- **Role:** Cathedral-level writing tool for professional authors
+- **Documentation:** [AuthorForge/README.md](./AuthorForge/README.md)
 - **Documentation:** `./AuthorForge/README.md`
 
 ### 3. **NeuroForge** 🧠 – AI Model Infrastructure
@@ -113,48 +160,28 @@ The Forge Ecosystem consists of 6 tightly integrated products, all powered by th
   - Integration with AuthorForge and VibeForge
 - **Documentation:** `./NeuroForge/README.md`
 
-### 4. **VibeForge** 🎨 – AI-Powered Project Automation & Learning Platform
-
-- **Purpose:** Intelligent project creation, adaptive recommendations, learning-based optimization
-- **Status:** ✅ In Production (Phase 3 Learning Layer Complete)
-- **Repository:** `./vibeforge/` & `./vibeforge-backend/`
-- **Key Features:**
-  - **Project Creation Wizard** – Multi-step intelligent project setup
-  - **Stack Recommendations** – 10 production-ready stack profiles with filtering
-  - **Language Selection** – 15 languages across 4 categories
-  - **Adaptive Learning** – Historical insights and personalized recommendations
-  - **Success Prediction** – ML-powered project outcome forecasting
-  - **Experience Tracking** – User preference learning and pattern detection
-  - **Full DataForge Integration** – Persistent learning data storage
-- **Recent Milestone:** Phase 3.2 & 3.3 (Backend + Frontend Learning Layer) ✅
-- **Documentation:** `./vibeforge/README.md`, `PHASE_3_2_COMPLETION_SUMMARY.md`, `PHASE_3_3_COMPLETION_SUMMARY.md`
-
-### 5. **TradeForge** 📈 – Market Intelligence Platform
+### 5. **TradeForge** 📈 – Market Intelligence (COMMERCIAL)
 
 - **Purpose:** Market signals, historical feeds, financial datasets
-- **Status:** ✅ In Production
-- **Repository:** (External reference)
+- **Status:** 🔒 **Commercial** - Planned Release
+- **License:** Commercial - All rights reserved
 - **Key Features:**
-  - Real-time market data
+  - Real-time market data integration
   - Historical feed management
   - Structured financial datasets
-  - Compliance-ready data handling
-  - Full DataForge integration for data consistency
+  - Risk analysis and trading signals
+  - Full DataForge + NeuroForge integration
+- **Role:** Professional market intelligence for traders and analysts
+- **Documentation:** Commercial module - details pending public release
 
-### 6. **Leopold** 🌿 – Ecological Analysis Platform
+### 6. **Leopold & Livy** 🌿📚 – Analysis Modules (COMMERCIAL)
 
-- **Purpose:** Ecological observations, biological datasets, environmental tracking
-- **Status:** ✅ In Production
-- **Key Features:**
-  - Biological data management
-  - Environmental tracking
-  - Dataset versioning
-  - Integration with DataForge for long-term data storage
-
-### Supporting Tools
-
-- **Livy** 📚 – Historical data and geospatial narratives
-- **Subsidiary Platforms** – Domain-specific applications built on Forge infrastructure
+- **Leopold:** Ecological observations, biological datasets, environmental tracking
+- **Livy:** Historical data, geospatial narratives, temporal analysis
+- **Status:** 🔒 **Commercial** - Planned Release
+- **License:** Commercial - All rights reserved
+- **Role:** Specialized domain analysis tools
+- **Documentation:** Commercial modules - details pending public release
 
 ---
 
@@ -497,44 +524,73 @@ Forge/
 
 ## 📋 License & Copyright
 
-**The Forge Ecosystem** is a commercial product owned by **Boswell Digital Solutions LLC**.
+### Commercial Products (DataForge, NeuroForge, AuthorForge, TradeForge, Leopold, Livy)
 
-### Licensing Terms
+**📄 License (Commercial)**
 
-- ✅ Licensed for internal use and private infrastructure deployment
-- ✅ Licensed for integration with other Forge Ecosystem products
-- ✅ Full commercial support available
-- ❌ Not licensed for redistribution, resale, or public access
-- ❌ Not licensed for reverse engineering or derivative products
-- ❌ Not licensed for SaaS offerings or multi-tenant deployment
+These products are commercial, closed-source applications owned and licensed by **Boswell Digital Solutions LLC (BDS)**.
 
-**See:** [DataForge/LICENSE.md](./DataForge/LICENSE.md) for complete license terms.
+**You may not:**
+
+- Redistribute, resell, sublicense, or publish the source code
+- Modify, reverse engineer, decompile, or derive competing products
+- Host as a service or provide multi-tenant access
+- Train AI models on the code, datasets, workflows, or documentation
+- Bundle this software into third-party products
+
+**All rights reserved © 2025 Boswell Digital Solutions LLC.**  
+Commercial licensing inquiries: charlesboswell@boswelldigitalsolutions.com
+
+### VibeForge (Freeware Entry Product)
+
+**📄 License (Freeware With Restrictions)**
+
+VibeForge is released as **freeware** by Boswell Digital Solutions LLC.
+
+**You may:**
+
+- Download and use the official unmodified binaries for free
+- Redistribute the exact binaries
+- Use the software for personal, academic, or commercial development
+
+**You may not:**
+
+- Modify, decompile, reverse engineer, or extract code
+- Redistribute modified versions
+- Bundle VibeForge into SaaS or commercial tools
+- Use its design or workflow to create competing products
+- Train AI models on VibeForge's UI, workflows, or logic
+
+**Note:** All backend orchestration (NeuroForge) and data engines (DataForge) remain commercial.
+
+**© 2025 Boswell Digital Solutions LLC — All Rights Reserved.**
 
 ### Intellectual Property
 
-All code, documentation, schemas, diagrams, and business logic are protected intellectual property of Boswell Digital Solutions LLC. See [DataForge/LEGAL.md](./DataForge/LEGAL.md) for comprehensive IP protections.
+All code, documentation, schemas, diagrams, algorithms, and business logic across the entire Forge Ecosystem are protected intellectual property of Boswell Digital Solutions LLC. See [DataForge/LEGAL.md](./DataForge/LEGAL.md) for comprehensive IP protections.
 
 ---
 
 ## 🎯 Final Summary
 
-**The Forge Ecosystem** is a **production-ready, enterprise-grade** suite of interconnected applications powered by **DataForge**, a unified data and knowledge engine. With 18/18 phases completed, 100% test coverage, 10,221+ lines of documentation, and comprehensive security/compliance frameworks, Forge is ready for deployment in mission-critical environments.
+**The Forge Ecosystem** is a **cathedral-level development platform** comprising six specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge) and professional domain tools (AuthorForge, TradeForge, Leopold, Livy).
 
 ### Key Achievements
 
-✅ **6 Core Products** – All in production with full DataForge integration  
-✅ **DataForge Engine** – 18/18 phases (100%), 296/296 tests passing  
+✅ **6 Specialized Products** – Unified architecture with commercial backend  
+✅ **VibeForge (Freeware)** – Free entry product with learning-based project automation  
+✅ **DataForge Engine** – Advanced Alpha with 18/18 core phases complete  
+✅ **NeuroForge Orchestration** – Advanced Alpha with multi-provider LLM routing  
 ✅ **VibeForge Learning Layer** – Phase 3.2 & 3.3 complete with adaptive recommendations  
-✅ **Enterprise Security** – OAuth2, MFA, encryption, audit logs, anomaly detection  
-✅ **99.99% SLA** – Multi-node deployments with automatic failover  
-✅ **Full Compliance** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS frameworks  
+✅ **Enterprise Security** – OAuth2, field-level encryption, audit logs, anomaly detection  
+✅ **Full Compliance** – GDPR, CCPA, HIPAA frameworks with automation  
 ✅ **Complete Documentation** – 10,800+ lines across 22+ guides  
-✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana, 24/7 alerting  
-✅ **AI-Powered Automation** – Learning-based project recommendations with success prediction
+✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring  
+✅ **AI-Powered Automation** – Learning-based recommendations with success prediction
 
 ### Status
 
-🟢 **PRODUCTION READY** ✅
+🔵 **ACTIVE DEVELOPMENT** (Alpha/Beta)
 
 **Recent Updates:**
 
@@ -543,6 +599,14 @@ All code, documentation, schemas, diagrams, and business logic are protected int
 - ✅ Frontend-Backend Connection – Real-time learning data
 - ✅ Technical Due Diligence – Critical issues resolved
 - ✅ End-to-End Testing – All learning features verified
+
+**Development Stage:**
+
+- DataForge: Advanced Alpha (maturing core engine)
+- NeuroForge: Advanced Alpha (production-grade orchestration)
+- VibeForge: Beta (freeware entry product)
+- AuthorForge: Alpha (active development)
+- TradeForge/Leopold/Livy: Planned releases
 
 **Maintained by:** Boswell Digital Solutions LLC  
 **Version:** 5.2  
