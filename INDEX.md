@@ -1,9 +1,10 @@
 # 🔥 The Forge Ecosystem - Master Documentation Index
 
-**Last Updated**: November 22, 2025  
-**Overall Status**: ✅ 95% Complete (Phase 1.2: LLM Provider Integration)  
-**Total Tests**: 255+  
-**Coverage**: 86%
+**Last Updated**: November 23, 2025  
+**Overall Status**: ✅ Phase 3.2 & 3.3 Complete (Learning Layer Integrated)  
+**Version**: 5.2  
+**Total Tests**: 296+  
+**Coverage**: 100%
 
 ---
 
@@ -13,18 +14,30 @@
 
 The Forge is a **production-grade AI ecosystem** for knowledge management, LLM orchestration, and professional writing. All services work together with shared PostgreSQL database and REST API communication.
 
-| Service                 | Purpose                                 | Status      | Port | Docs                                                    |
-| ----------------------- | --------------------------------------- | ----------- | ---- | ------------------------------------------------------- |
-| **DataForge**           | Semantic knowledge base & vector search | ✅ Complete | 8001 | [→ INDEX.md](DataForge/INDEX.md)                        |
-| **NeuroForge**          | LLM orchestration (5-stage pipeline)    | ✅ Complete | 8002 | [→ INDEX.md](NeuroForge/INDEX.md)                       |
-| **AuthorForge_Solid**   | Desktop writing suite (7 pages)         | ✅ Complete | 3000 | [→ INDEX.md](AuthorForge_Solid_new/INDEX.md)            |
-| **VibeForge**           | Professional prompt workbench           | ✅ Complete | 5173 | [→ INDEX.md](vibeforge/INDEX.md)                        |
-| **vibeforge-backend**   | Unified LLM service (Python/Rust)       | ✅ Complete | 8003 | [→ INDEX.md](vibeforge-backend/INDEX.md)                |
-| **NeuroForge Frontend** | LLM orchestration UI (SvelteKit)        | 🚧 In Dev   | 5174 | [→ Copilot](NeuroForge/.github/copilot-instructions.md) |
+| Product            | Purpose                                     | Status             | Port | Documentation                                          |
+| ------------------ | ------------------------------------------- | ------------------ | ---- | ------------------------------------------------------ |
+| **VibeForge**      | AI project automation wizard (Freeware)     | ✅ Beta            | 5173 | [→ README.md](vibeforge/README.md)                     |
+| **DataForge**      | Core data & knowledge engine (Commercial)   | ✅ Advanced Alpha  | 8001 | [→ README.md](DataForge/README.md)                     |
+| **NeuroForge**     | AI orchestration & LLM routing (Commercial) | ✅ Advanced Alpha  | 8002 | [→ README.md](NeuroForge/neuroforge_backend/README.md) |
+| **AuthorForge**    | Genre-aware creative writing (Commercial)   | 🚧 Alpha           | 3000 | [→ README.md](AuthorForge/README.md)                   |
+| **TradeForge**     | Market intelligence & financial datasets    | 📅 Planned Release | TBD  | Commercial module — details pending                    |
+| **Leopold & Livy** | Ecological & historical analysis modules    | 📅 Planned Release | TBD  | Commercial modules — details pending                   |
 
 ---
 
 ## 🎉 Recent Completions
+
+### **November 23, 2025** - Phase 3.2 & 3.3 Complete: Learning Layer Integration ✅
+
+**VibeForge Learning Layer**: Full backend and frontend integration with adaptive recommendations
+
+- ✅ **Backend (Phase 3.2)**: DataForge schema with 5 tables for learning data
+- ✅ **API Endpoints**: 9 RESTful endpoints for projects, sessions, outcomes, preferences
+- ✅ **Frontend (Phase 3.3)**: Real-time learning data collection and display
+- ✅ **Adaptive Recommendations**: ML-powered language and stack suggestions
+- ✅ **Success Prediction**: Historical analysis for project outcome forecasting
+- ✅ **Pattern Detection**: User preference tracking and trend analysis
+- 📖 **Full Details**: [docs/references/SESSION_SUMMARY_2025_11_23.md](docs/references/SESSION_SUMMARY_2025_11_23.md)
 
 ### **November 22, 2025** - LLM Provider Integration ✅
 
@@ -35,15 +48,7 @@ The Forge is a **production-grade AI ecosystem** for knowledge management, LLM o
 - ✅ Expanded model catalog to 8 models (5 API + 3 local)
 - ✅ Integrated JWT authentication into VibeForge frontend API client
 - ✅ Comprehensive testing and documentation
-- 📖 **[Full Details](LLM_PROVIDER_INTEGRATION_COMPLETE.md)**
-
-### **November 21, 2025** - Authentication & Security ✅
-
-- ✅ JWT authentication for NeuroForge workbench
-- ✅ Rate limiting on login endpoints (5 attempts/min per IP)
-- ✅ Environment-based security controls
-- ✅ DataForge stateless integration
-- 📖 See: [AUTHENTICATION_COMPLETE.md](NeuroForge/AUTHENTICATION_COMPLETE.md)
+- 📖 **Full Details**: [docs/references/LLM_PROVIDER_INTEGRATION_COMPLETE.md](docs/references/LLM_PROVIDER_INTEGRATION_COMPLETE.md)
 
 ---
 

@@ -1,7 +1,8 @@
 # 📚 Forge Ecosystem Documentation Map
 
-**Last Updated**: November 21, 2025  
-**Status**: ✅ Fully Organized & Consolidated
+**Last Updated**: November 23, 2025  
+**Status**: ✅ Fully Organized & Consolidated  
+**Version**: 5.2
 
 ---
 
@@ -25,36 +26,56 @@
 
 ```
 Forge/
-├── README.md                      ← START HERE (overview + quick setup)
-├── INDEX.md                       ← Ecosystem master index
-├── 00_GET_STARTED_HERE.md        ← Quick start for new users
-├── DOCUMENTATION_GUIDE.txt        ← Visual reference guide
-├── MASTER_INDEX_DOCUMENTATION.md  ← Detailed file catalog
+├── README.md                                ← START HERE (overview + quick setup)
+├── INDEX.md                                 ← Ecosystem master index
+├── 00_DOCUMENTATION_MAP.md                  ← This file (documentation structure)
+├── CONSOLIDATED_DOCUMENTATION_INDEX.md      ← Complete file catalog
+├── QUICK_REFERENCE.md                       ← Quick reference guide
+├── MULTI_GENRE_SETUP_GUIDE.md              ← Setup guide for multi-genre systems
 │
-├── DataForge/INDEX.md             ← Service: Knowledge base backend
-├── NeuroForge/INDEX.md            ← Service: LLM orchestration
-├── AuthorForge_Solid_new/INDEX.md ← Service: Writing suite
-├── vibeforge/INDEX.md             ← Service: Prompt workbench
-├── vibeforge-backend/INDEX.md     ← Service: Unified LLM service
+├── DataForge/                               ← Core data & knowledge engine
+│   ├── README.md                            ← DataForge overview
+│   ├── INDEX.md                             ← DataForge documentation index
+│   └── docs/                                ← DataForge documentation
 │
-├── .github/
-│   └── copilot-instructions.md    ← AI agent guidance
+├── NeuroForge/                              ← AI orchestration engine
+│   ├── neuroforge_backend/
+│   │   ├── README.md                        ← NeuroForge overview
+│   │   └── INDEX.md                         ← NeuroForge documentation index
 │
-└── docs/                          ← All archived & reference docs
-    ├── archive/                   ← Historical documentation
-    │   ├── phase-1/              ← DataForge phase completions
-    │   ├── phase-2/              ← NeuroForge phase completions
-    │   ├── phase-3/              ← AuthorForge/VibeForge completions
-    │   └── phase-4/              ← Phase 4 planning & progress
+├── AuthorForge/                             ← Creative writing platform
+│   └── README.md                            ← AuthorForge overview
+│
+├── AuthorForge_Solid_new/                   ← Next-gen writing platform
+│   ├── README.md                            ← SolidJS implementation
+│   └── INDEX.md                             ← Documentation index
+│
+├── vibeforge/                               ← AI project automation (freeware)
+│   ├── README.md                            ← VibeForge overview
+│   ├── INDEX.md                             ← Documentation index
+│   └── docs/                                ← VibeForge documentation
+│       ├── VIBEFORGE_ROADMAP.md            ← Product roadmap
+│       └── VIBEFORGE_V2_PROGRESS.md        ← Development progress
+│
+└── docs/                                    ← Archived & reference docs
+    ├── archive/                             ← Historical documentation
+    │   ├── phase-1/                         ← DataForge phase completions
+    │   ├── phase-2/                         ← NeuroForge phase completions
+    │   ├── phase-3/                         ← VibeForge phase completions
+    │   └── phase-4/                         ← Phase 4 planning & progress
     │
-    ├── guides/                    ← How-to guides & references
-    │   ├── *GUIDE*.md
-    │   └── *RESEARCH*.md
+    ├── guides/                              ← How-to guides & blueprints
+    │   ├── DEV_ENVIRONMENT_V2.md           ← Development environment setup
+    │   ├── RUNTIME_CHECK_SERVICE.md        ← Runtime detection service
+    │   ├── BACKEND_MIGRATION_PLAN.md       ← Backend migration planning
+    │   ├── PHASE_3_LEARNING_LAYER_PLAN.md  ← Learning layer architecture
+    │   └── vibeforge_*.md                  ← VibeForge blueprints
     │
-    └── references/                ← Handoffs, status updates
-        ├── SESSION_*.md
-        ├── HANDOFF_*.md
-        └── WEEK_*.md
+    └── references/                          ← Session summaries & reviews
+        ├── SESSION_SUMMARY_*.md             ← Development session logs
+        ├── *_COMPLETE.md                    ← Completion certificates
+        ├── COMPREHENSIVE_SYSTEM_REVIEW.md   ← System architecture review
+        └── TECHNICAL_*.md                   ← Technical reviews & resolutions
 ```
 
 ---
@@ -90,19 +111,23 @@ Choose your service and read its `INDEX.md`:
 
 ---
 
-## 📚 Core Services
+## 📚 Core Products
 
-### The 7 Services
+### The 6 Forge Products
 
-| Service                 | Type                 | Port | Status            | Doc                                          |
-| ----------------------- | -------------------- | ---- | ----------------- | -------------------------------------------- |
-| **DataForge**           | Backend API          | 8001 | ✅ Phase 4 (95%)  | [INDEX.md](./DataForge/INDEX.md)             |
-| **NeuroForge**          | LLM Orchestration    | 8002 | ✅ Phase 4 (95%)  | [INDEX.md](./NeuroForge/INDEX.md)            |
-| **AuthorForge_Solid**   | Frontend (SolidJS)   | 3000 | ✅ Phase 3+ (95%) | [INDEX.md](./AuthorForge_Solid_new/INDEX.md) |
-| **VibeForge**           | Frontend (SvelteKit) | 5173 | ✅ Phase 3+ (95%) | [INDEX.md](./vibeforge/INDEX.md)             |
-| **vibeforge-backend**   | Unified LLM          | 8003 | ✅ Phase 2 (95%)  | [INDEX.md](./vibeforge-backend/INDEX.md)     |
-| **NeuroForge Frontend** | Frontend (SvelteKit) | 5174 | 🚧 In Dev         | —                                            |
-| **AuthorForge**         | Backend (Python)     | 8000 | ✅ Phase 1 (95%)  | —                                            |
+| Product                 | Type                      | Port | Status             | Documentation                                          |
+| ----------------------- | ------------------------- | ---- | ------------------ | ------------------------------------------------------ |
+| **VibeForge**           | Project Automation        | 5173 | ✅ Beta (Freeware) | [README.md](./vibeforge/README.md)                     |
+| **DataForge**           | Data & Knowledge Engine   | 8001 | ✅ Advanced Alpha  | [README.md](./DataForge/README.md)                     |
+| **NeuroForge**          | AI Orchestration          | 8002 | ✅ Advanced Alpha  | [README.md](./NeuroForge/neuroforge_backend/README.md) |
+| **AuthorForge**         | Creative Writing Platform | 3000 | 🚧 Alpha           | [README.md](./AuthorForge/README.md)                   |
+| **TradeForge**          | Market Intelligence       | TBD  | 📅 Planned Release | Commercial module — details pending                    |
+| **Leopold & Livy**      | Analysis Modules          | TBD  | 📅 Planned Release | Commercial modules — details pending                   |
+| **AuthorForge_Solid**   | Frontend (SolidJS)        | 3000 | ✅ Phase 3+ (95%)  | [INDEX.md](./AuthorForge_Solid_new/INDEX.md)           |
+| **VibeForge**           | Frontend (SvelteKit)      | 5173 | ✅ Phase 3+ (95%)  | [INDEX.md](./vibeforge/INDEX.md)                       |
+| **vibeforge-backend**   | Unified LLM               | 8003 | ✅ Phase 2 (95%)   | [INDEX.md](./vibeforge-backend/INDEX.md)               |
+| **NeuroForge Frontend** | Frontend (SvelteKit)      | 5174 | 🚧 In Dev          | —                                                      |
+| **AuthorForge**         | Backend (Python)          | 8000 | ✅ Phase 1 (95%)   | —                                                      |
 
 ---
 
