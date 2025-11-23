@@ -26,6 +26,30 @@ from neuroforge_backend.workbench import (
 )
 from neuroforge_backend import auth_router
 
+# Import VibeForge automation routers directly (bypass __init__.py)
+import sys
+import importlib.util
+
+def load_router_module(module_path: str, module_name: str):
+    """Load a router module directly without going through __init__.py"""
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+stack_profiles_module = load_router_module(
+    "neuroforge_backend/routers/stack_profiles.py",
+    "stack_profiles_router_module"
+)
+stack_profiles_router = stack_profiles_module.router
+
+languages_module = load_router_module(
+    "neuroforge_backend/routers/languages.py",
+    "languages_router_module"
+)
+languages_router = languages_module.router
+
 # Create rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
@@ -77,6 +101,17 @@ app.include_router(
     execution_router.router,
     prefix="/api/v1",
     tags=["execution"]
+)
+
+# Include VibeForge automation routers
+app.include_router(
+    stack_profiles_router,
+    tags=["Stack Profiles"]
+)
+
+app.include_router(
+    languages_router,
+    tags=["Languages"]
 )
 
 
