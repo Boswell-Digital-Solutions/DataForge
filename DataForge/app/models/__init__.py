@@ -7,6 +7,7 @@ from .authorforge_models import (
     project_genres
 )
 from .runs_models import Run, ModelResult
+from .planning_models import PlanningOutcome, PlanningModelPerformance, AIEstimationFeedback
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -42,6 +43,8 @@ __all__ = [
     "project_genres",
     # VibeForge/Runs Models
     "Run", "ModelResult",
+    # Multi-AI Planning Models
+    "PlanningOutcome", "PlanningModelPerformance", "AIEstimationFeedback",
     # DataForge Schemas
     "UserBase", "UserCreate", "UserSchema",
     "DomainBase", "DomainCreate", "DomainSchema",

@@ -96,6 +96,13 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
   - Learning-based recommendations
   - Success prediction with ML
   - Historical insights and pattern detection
+  - **Code Analysis & GitHub Integration:**
+    - Architecture analysis (complexity, code smells, god functions)
+    - Security scanning (vulnerabilities, secrets, XSS, SQL injection)
+    - Performance detection (nested loops, memory leaks, blocking operations)
+    - Best practices validation (error handling, naming, dead code)
+    - Real-time issue detection with severity levels
+    - Repository health scoring and recommendations
 - **Entry Product:** Free to use, serves as gateway to Forge ecosystem
 - **Documentation:** [vibeforge/README.md](./vibeforge/README.md)
 

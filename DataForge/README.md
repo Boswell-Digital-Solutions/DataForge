@@ -89,14 +89,14 @@ Built with enterprise security, high availability, and compliance as first-class
 
 DataForge acts as the **shared intelligence layer** for the Forge Suite of products:
 
-| Product         | Port | Role                                                                        | Integration Status |
-| --------------- | ---- | --------------------------------------------------------------------------- | ------------------ |
-| **NeuroForge**  | 8000 | Model routing, embeddings generation, context retrieval, inference tracking | ✅ Complete        |
-| **VibeForge**   | -    | Project creation wizard, stack analytics, language preferences tracking     | ✅ Complete        |
-| **AuthorForge** | -    | Writing knowledge, narrative structures, pacing, genre-level analysis       | 🚧 Planned         |
-| **TradeForge**  | -    | Market signals, historical feeds, structured financial datasets             | 🚧 Planned         |
-| **Leopold**     | -    | Ecological observations, biological datasets, environmental tracking        | 🚧 Planned         |
-| **Livy**        | -    | Historical data, geospatial narratives, temporal analysis                   | 🚧 Planned         |
+| Product         | Port | Role                                                                                          | Integration Status |
+| --------------- | ---- | --------------------------------------------------------------------------------------------- | ------------------ |
+| **NeuroForge**  | 8000 | Model routing, embeddings generation, context retrieval, inference tracking                   | ✅ Complete        |
+| **VibeForge**   | -    | Project creation wizard, code analysis, GitHub integration, stack analytics, language tracking | ✅ Complete        |
+| **AuthorForge** | -    | Writing knowledge, narrative structures, pacing, genre-level analysis                         | 🚧 Planned         |
+| **TradeForge**  | -    | Market signals, historical feeds, structured financial datasets                               | 🚧 Planned         |
+| **Leopold**     | -    | Ecological observations, biological datasets, environmental tracking                          | 🚧 Planned         |
+| **Livy**        | -    | Historical data, geospatial narratives, temporal analysis                                     | 🚧 Planned         |
 
 ### Integration Architecture
 
@@ -149,6 +149,8 @@ DataForge acts as the **shared intelligence layer** for the Forge Suite of produ
 - Records stack outcomes (success/failure)
 - Analyzes language preferences
 - Monitors build/test/deploy results
+- Stores code analysis results and quality metrics
+- Caches GitHub repository metadata and file contents
 
 ### Benefits of Shared Intelligence Layer
 
@@ -1255,5 +1257,5 @@ pytest tests/ --cov=app --cov-report=html
 
 ---
 
-**Last Updated:** November 23, 2025  
+**Last Updated:** November 26, 2025
 **Next Review:** Q1 2026

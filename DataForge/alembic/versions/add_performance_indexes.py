@@ -22,6 +22,18 @@ depends_on: str | None = None
 
 def upgrade() -> None:
     """Add performance indexes."""
+    from sqlalchemy import inspect
+    from alembic import context
+
+    # Get connection and check if tables exist
+    conn = context.get_bind()
+    inspector = inspect(conn)
+    existing_tables = inspector.get_table_names()
+
+    # Only create indexes if tables exist
+    if 'diligence_project' not in existing_tables:
+        return  # Skip if diligence tables don't exist yet
+
     # Index on user_id for projects (very common query pattern)
     op.create_index(
         'idx_diligence_project_user_id',
