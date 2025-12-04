@@ -1,0 +1,245 @@
+{
+  "//": "===============================================",
+  "//": "FORGE ECOSYSTEM - VS CODE WORKSPACE SETTINGS",
+  "//": "===============================================",
+  
+  "//": "--- Python Settings ---",
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.linting.mypyEnabled": true,
+  "python.formatting.provider": "black",
+  "python.formatting.blackArgs": ["--line-length", "100"],
+  
+  "//": "--- Python Analysis ---",
+  "python.analysis.typeCheckingMode": "strict",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.completeFunctionParens": true,
+  
+  "//": "--- Editor Settings ---",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.rulers": [100],
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  
+  "//": "--- Files Settings ---",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/node_modules": true,
+    "**/.venv": false,
+    "**/venv": false
+  },
+  
+  "files.watcherExclude": {
+    "**/__pycache__/**": true,
+    "**/node_modules/**": true,
+    "**/.venv/**": true,
+    "**/venv/**": true
+  },
+  
+  "//": "--- Rust Settings (for Tauri) ---",
+  "rust-analyzer.checkOnSave.command": "clippy",
+  "rust-analyzer.cargo.features": "all",
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  
+  "//": "--- TypeScript/JavaScript Settings ---",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[svelte]": {
+    "editor.defaultFormatter": "svelte.svelte-vscode",
+    "editor.formatOnSave": true
+  },
+  
+  "//": "--- SQL Settings ---",
+  "[sql]": {
+    "editor.defaultFormatter": "mtxr.sqltools",
+    "editor.formatOnSave": false
+  },
+  
+  "//": "--- Git Settings ---",
+  "git.ignoreLimitWarning": true,
+  "git.autofetch": true,
+  
+  "//": "--- Terminal Settings ---",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.fontSize": 13,
+  
+  "//": "--- Search Settings ---",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/venv": true,
+    "**/__pycache__": true,
+    "**/target": true,
+    "**/.git": true
+  },
+  
+  "//": "--- Task Runner Settings ---",
+  "task.autoDetect": "on",
+  
+  "//": "--- Telemetry ---",
+  "telemetry.telemetryLevel": "off",
+  
+  "//": "--- Claude for VS Code Settings ---",
+  "//": "If using Claude for VS Code extension:",
+  "claude.contextFiles": [
+    ".claude_project_context.md",
+    "CLAUDE_CUSTOM_INSTRUCTIONS.md",
+    "FORGE_COMMAND_IMPLEMENTATION_DECISIONS.md",
+    "README.md"
+  ],
+  
+  "//": "--- Color Customization (Forge Theme) ---",
+  "workbench.colorCustomizations": {
+    "[Default Dark Modern]": {
+      "//": "DataForge Blue",
+      "editorBracketHighlight.foreground1": "#00A3FF",
+      "//": "NeuroForge Violet", 
+      "editorBracketHighlight.foreground2": "#A855F7",
+      "//": "Rake Cyan",
+      "editorBracketHighlight.foreground3": "#2DD4BF",
+      "//": "Forge Ember",
+      "editorBracketHighlight.foreground4": "#D97706",
+      "//": "Terminal colors",
+      "terminal.ansiBlue": "#00A3FF",
+      "terminal.ansiMagenta": "#A855F7",
+      "terminal.ansiCyan": "#2DD4BF"
+    }
+  },
+  
+  "//": "--- Custom Snippets Paths ---",
+  "snippets.codeActions.enabled": true,
+  
+  "//": "--- Workspace Recommendations ---",
+  "extensions.ignoreRecommendations": false,
+  
+  "//": "--- File Associations ---",
+  "files.associations": {
+    "*.sql": "sql",
+    "*.md": "markdown",
+    ".env.example": "properties",
+    ".env.local": "properties",
+    "Dockerfile*": "dockerfile"
+  },
+  
+  "//": "--- Markdown Settings ---",
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+  
+  "//": "--- Problem Matcher ---",
+  "problems.showCurrentInStatus": true,
+  
+  "//": "--- Emmet ---",
+  "emmet.includeLanguages": {
+    "svelte": "html"
+  },
+  
+  "//": "--- Tailwind CSS ---",
+  "tailwindCSS.experimental.classRegex": [
+    ["class:\\s*?[\"'`]([^\"'`]*).*?[\"'`]", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "svelte": "html"
+  },
+  
+  "//": "--- SQLTools Connection (DataForge) ---",
+  "sqltools.connections": [
+    {
+      "name": "DataForge (Local)",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5432,
+      "database": "dataforge",
+      "username": "postgres",
+      "password": "",
+      "connectionTimeout": 30,
+      "previewLimit": 50
+    }
+  ],
+  
+  "//": "--- Debug Configurations ---",
+  "debug.onTaskErrors": "showErrors",
+  
+  "//": "--- Project-Specific Settings ---",
+  "forge.services": {
+    "dataforge": {
+      "port": 8001,
+      "color": "#00A3FF",
+      "path": "DataForge"
+    },
+    "neuroforge": {
+      "port": 8000,
+      "color": "#A855F7",
+      "path": "NeuroForge/neuroforge_backend"
+    },
+    "rake": {
+      "port": 8002,
+      "color": "#2DD4BF",
+      "path": "Rake"
+    },
+    "command": {
+      "type": "tauri",
+      "path": "ForgeCommand"
+    }
+  },
+  
+  "//": "--- Code Spell Checker ---",
+  "cSpell.words": [
+    "asyncio",
+    "aiohttp",
+    "dataforge",
+    "neuroforge",
+    "pgvector",
+    "pydantic",
+    "pytest",
+    "sqlalchemy",
+    "tauri",
+    "telemetry",
+    "uvicorn"
+  ],
+  
+  "//": "--- Todo Tree ---",
+  "todo-tree.general.tags": [
+    "TODO",
+    "FIXME",
+    "HACK",
+    "NOTE",
+    "TELEMETRY",
+    "SECURITY"
+  ],
+  "todo-tree.highlights.customHighlight": {
+    "TELEMETRY": {
+      "icon": "pulse",
+      "iconColour": "#00A3FF"
+    },
+    "SECURITY": {
+      "icon": "shield",
+      "iconColour": "#EF4444"
+    }
+  }
+}

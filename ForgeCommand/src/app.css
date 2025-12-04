@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================================================================
+   Forge Command Theme - Mission Control Aesthetic
+   =================================================================== */
+
+@layer base {
+  * {
+    @apply border-forge-steel;
+  }
+
+  body {
+    @apply bg-forge-black text-white font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Panel - Dark themed container */
+  .panel {
+    @apply bg-forge-slate border border-forge-steel rounded-lg p-6;
+    @apply shadow-lg shadow-black/50;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply panel;
+    @apply border-l-4;
+  }
+
+  .kpi-card.dataforge {
+    @apply border-l-dataforge;
+  }
+
+  .kpi-card.neuroforge {
+    @apply border-l-neuroforge;
+  }
+
+  .kpi-card.rake {
+    @apply border-l-rake;
+  }
+
+  /* Status Badge */
+  .status-badge {
+    @apply px-3 py-1 rounded-full text-sm font-semibold uppercase tracking-wide;
+  }
+
+  .status-badge.up {
+    @apply bg-green-500/20 text-green-400 border border-green-500/50;
+  }
+
+  .status-badge.down {
+    @apply bg-red-500/20 text-red-400 border border-red-500/50;
+  }
+
+  .status-badge.degraded {
+    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/50;
+  }
+
+  /* Navigation Card */
+  .nav-card {
+    @apply panel cursor-pointer transition-all duration-200;
+    @apply hover:scale-105 hover:shadow-xl;
+  }
+
+  .nav-card.dataforge:hover {
+    @apply border-dataforge shadow-dataforge/20;
+  }
+
+  .nav-card.neuroforge:hover {
+    @apply border-neuroforge shadow-neuroforge/20;
+  }
+
+  .nav-card.rake:hover {
+    @apply border-rake shadow-rake/20;
+  }
+
+  /* Chart Container */
+  .chart-container {
+    @apply panel;
+    @apply min-h-[300px] flex items-center justify-center;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-forge-black;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-forge-steel rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-forge-steel/80;
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-skeleton {
+  @apply bg-forge-steel/20;
+  background-image: linear-gradient(
+    90deg,
+    rgba(74, 74, 79, 0) 0,
+    rgba(74, 74, 79, 0.2) 20%,
+    rgba(74, 74, 79, 0.5) 60%,
+    rgba(74, 74, 79, 0)
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}

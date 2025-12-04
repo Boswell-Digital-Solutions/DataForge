@@ -16,11 +16,13 @@ NeuroForge is a **stateless LLM orchestration platform** that provides intellige
 
 - **5-Stage Pipeline**: Context → Prompt → Model → Evaluation → PostProcessing
 - **Multi-Provider Support**: OpenAI GPT-4, Anthropic Claude, Ollama (local)
+- **Multi-AI Planning Orchestration**: 4-stage ChatGPT ↔ Claude planning workflows with continuous learning
 - **Intelligent Routing**: Champion model tracking with automatic fallback
 - **Semantic Caching**: 25-35% prompt cache hit rate, 15-20% output cache hit rate
 - **Circuit Breaker**: Fault-tolerant with automatic retry and failover
 - **JWT Authentication**: Secure API access with backward-compatible x-user-id headers
-- **DataForge Integration**: Stateless architecture with persistent external storage
+- **DataForge Integration**: Stateless architecture with persistent external storage + learning layer
+- **Continuous Learning**: EMA-based model performance tracking and recommendations
 - **Prometheus Metrics**: Full observability with 20+ metrics exported
 
 ---
@@ -300,6 +302,78 @@ POST /api/v1/workbench/chains
 
 Create multi-step LLM chains with conditional logic.
 
+#### Multi-AI Planning Orchestration (NEW)
+
+```bash
+# Execute planning workflow (blocking)
+POST /api/v1/orchestrate/planning
+{
+  "task_description": "Add user authentication to the application",
+  "task_type": "feature",
+  "complexity": "medium",
+  "codebase_context": {"files": 150, "lines": 30000},
+  "use_recommendations": true
+}
+
+# Response:
+{
+  "session_id": "abc123",
+  "task_type": "feature",
+  "complexity": "medium",
+  "stages": [
+    {
+      "stage": 1,
+      "stage_type": "initial",
+      "model": "gpt-4",
+      "provider": "openai",
+      "duration_ms": 5000,
+      "tokens_in": 1500,
+      "tokens_out": 2000,
+      "cost_cents": 25
+    },
+    // Stages 2-4...
+  ],
+  "final_plan": "# Implementation Plan\n...",
+  "final_prompt": "# Claude Code Prompt\n...",
+  "total_duration_ms": 25000,
+  "total_tokens": 7500,
+  "total_cost_cents": 85
+}
+
+# Execute with SSE streaming
+POST /api/v1/orchestrate/planning/stream
+
+# Get recommended models
+GET /api/v1/orchestrate/planning/models?task_type=feature
+
+# Get time estimate
+GET /api/v1/orchestrate/planning/estimate?task_type=feature&complexity=medium
+
+# Record user feedback
+POST /api/v1/orchestrate/planning/{session_id}/feedback
+{
+  "rating": 5,
+  "feedback": "Excellent plan!",
+  "plan_was_modified": false
+}
+
+# Record execution result
+POST /api/v1/orchestrate/planning/{session_id}/execution
+{
+  "success": true,
+  "duration_seconds": 180,
+  "tasks_completed": 5,
+  "tasks_failed": 0
+}
+```
+
+**Key Features:**
+- 4-stage pipeline: Initial (ChatGPT) → Review (Claude) → Refinement (ChatGPT) → Final (Claude)
+- Continuous learning with EMA-based model performance tracking
+- Data-driven model recommendations from DataForge
+- Real-time progress updates via SSE streaming
+- Complete feedback loop with user ratings and execution results
+
 **Full API documentation:** http://localhost:8000/docs
 
 ---
@@ -314,17 +388,20 @@ NeuroForge/
 │   ├── main.py                  # App entry point
 │   ├── config.py                # Configuration
 │   ├── auth.py                  # JWT authentication
-│   ├── dataforge_client.py      # DataForge integration
-│   ├── services/                # 5-stage pipeline services
+│   ├── clients/                 # External service clients
+│   │   └── dataforge_client.py  # DataForge HTTP client
+│   ├── services/                # 5-stage pipeline + orchestration
 │   │   ├── context_builder_fixed.py   # Stage 1 (⚠️ use _fixed version)
 │   │   ├── prompt_engine.py           # Stage 2
 │   │   ├── model_router.py            # Stage 3
 │   │   ├── evaluator.py               # Stage 4
-│   │   └── post_processor.py          # Stage 5
+│   │   ├── post_processor.py          # Stage 5
+│   │   └── multi_ai_executor.py       # Multi-AI planning orchestration
 │   ├── routers/                 # API routes
 │   │   ├── execution_router.py
 │   │   ├── prompt_router.py
 │   │   ├── chain_router.py
+│   │   └── orchestration.py     # Multi-AI planning endpoints
 │   │   └── deployment_router.py
 │   ├── adapters/                # Domain-specific logic
 │   └── utils/                   # Helpers

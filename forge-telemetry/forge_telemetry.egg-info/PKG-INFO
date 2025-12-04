@@ -1,0 +1,166 @@
+Metadata-Version: 2.4
+Name: forge-telemetry
+Version: 0.1.0
+Summary: Unified telemetry client for the Forge ecosystem
+Home-page: https://github.com/charlesboswell/forge
+Author: Charles Boswell
+Author-email: charles@example.com
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: sqlalchemy>=2.0.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-dotenv>=1.0.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# Forge Telemetry
+
+Unified telemetry client for the Forge ecosystem (DataForge, NeuroForge, Rake).
+
+## Installation
+
+```bash
+pip install -e /path/to/forge-telemetry
+```
+
+## Usage
+
+### Basic Usage
+
+```python
+from forge_telemetry import TelemetryClient
+import uuid
+
+# Initialize client
+telemetry = TelemetryClient()
+
+# Emit an event
+correlation_id = uuid.uuid4()
+telemetry.emit(
+    service="dataforge",
+    event_type="query",
+    severity="info",
+    correlation_id=correlation_id,
+    metadata={"query": "search term"},
+    metrics={"duration_ms": 123, "results_count": 10}
+)
+```
+
+### Async Usage
+
+```python
+from forge_telemetry import TelemetryClient
+import uuid
+
+telemetry = TelemetryClient()
+
+async def search_documents(query: str):
+    correlation_id = uuid.uuid4()
+    start_time = time.time()
+
+    try:
+        results = await perform_search(query)
+
+        # Emit success event
+        await telemetry.emit_async(
+            service="dataforge",
+            event_type="query",
+            correlation_id=correlation_id,
+            metadata={"query": query},
+            metrics={
+                "duration_ms": (time.time() - start_time) * 1000,
+                "results_count": len(results)
+            }
+        )
+        return results
+    except Exception as e:
+        # Emit error event
+        await telemetry.emit_async(
+            service="dataforge",
+            event_type="query_error",
+            severity="error",
+            correlation_id=correlation_id,
+            metadata={"error": str(e), "query": query}
+        )
+        raise
+```
+
+### Quick Emit (No Client Instance)
+
+```python
+from forge_telemetry import emit_event
+
+emit_event(
+    service="neuroforge",
+    event_type="model_request",
+    metrics={"tokens": 1234, "cost_usd": 0.05}
+)
+```
+
+## Event Types by Service
+
+### DataForge
+- `query` - Search completed
+- `ingestion` - Documents added
+- `query_error` - Failed search
+
+### NeuroForge
+- `model_request` - LLM call completed
+- `model_error` - Failed LLM call
+
+### Rake
+- `job_started` - Job began
+- `job_completed` - Job finished
+- `job_failed` - Job failed
+- `phase_completed` - Stage completed (fetch/clean/chunk/embed/store)
+
+## Correlation IDs
+
+Always include `correlation_id` to enable distributed tracing:
+
+```python
+import uuid
+
+correlation_id = uuid.uuid4()
+
+# Pass correlation_id through your entire request chain
+telemetry.emit(
+    service="dataforge",
+    event_type="query",
+    correlation_id=correlation_id,
+    ...
+)
+```
+
+## Environment Variables
+
+Set `DATABASE_URL` in your environment:
+
+```bash
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+```
+
+Or pass it to the client:
+
+```python
+telemetry = TelemetryClient(database_url="postgresql://...")
+```
+
+## License
+
+MIT

@@ -1,0 +1,14 @@
+/home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/deps/serde-4d4b172e0a9daabf.d: /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/build/serde-909101484fec7fe5/out/private.rs
+
+/home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/deps/libserde-4d4b172e0a9daabf.rlib: /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/build/serde-909101484fec7fe5/out/private.rs
+
+/home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/deps/libserde-4d4b172e0a9daabf.rmeta: /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/build/serde-909101484fec7fe5/out/private.rs
+
+/home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/charles/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/build/serde-909101484fec7fe5/out/private.rs:
+
+# env-dep:OUT_DIR=/home/charles/projects/Coding2025/Forge/ForgeCommand/src-tauri/target/debug/build/serde-909101484fec7fe5/out

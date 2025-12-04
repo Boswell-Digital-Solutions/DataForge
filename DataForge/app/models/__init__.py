@@ -8,6 +8,11 @@ from .authorforge_models import (
 )
 from .runs_models import Run, ModelResult
 from .planning_models import PlanningOutcome, PlanningModelPerformance, AIEstimationFeedback
+from .team_models import (
+    TeamRole, InviteStatus,
+    Team, TeamInvite, TeamProject, TeamLearningAggregate, TeamInsight,
+    team_members
+)
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -33,6 +38,16 @@ from .runs_schemas import (
     RunFilters, PaginationParams,
     ListRunsResponse, UsageMetrics, RunDetailResponse, DeleteRunResponse
 )
+from .team_schemas import (
+    TeamRole as TeamRoleEnum, InviteStatus as InviteStatusEnum,
+    TeamBase, TeamCreate, TeamUpdate, TeamResponse, TeamSummary,
+    TeamMemberBase, TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
+    TeamInviteBase, TeamInviteCreate, TeamInviteUpdate, TeamInviteResponse, TeamInviteAccept,
+    TeamProjectBase, TeamProjectCreate, TeamProjectUpdate, TeamProjectResponse,
+    TeamLearningAggregateBase, TeamLearningAggregateCreate, TeamLearningAggregateResponse,
+    TeamInsightBase, TeamInsightCreate, TeamInsightUpdate, TeamInsightResponse,
+    TeamAnalyticsRequest, TeamAnalyticsResponse
+)
 
 __all__ = [
     # DataForge Models
@@ -45,6 +60,10 @@ __all__ = [
     "Run", "ModelResult",
     # Multi-AI Planning Models
     "PlanningOutcome", "PlanningModelPerformance", "AIEstimationFeedback",
+    # Team Models (Phase 4.1)
+    "TeamRole", "InviteStatus",
+    "Team", "TeamInvite", "TeamProject", "TeamLearningAggregate", "TeamInsight",
+    "team_members",
     # DataForge Schemas
     "UserBase", "UserCreate", "UserSchema",
     "DomainBase", "DomainCreate", "DomainSchema",
@@ -66,5 +85,14 @@ __all__ = [
     "ModelResultBase", "ModelResultCreate", "ModelResultSchema",
     "RunBase", "RunCreate", "RunSchema", "RunSummary",
     "RunFilters", "PaginationParams",
-    "ListRunsResponse", "UsageMetrics", "RunDetailResponse", "DeleteRunResponse"
+    "ListRunsResponse", "UsageMetrics", "RunDetailResponse", "DeleteRunResponse",
+    # Team Schemas (Phase 4.1)
+    "TeamRoleEnum", "InviteStatusEnum",
+    "TeamBase", "TeamCreate", "TeamUpdate", "TeamResponse", "TeamSummary",
+    "TeamMemberBase", "TeamMemberCreate", "TeamMemberUpdate", "TeamMemberResponse",
+    "TeamInviteBase", "TeamInviteCreate", "TeamInviteUpdate", "TeamInviteResponse", "TeamInviteAccept",
+    "TeamProjectBase", "TeamProjectCreate", "TeamProjectUpdate", "TeamProjectResponse",
+    "TeamLearningAggregateBase", "TeamLearningAggregateCreate", "TeamLearningAggregateResponse",
+    "TeamInsightBase", "TeamInsightCreate", "TeamInsightUpdate", "TeamInsightResponse",
+    "TeamAnalyticsRequest", "TeamAnalyticsResponse"
 ]

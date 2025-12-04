@@ -59,6 +59,7 @@ Built with enterprise security, high availability, and compliance as first-class
 
 - **🎯 Unified Intelligence Layer** – Single source of truth for all Forge products
 - **🧠 Semantic Retrieval** – pgvector embeddings for context-aware search and RAG pipelines
+- **🤖 AI Planning Learning** – Multi-AI orchestration with continuous learning and model performance tracking
 - **📝 Event Auditing** – Immutable, cryptographically signed logs with 90+ day retention
 - **🔐 Field-Level Encryption** – AES-256 encryption for sensitive data with automatic key rotation
 - **🚨 Anomaly Detection** – 6 detector types (impossible travel, brute force, data exfiltration, suspicious patterns, after-hours access, bulk mutations)
@@ -196,6 +197,17 @@ Every Forge product consumes DataForge as the **source of truth**, ensuring:
 - **Knowledge base queries** – Natural language QA over documents
 - **Semantic caching** – Redis-backed deduplication for repeated queries
 - **Embedding versioning** – Track embedding model changes over time
+
+### 🤖 Multi-AI Planning Learning Layer
+
+- **Planning outcome tracking** – Complete session records with stage-by-stage metrics
+- **Model performance analytics** – EMA-based continuous learning for optimal model selection
+- **Time estimation feedback** – AI execution time predictions that improve with usage
+- **Multi-stage orchestration** – 4-stage ChatGPT ↔ Claude planning workflows
+- **Recommendation engine** – Data-driven model selections based on historical success
+- **Feedback loops** – User ratings, execution results, and plan modifications recorded
+- **Confidence scoring** – Sample-size weighted recommendations (1.0 at 10+ samples)
+- **Task complexity analysis** – Simple/medium/complex categorization with tailored estimates
 
 ### 🚀 High Availability & Reliability
 
@@ -632,6 +644,75 @@ GET /api/v1/audit/compliance/report?framework=GDPR
 
 # Anomaly detection events
 GET /api/v1/audit/anomalies?severity=high
+```
+
+#### Multi-AI Planning Learning API (8 endpoints)
+
+```bash
+# Record planning outcome
+POST /api/v1/learning/planning-outcomes
+{
+  "session_id": "abc123",
+  "workflow_type": "multi_ai_planning",
+  "task_type": "feature",
+  "request_complexity": "medium",
+  "stages": [
+    {
+      "stage": 1,
+      "type": "initial",
+      "model": "gpt-4",
+      "provider": "openai",
+      "duration_ms": 5000,
+      "tokens_in": 1500,
+      "tokens_out": 2000
+    }
+  ],
+  "total_duration_ms": 25000,
+  "total_tokens_used": 7500,
+  "total_cost_cents": 85
+}
+
+# Update execution result
+PATCH /api/v1/learning/planning-outcomes/{id}/execution
+{
+  "success": true,
+  "duration_seconds": 180,
+  "tasks_completed": 5,
+  "tasks_failed": 0
+}
+
+# Record user feedback
+PATCH /api/v1/learning/planning-outcomes/{id}/feedback
+{
+  "rating": 5,
+  "feedback": "Excellent plan!",
+  "plan_was_modified": false
+}
+
+# Get model performance metrics
+GET /api/v1/learning/model-performance?model=gpt-4&stage_type=initial
+
+# Get stage model recommendations
+GET /api/v1/learning/recommendations/stage-models?task_type=feature
+
+# Get time estimate
+GET /api/v1/learning/recommendations/time-estimate?task_category=feature&task_complexity=medium
+
+# Get iteration count recommendation
+GET /api/v1/learning/recommendations/iteration-count?task_type=feature&complexity=complex
+
+# Record estimation feedback
+POST /api/v1/learning/estimation-feedback
+[
+  {
+    "task_category": "feature",
+    "task_complexity": "medium",
+    "executor_type": "claude_code",
+    "estimated_minutes": 60,
+    "actual_minutes": 55,
+    "accuracy_ratio": 0.92
+  }
+]
 ```
 
 ### Response Formats
