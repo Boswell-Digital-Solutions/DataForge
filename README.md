@@ -11,9 +11,9 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Active%20Development-blue" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
-  <img src="https://img.shields.io/badge/Projects-6%20Core%20Products-blue" />
+  <img src="https://img.shields.io/badge/Products-8%20Applications-blue" />
   <img src="https://img.shields.io/badge/VibeForge-Freeware-purple" />
-  <img src="https://img.shields.io/badge/Documentation-10%2C800%2B%20lines-green" />
+  <img src="https://img.shields.io/badge/Documentation-12%2C300%2B%20lines-green" />
 </p>
 
 ---
@@ -36,83 +36,91 @@
 6. [Project Status](#-project-status)
 7. [Documentation](#-documentation)
 8. [Technology Stack](#-technology-stack)
-9. [Support & Contact](#-support--contact)
+9. [Security & Compliance](#-security--compliance)
+10. [License & Copyright](#-license--copyright)
+11. [Support & Contact](#-support--contact)
 
 ---
 
 ## 🔥 Forge Ecosystem Overview
 
-**The Forge Ecosystem** is a cathedral-level development platform comprising six specialized products for AI-driven content creation, intelligent project automation, market intelligence, and data management. All products share a unified backend architecture powered by **DataForge** (data engine) and **NeuroForge** (AI orchestration).
+**The Forge Ecosystem** is a cathedral-level development platform comprising eight specialized products for AI-driven content creation, intelligent project automation, market intelligence, and data management. All products share a unified backend architecture powered by **DataForge** (data engine) and **NeuroForge** (AI orchestration).
 
 ### What is Forge?
 
 Forge is an **integrated professional platform** where:
 
-- 🔓 **VibeForge** (Freeware) – AI project automation and intelligent wizard (entry product)
+- 🔓 **VibeForge** (Freeware) – AI prompt engineering workbench (entry product)
 - 🔒 **DataForge** (Commercial) – Core data engine and knowledge layer
 - 🔒 **NeuroForge** (Commercial) – LLM orchestration and model routing
+- 🔒 **ForgeAgents** (Commercial) – Autonomous agent orchestration layer
 - 🔒 **AuthorForge** (Commercial) – Genre-aware creative writing assistant
 - 🔒 **TradeForge** (Commercial) – Market intelligence and financial datasets
 - 🔒 **Leopold/Livy** (Commercial) – Ecological and historical analysis modules
+- 🔍 **Cortex** (Standalone) – Desktop file intelligence and search
 
 ### Unified Architecture
 
 - ✅ **Shared Intelligence Layer** – DataForge stores all product knowledge
 - ✅ **Centralized AI Orchestration** – NeuroForge routes LLM requests across all products
+- ✅ **Autonomous Agents** – ForgeAgents coordinates cross-service automation
 - ✅ **Commercial Backend** – All products (including VibeForge) connect to commercial services
 - ✅ **Enterprise-Grade Security** – OAuth2, field-level encryption, audit logs
 - ✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring
 
 ### Quick Facts
 
-| Metric                       | Value                                                            |
-| ---------------------------- | ---------------------------------------------------------------- |
-| **Ecosystem Status**         | 🔵 Active Development (Alpha/Beta)                               |
-| **Free Entry Product**       | VibeForge (Freeware with restrictions)                           |
-| **Commercial Products**      | 5 (DataForge, NeuroForge, AuthorForge, TradeForge, Leopold/Livy) |
-| **Data Engine (DataForge)**  | Advanced Alpha - 18/18 core phases complete                      |
-| **VibeForge Learning Layer** | Phase 3.2 & 3.3 Complete                                         |
-| **Total Documentation**      | 10,800+ lines                                                    |
-| **Production Code**          | 30,500+ lines                                                    |
-| **Version**                  | 5.2                                                              |
+| Metric                       | Value                                      |
+| ---------------------------- | ------------------------------------------ |
+| **Ecosystem Status**         | 🔵 Active Development (Alpha/Beta)         |
+| **Free Entry Product**       | VibeForge (Freeware with restrictions)     |
+| **Commercial Products**      | 6 (DataForge, NeuroForge, ForgeAgents, AuthorForge, TradeForge, Leopold/Livy) |
+| **Standalone Product**       | Cortex (Desktop file intelligence)         |
+| **DataForge Version**        | 5.2 (18/18 core phases complete)           |
+| **ForgeAgents Version**      | 0.1.0 (Phase 7 complete, production-ready) |
+| **VibeForge Version**        | 5.6 (695 tests, Jan 2026 launch)           |
+| **RAG Pipeline**             | Production Ready ✅                         |
+| **Total Documentation**      | 12,300+ lines                              |
+| **Production Code**          | 53,250+ lines (includes ForgeAgents 20K)   |
+| **Ecosystem Version**        | 5.3                                        |
 
 ---
 
 ## 🧩 Core Products
 
-The Forge Ecosystem consists of 6 specialized products with unified backend infrastructure:
+The Forge Ecosystem consists of 8 specialized products with unified backend infrastructure:
 
-### 1. **VibeForge** 🎨 – AI Project Automation (FREEWARE)
+### 1. VibeForge 🎨 – AI Prompt Engineering Workbench (FREEWARE)
 
-- **Purpose:** Intelligent project creation wizard with adaptive recommendations
-- **Status:** 🟣 **Freeware** - Free download, restricted modifications
+- **Purpose:** Pro-grade prompt creation and testing environment
+- **Status:** 🟣 **Beta** - Free download, restricted modifications
 - **Repository:** `./vibeforge/`
 - **License:** Freeware with restrictions (see VibeForge README)
 - **Backend:** Uses commercial NeuroForge + DataForge services
 - **Key Features:**
-  - Multi-step project creation wizard
+  - 3-column prompt builder with Monaco editor
+  - Multi-model test runner (local + cloud)
   - 15 languages across 4 categories
   - 10 production-ready stack profiles
-  - Learning-based recommendations
-  - Success prediction with ML
-  - Historical insights and pattern detection
+  - Learning-based recommendations with success prediction
+  - Export to JSON/Markdown/Claude/Augment
+  - MCP support and plugin system
   - **Code Analysis & GitHub Integration:**
     - Architecture analysis (complexity, code smells, god functions)
     - Security scanning (vulnerabilities, secrets, XSS, SQL injection)
     - Performance detection (nested loops, memory leaks, blocking operations)
-    - Best practices validation (error handling, naming, dead code)
-    - Real-time issue detection with severity levels
     - Repository health scoring and recommendations
-- **Entry Product:** Free to use, serves as gateway to Forge ecosystem
+- **Launch:** January 2026 as freeware for Linux community
 - **Documentation:** [vibeforge/README.md](./vibeforge/README.md)
 
-### 2. **DataForge** 🗄️ – Core Data Engine (COMMERCIAL)
+### 2. DataForge 🗄️ – Core Data Engine (COMMERCIAL)
 
 - **Purpose:** Unified data storage, semantic retrieval, event auditing
-- **Status:** 🔒 **Commercial** - Advanced Alpha (18/18 phases)
+- **Status:** 🔒 **Advanced Alpha** (18/18 phases complete)
 - **Repository:** `./DataForge/`
 - **License:** Commercial - All rights reserved
 - **Key Features:**
+  - **🔍 Hybrid Search** - Combines semantic (vector) + keyword (BM25) search with RRF
   - PostgreSQL with pgvector embeddings
   - Field-level AES-256 encryption
   - Immutable audit logs
@@ -122,15 +130,16 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
 - **Role:** Shared intelligence layer for all Forge products
 - **Documentation:** [DataForge/README.md](./DataForge/README.md)
 
-### 3. **NeuroForge** 🧠 – AI Orchestration Engine (COMMERCIAL)
+### 3. NeuroForge 🧠 – AI Orchestration Engine (COMMERCIAL)
 
 - **Purpose:** LLM routing, inference optimization, model management
-- **Status:** 🔒 **Commercial** - Advanced Alpha
+- **Status:** 🔒 **Advanced Alpha**
 - **Repository:** `./NeuroForge/`
 - **License:** Commercial - All rights reserved
 - **Key Features:**
   - Multi-provider LLM routing (Anthropic, OpenAI, Ollama)
   - Champion model selection system
+  - Five-stage LLM pipeline (Retrieve → Prepare → Execute → Score → Return)
   - Domain-specific adapters
   - Circuit breakers and retry logic
   - Performance tracking and optimization
@@ -138,39 +147,58 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
 - **Role:** Centralized AI orchestration for all products
 - **Documentation:** [NeuroForge/neuroforge_backend/README.md](./NeuroForge/neuroforge_backend/README.md)
 
-### 4. **AuthorForge** ✍️ – AI Writing Platform (COMMERCIAL)
+### 4. ForgeAgents 🤖 – Autonomous Agent Orchestration (COMMERCIAL)
+
+- **Purpose:** Orchestration layer enabling autonomous AI agents within the Forge Ecosystem
+- **Status:** 🔒 **Advanced Alpha** - Phase 7 Complete (100%) ✅
+- **Repository:** `./ForgeAgents/`
+- **Version:** 0.1.0
+- **License:** Commercial - All rights reserved
+- **Production Code:** ~20,050 lines (Python)
+- **Key Features:**
+  - **Agent Lifecycle Management** - Plan → Act → Observe → Reflect → Decide → Next/Finish
+  - **Multi-Provider LLM Integration** - OpenAI GPT-4 + Anthropic Claude 3 with automatic failover
+  - **Tool System** - 23 tools across 4 adapters (Rake, NeuroForge, DataForge, Filesystem)
+  - **Memory System** - Short-term (in-memory), Long-term (DataForge), Episodic (timeline)
+  - **Policy Engine** - 11 production policies (Safety, Domain, Resource)
+  - **Authentication** - JWT + RBAC with multi-tenancy support
+  - **Monitoring** - 19 Prometheus metrics across all systems
+  - **Testing** - 61 automated tests with coverage reporting
+  - **Reference Agents (5 Production-Ready):**
+    - AssistantAgent (Writer) - General-purpose task assistance (629 lines)
+    - DeveloperAgent (Coder) - Code generation and refactoring (582 lines)
+    - AnalystAgent (Analyst) - Data analysis and reporting (312 lines)
+    - ResearchAgent (Researcher) - Information gathering (385 lines)
+    - CoordinatorAgent (Orchestrator) - Multi-agent coordination (380 lines)
+- **Service Integration:**
+  - DataForge (8001) - Memory persistence, semantic search
+  - NeuroForge (8000) - LLM inference and routing
+  - Rake (8002) - Background job processing
+  - Coordinates all services via unified API
+- **Role:** Production-ready autonomous coordination across all ecosystem services
+- **Port:** 8003
+- **Documentation:** [ForgeAgents/README.md](./ForgeAgents/README.md)
+
+### 5. AuthorForge ✍️ – AI Writing Platform (COMMERCIAL)
 
 - **Purpose:** Genre-aware creative writing with narrative structuring
-- **Status:** 🔒 **Commercial** - Active Development
+- **Status:** 🔒 **Alpha** - Active Development
 - **Repository:** `./AuthorForge/`
 - **License:** Commercial - All rights reserved
 - **Key Features:**
   - Multi-genre writing framework (Fantasy, Sci-Fi, Christian Fiction)
+  - Seven themed workspaces (Hearth, Foundry, Smithy, Anvil, Lore, Bloom, Tempering)
   - AI-powered research assistant
   - Character and scene management
   - Pacing and structure analysis
   - Full DataForge + NeuroForge integration
-- **Role:** Cathedral-level writing tool for professional authors
+- **Role:** Professional writing suite for authors
 - **Documentation:** [AuthorForge/README.md](./AuthorForge/README.md)
-- **Documentation:** `./AuthorForge/README.md`
 
-### 3. **NeuroForge** 🧠 – AI Model Infrastructure
-
-- **Purpose:** Model routing, inference optimization, embeddings generation
-- **Status:** ✅ In Production
-- **Repository:** `./NeuroForge/`
-- **Key Features:**
-  - LLM routing and optimization
-  - Vector embeddings generation
-  - Context retrieval for RAG pipelines
-  - Model performance tracking
-  - Integration with AuthorForge and VibeForge
-- **Documentation:** `./NeuroForge/README.md`
-
-### 5. **TradeForge** 📈 – Market Intelligence (COMMERCIAL)
+### 6. TradeForge 📈 – Market Intelligence (COMMERCIAL)
 
 - **Purpose:** Market signals, historical feeds, financial datasets
-- **Status:** 🔒 **Commercial** - Planned Release
+- **Status:** 🔒 **Planned**
 - **License:** Commercial - All rights reserved
 - **Key Features:**
   - Real-time market data integration
@@ -181,14 +209,31 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
 - **Role:** Professional market intelligence for traders and analysts
 - **Documentation:** Commercial module - details pending public release
 
-### 6. **Leopold & Livy** 🌿📚 – Analysis Modules (COMMERCIAL)
+### 7. Leopold & Livy 🌿📚 – Analysis Modules (COMMERCIAL)
 
 - **Leopold:** Ecological observations, biological datasets, environmental tracking
 - **Livy:** Historical data, geospatial narratives, temporal analysis
-- **Status:** 🔒 **Commercial** - Planned Release
+- **Status:** 🔒 **Planned**
 - **License:** Commercial - All rights reserved
 - **Role:** Specialized domain analysis tools
 - **Documentation:** Commercial modules - details pending public release
+
+### 8. Cortex 🔍 – Desktop File Intelligence (STANDALONE)
+
+- **Purpose:** Fast, offline-first file indexing and intelligent search
+- **Status:** ✅ **Alpha** (Phase 0: 82% complete)
+- **Repository:** `./cortex/`
+- **License:** TBD (standalone desktop application)
+- **Key Features:**
+  - **Lightning-fast search** - Sub-100ms FTS5 queries, 50+ files/sec indexing
+  - **VS Code Claude Export** - Export indexed content for AI coding assistants
+  - **Offline-first** - All data stored locally in SQLite
+  - **Cross-platform** - Linux, macOS, Windows support via Tauri
+  - **Content extraction** - txt, md, pdf, docx, source code
+  - **Real-time progress** - Live indexing status with progress tracking
+- **Technology:** Rust/Tauri 2.0 + SvelteKit
+- **Role:** Personal search engine for developers, writers, researchers
+- **Documentation:** [cortex/README.md](./cortex/README.md)
 
 ---
 
@@ -199,7 +244,12 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │         Application Layer (Client-Facing Products)          │
-│  AuthorForge · NeuroForge · VibeForge · TradeForge · etc   │
+│  AuthorForge · VibeForge · TradeForge · Leopold · Livy     │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│     ForgeAgents Orchestration Layer                          │
+│  Autonomous Agents · Task Coordination · Cross-Service API  │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
@@ -208,8 +258,8 @@ The Forge Ecosystem consists of 6 specialized products with unified backend infr
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│     DataForge Application Layer (FastAPI)                    │
-│  OAuth2 · Data Validation · Business Logic · Audit Events  │
+│     Core Services Layer                                      │
+│  NeuroForge (AI) · DataForge (Data) · Rake (Ingestion)     │
 └──────────┬──────────────────┬──────────────────┬────────────┘
            │                  │                  │
       ┌────▼─────┐    ┌──────▼──────┐    ┌─────▼──────┐
@@ -285,10 +335,11 @@ open http://localhost:8000/docs
 
 ## 🗄️ DataForge: Core Engine
 
-DataForge is the **unified data and knowledge engine** powering all Forge products. It provides:
+DataForge is the **unified data and knowledge engine** powering all Forge products.
 
 ### Core Capabilities
 
+- **Hybrid search** – Combines semantic (vector) + keyword (BM25) search with Reciprocal Rank Fusion (+40% accuracy)
 - **High-availability data storage** – 99.99% uptime SLA with automatic failover
 - **Semantic retrieval** – pgvector embeddings for intelligent similarity search
 - **Event auditing** – Immutable, cryptographically-signed logs with 90+ day retention
@@ -303,38 +354,70 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 | ------------------- | ---------------------- |
 | **Completion**      | 18/18 phases (100%) ✅ |
 | **Tests Passing**   | 296/296 (100%) ✅      |
-| **Production Code** | 27,857 lines           |
+| **Production Code** | 28,257 lines           |
 | **Documentation**   | 5,742+ lines           |
-| **Version**         | 5.1                    |
+| **RAG Features**    | Hybrid Search ✅       |
+| **Version**         | 5.2                    |
 | **SLA Target**      | 99.99% (multi-node)    |
 
 ### Documentation
 
-- 📖 **README:** [DataForge/README.md](./DataForge/README.md) – Complete overview (562 lines)
-- 📋 **API Reference:** [DataForge/docs/guides/API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md) – All 24 endpoints
-- 🛠️ **Deployment:** [DataForge/docs/guides/DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md) – Step-by-step setup
-- 📚 **Operations:** [DataForge/docs/guides/OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md) – Daily operations
-- 🔒 **Security:** [DataForge/SECURITY.md](./DataForge/SECURITY.md) – Security architecture
-- 🏛️ **Architecture:** [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md) – System design
-- ⚖️ **License:** [DataForge/LICENSE.md](./DataForge/LICENSE.md) – Commercial license
-- 📋 **Legal:** [DataForge/LEGAL.md](./DataForge/LEGAL.md) – IP protections
+- 📖 **README:** [DataForge/README.md](./DataForge/README.md)
+- 📋 **API Reference:** [DataForge/docs/guides/API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md)
+- 🛠️ **Deployment:** [DataForge/docs/guides/DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)
+- 📚 **Operations:** [DataForge/docs/guides/OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md)
+- 🔒 **Security:** [DataForge/SECURITY.md](./DataForge/SECURITY.md)
+- 🏛️ **Architecture:** [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)
 
 ---
 
 ## 📊 Project Status
 
-### Completion Metrics
+### Product Status Summary
 
-| Category                 | Metric                                   | Status           |
-| ------------------------ | ---------------------------------------- | ---------------- |
-| **DataForge Phases**     | 18/18 Complete                           | ✅ 100%          |
-| **VibeForge Phase 3**    | 3.2 & 3.3 Complete (Learning Layer)      | ✅ 100%          |
-| **Tests**                | 296 Passing                              | ✅ 100%          |
-| **Documentation**        | 10,800+ lines                            | ✅ Comprehensive |
-| **Security Phases**      | 3/3 (Auth, Encryption, Audit)            | ✅ Complete      |
-| **HA Phases**            | 4/4 (Backups, Tolerance, HA, Monitoring) | ✅ Complete      |
-| **Learning Integration** | Backend + Frontend API Connected         | ✅ Complete      |
-| **Production Ready**     | Verified & Tested                        | ✅ YES           |
+| Product      | Status           | Tests | Notes                        |
+| ------------ | ---------------- | ----- | ---------------------------- |
+| DataForge    | Advanced Alpha ✅ | 296   | v5.2, 18/18 phases complete  |
+| NeuroForge   | Advanced Alpha ✅ | 100+  | 89% coverage                 |
+| Rake         | Production ✅     | 77    | v1.0, 80%+ coverage          |
+| ForgeAgents  | Advanced Alpha ✅ | 61    | v0.1.0, Phase 7 complete     |
+| VibeForge    | Beta ✅           | 695   | v5.6, Jan 2026 launch        |
+| Cortex       | Alpha            | 60    | Phase 0: 82% complete        |
+| AuthorForge  | Alpha            | —     | SolidStart boilerplate       |
+| TradeForge   | Planned          | —     | —                            |
+| Leopold/Livy | Planned          | —     | —                            |
+
+### Development Roadmap
+
+**Tier 1: Foundation (Complete)**
+- ✅ DataForge – Memory substrate for everything
+- ✅ NeuroForge – Inference engine with pipeline
+
+**Tier 2: Pipeline (Complete)**
+- ✅ Rake – Ingestion pipeline feeding DataForge
+- ✅ VibeForge – January 2026 launch product
+
+**Tier 3: Local Applications (In Progress)**
+- 🔄 Cortex – Local file management bridge (82%)
+- 🔄 AuthorForge – Writing OS (started)
+
+**Tier 4: Orchestration (Complete)**
+- ✅ ForgeAgents – Autonomous agent coordination (Phase 7: 100%)
+
+**Tier 5: Future Products**
+- 📋 TradeForge – Stock analysis
+- 📋 Leopold – Wildlife biology
+- 📋 Livy – Historical tours
+
+### Key Milestones
+
+| Timeline      | Milestone           | Deliverable                      |
+| ------------- | ------------------- | -------------------------------- |
+| December 2025 | ForgeAgents v0.1.0  | Phase 7 complete, production-ready ✅ |
+| January 2026  | VibeForge Launch    | Freeware for Linux community     |
+| Q2 2026       | AuthorForge Beta    | MVP with core workspaces         |
+| Q3 2026       | ForgeAgents v1.0    | Enhanced features, scale-up      |
+| 2027          | Revenue Target      | 500+ users, $50K+ revenue        |
 
 ### Feature Coverage
 
@@ -364,8 +447,6 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 - ✅ Structured JSON logging with correlation IDs
 - ✅ Grafana pre-built dashboards
 - ✅ Real-time alerting (Slack, PagerDuty, email)
-- ✅ Alert automation for 12+ alert categories
-- ✅ SLO tracking and reporting
 
 ---
 
@@ -377,37 +458,35 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 
 ### DataForge Documentation Suite
 
-| Document                                                                                 | Purpose               | Lines           |
-| ---------------------------------------------------------------------------------------- | --------------------- | --------------- |
-| [README.md](./DataForge/README.md)                                                       | Enterprise overview   | 562             |
-| [COMPREHENSIVE_DOCUMENTATION.md](./DataForge/docs/guides/COMPREHENSIVE_DOCUMENTATION.md) | Complete architecture | 1,158           |
-| [API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md)                             | 24 API endpoints      | 884             |
-| [DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)                       | Deployment procedures | 729             |
-| [OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md)                   | Daily operations      | 686             |
-| [TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md)             | Problem diagnostics   | 752             |
-| [SECURITY.md](./DataForge/SECURITY.md)                                                   | Security architecture | 117             |
-| [ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)                                           | System design         | 164             |
-| [LICENSE.md](./DataForge/LICENSE.md)                                                     | Commercial license    | 93              |
-| [LEGAL.md](./DataForge/LEGAL.md)                                                         | IP protections        | 113             |
-| **Total**                                                                                | **All guides**        | **5,742 lines** |
+| Document                         | Purpose               | Lines |
+| -------------------------------- | --------------------- | ----- |
+| README.md                        | Enterprise overview   | 562   |
+| COMPREHENSIVE_DOCUMENTATION.md   | Complete architecture | 1,158 |
+| API_REFERENCE.md                 | 24 API endpoints      | 884   |
+| DEPLOYMENT_GUIDE.md              | Deployment procedures | 729   |
+| OPERATIONS_RUNBOOK.md            | Daily operations      | 686   |
+| TROUBLESHOOTING_GUIDE.md         | Problem diagnostics   | 752   |
+| SECURITY.md                      | Security architecture | 117   |
+| ARCHITECTURE.md                  | System design         | 164   |
+| **Total**                        | **All guides**        | **5,742** |
 
 ### VibeForge Documentation Suite
 
-| Document                                                                 | Purpose                      | Lines           |
-| ------------------------------------------------------------------------ | ---------------------------- | --------------- |
-| [PHASE_3_2_COMPLETION_SUMMARY.md](./PHASE_3_2_COMPLETION_SUMMARY.md)     | Backend integration summary  | 450             |
-| [PHASE_3_3_COMPLETION_SUMMARY.md](./PHASE_3_3_COMPLETION_SUMMARY.md)     | Frontend integration summary | 580             |
-| [TECHNICAL_DUE_DILIGENCE_REVIEW.md](./TECHNICAL_DUE_DILIGENCE_REVIEW.md) | Quality assessment           | 620             |
-| [TECHNICAL_ISSUES_RESOLVED.md](./TECHNICAL_ISSUES_RESOLVED.md)           | Issue resolution log         | 463             |
-| [VIBEFORGE_ROADMAP.md](./VIBEFORGE_ROADMAP.md)                           | Product roadmap              | 1,200           |
-| **Total**                                                                | **Phase 3 docs**             | **3,313 lines** |
+| Document                           | Purpose                      | Lines |
+| ---------------------------------- | ---------------------------- | ----- |
+| PHASE_3_2_COMPLETION_SUMMARY.md    | Backend integration summary  | 450   |
+| PHASE_3_3_COMPLETION_SUMMARY.md    | Frontend integration summary | 580   |
+| TECHNICAL_DUE_DILIGENCE_REVIEW.md  | Quality assessment           | 620   |
+| TECHNICAL_ISSUES_RESOLVED.md       | Issue resolution log         | 463   |
+| VIBEFORGE_ROADMAP.md               | Product roadmap              | 1,200 |
+| **Total**                          | **Phase 3 docs**             | **3,313** |
 
 ### Directory Structure
 
 ```
 Forge/
 ├── DataForge/                          # Core data engine (18 phases complete)
-│   ├── README.md                       # DataForge overview (562 lines)
+│   ├── README.md                       # DataForge overview
 │   ├── LICENSE.md, LEGAL.md            # Commercial licensing
 │   ├── SECURITY.md, ARCHITECTURE.md    # Technical documentation
 │   ├── docs/
@@ -417,28 +496,35 @@ Forge/
 │   │   └── archive/                    # Historical documentation
 │   └── app/                            # Python application code
 │
+├── NeuroForge/                         # AI orchestration engine
+│   └── neuroforge_backend/
+│
+├── ForgeAgents/                        # Autonomous agent orchestration (v0.1.0, Phase 7 complete)
+│   ├── README.md                       # Complete overview (960+ lines)
+│   ├── PHASE_7_COMPLETE.md             # Phase 7 summary
+│   ├── docs/phases/                    # Phase completion reports (2-7)
+│   ├── docs/ARCHITECTURE.md            # System architecture
+│   ├── docs/API.md                     # API reference
+│   └── app/                            # Python application code
+│
 ├── AuthorForge/                        # AI writing platform
 │   └── README.md
 │
-├── NeuroForge/                         # AI model infrastructure
-│   └── neuroforge_backend/
-│
-├── vibeforge/                          # Execution context & analytics
+├── vibeforge/                          # Prompt engineering workbench
 │   └── README.md
 │
-├── AuthorForge_Solid_new/              # Next-generation writing platform
+├── cortex/                             # Desktop file intelligence
 │   └── README.md
 │
 ├── CONSOLIDATED_DOCUMENTATION_INDEX.md # Master documentation index
 └── README.md                           # This file
-
 ```
 
 ---
 
 ## 🧪 Technology Stack
 
-### Core Technologies (DataForge)
+### Core Technologies
 
 | Layer                 | Technology    | Version | Purpose                   |
 | --------------------- | ------------- | ------- | ------------------------- |
@@ -456,7 +542,24 @@ Forge/
 | **Orchestration**     | Kubernetes    | 1.28+   | Container orchestration   |
 | **Container Runtime** | Docker        | 24+     | Containerization          |
 | **Testing**           | pytest        | 7.4+    | Unit & integration tests  |
-| **Load Testing**      | k6            | 0.48+   | Performance benchmarking  |
+
+### Frontend Technologies
+
+| Layer       | Technology | Purpose                  |
+| ----------- | ---------- | ------------------------ |
+| **Web**     | SvelteKit  | VibeForge frontend       |
+| **Desktop** | Tauri      | Cross-platform apps      |
+| **Alt Web** | SolidJS    | AuthorForge frontend     |
+| **Styling** | Tailwind   | Utility-first CSS        |
+
+### Port Assignments
+
+| Service     | Port | Status           |
+| ----------- | ---- | ---------------- |
+| NeuroForge  | 8000 | Advanced Alpha   |
+| DataForge   | 8001 | Advanced Alpha   |
+| Rake        | 8002 | Production Ready |
+| ForgeAgents | 8003 | Advanced Alpha   |
 
 ---
 
@@ -504,34 +607,9 @@ Forge/
 
 ---
 
-## 📞 Support & Contact
-
-### Enterprise Support
-
-- **Technical Support:** charlesboswell@boswelldigitalsolutions.com
-- **Licensing & Sales:** Same email
-- **Security Issues:** Report with [SECURITY] prefix in subject
-- **Documentation Issues:** Submit via GitHub (private repo)
-
-### Community
-
-- Internal development only
-- External contributions require written permission from Boswell Digital Solutions LLC
-- Feature requests welcome via email
-
-### Resources
-
-- 📖 **DataForge Documentation** – [./DataForge/README.md](./DataForge/README.md)
-- 🗺️ **Full Documentation Index** – [CONSOLIDATED_DOCUMENTATION_INDEX.md](./CONSOLIDATED_DOCUMENTATION_INDEX.md)
-- 🐛 **Known Issues & Solutions** – [DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md)
-- 📊 **Architecture Overview** – [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)
-- 🔒 **Security Policy** – [DataForge/SECURITY.md](./DataForge/SECURITY.md)
-
----
-
 ## 📋 License & Copyright
 
-### Commercial Products (DataForge, NeuroForge, AuthorForge, TradeForge, Leopold, Livy)
+### Commercial Products (DataForge, NeuroForge, ForgeAgents, AuthorForge, TradeForge, Leopold, Livy)
 
 **📄 License (Commercial)**
 
@@ -578,47 +656,59 @@ All code, documentation, schemas, diagrams, algorithms, and business logic acros
 
 ---
 
-## 🎯 Final Summary
+## 📞 Support & Contact
 
-**The Forge Ecosystem** is a **cathedral-level development platform** comprising six specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge) and professional domain tools (AuthorForge, TradeForge, Leopold, Livy).
+### Enterprise Support
+
+- **Technical Support:** charlesboswell@boswelldigitalsolutions.com
+- **Licensing & Sales:** Same email
+- **Security Issues:** Report with [SECURITY] prefix in subject
+- **Documentation Issues:** Submit via GitHub (private repo)
+
+### Resources
+
+- 📖 **DataForge Documentation** – [./DataForge/README.md](./DataForge/README.md)
+- 🗺️ **Full Documentation Index** – [CONSOLIDATED_DOCUMENTATION_INDEX.md](./CONSOLIDATED_DOCUMENTATION_INDEX.md)
+- 🐛 **Known Issues & Solutions** – [DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md)
+- 📊 **Architecture Overview** – [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)
+- 🔒 **Security Policy** – [DataForge/SECURITY.md](./DataForge/SECURITY.md)
+
+---
+
+## 🎯 Summary
+
+**The Forge Ecosystem** is a professional development platform comprising eight specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge), autonomous orchestration (ForgeAgents), and professional domain tools (AuthorForge, TradeForge, Leopold, Livy), plus the standalone Cortex desktop application.
 
 ### Key Achievements
 
-✅ **6 Specialized Products** – Unified architecture with commercial backend  
-✅ **VibeForge (Freeware)** – Free entry product with learning-based project automation  
-✅ **DataForge Engine** – Advanced Alpha with 18/18 core phases complete  
-✅ **NeuroForge Orchestration** – Advanced Alpha with multi-provider LLM routing  
-✅ **VibeForge Learning Layer** – Phase 3.2 & 3.3 complete with adaptive recommendations  
-✅ **Enterprise Security** – OAuth2, field-level encryption, audit logs, anomaly detection  
-✅ **Full Compliance** – GDPR, CCPA, HIPAA frameworks with automation  
-✅ **Complete Documentation** – 10,800+ lines across 22+ guides  
-✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring  
-✅ **AI-Powered Automation** – Learning-based recommendations with success prediction
+✅ **8 Specialized Products** – Unified architecture with commercial backend
+✅ **VibeForge (Freeware)** – Free entry product launching January 2026
+✅ **DataForge Engine** – Advanced Alpha with 18/18 core phases complete
+✅ **NeuroForge Orchestration** – Advanced Alpha with multi-provider LLM routing
+✅ **ForgeAgents (NEW)** – Production-ready autonomous agent orchestration (Phase 7: 100%)
+✅ **Enterprise Security** – OAuth2, JWT, field-level encryption, audit logs, anomaly detection
+✅ **Full Compliance** – GDPR, CCPA, HIPAA frameworks with automation
+✅ **Complete Documentation** – 12,300+ lines across 20+ guides
+✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring
 
-### Status
+### Development Stage
 
-🔵 **ACTIVE DEVELOPMENT** (Alpha/Beta)
-
-**Recent Updates:**
-
-- ✅ Phase 3.2 & 3.3 Complete – VibeForge Learning Layer fully integrated
-- ✅ 3 Adaptive API Endpoints – Recommendations, context, success prediction
-- ✅ Frontend-Backend Connection – Real-time learning data
-- ✅ Technical Due Diligence – Critical issues resolved
-- ✅ End-to-End Testing – All learning features verified
-
-**Development Stage:**
-
-- DataForge: Advanced Alpha (maturing core engine)
-- NeuroForge: Advanced Alpha (production-grade orchestration)
-- VibeForge: Beta (freeware entry product)
-- AuthorForge: Alpha (active development)
-- TradeForge/Leopold/Livy: Planned releases
-
-**Maintained by:** Boswell Digital Solutions LLC  
-**Version:** 5.2  
-**Last Updated:** November 23, 2025
+| Product        | Stage          | Notes                              |
+| -------------- | -------------- | ---------------------------------- |
+| DataForge      | Advanced Alpha | Maturing core engine               |
+| NeuroForge     | Advanced Alpha | Production-grade orchestration     |
+| Rake           | Production     | v1.0 complete                      |
+| ForgeAgents    | Advanced Alpha | v0.1.0, Phase 7 complete, production-ready |
+| VibeForge      | Beta           | January 2026 freeware launch       |
+| Cortex         | Alpha          | Phase 0: 82% complete              |
+| AuthorForge    | Alpha          | Active development                 |
+| TradeForge     | Planned        | —                                  |
+| Leopold/Livy   | Planned        | —                                  |
 
 ---
+
+**Maintained by:** Boswell Digital Solutions LLC  
+**Ecosystem Version:** 5.3  
+**Last Updated:** December 5, 2025
 
 **For questions, licensing, or support, contact:** charlesboswell@boswelldigitalsolutions.com

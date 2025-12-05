@@ -87,9 +87,9 @@
 
 <div class="space-y-8">
 	<!-- Page Header -->
-	<div>
-		<h1 class="text-4xl font-display font-bold mb-2">System Overview</h1>
-		<p class="text-forge-steel">Real-time monitoring of all Forge services</p>
+	<div class="fc-hero-section">
+		<h1 class="text-4xl font-display font-bold mb-2 relative z-10">System Overview</h1>
+		<p class="text-forge-steel relative z-10">Real-time monitoring of all Forge services</p>
 	</div>
 
 	{#if error}
@@ -152,7 +152,7 @@
 			</div>
 
 			<!-- ForgeAgents -->
-			<div class="kpi-card agents fc-service-card fc-service-card--agents">
+			<div class="kpi-card agents fc-service-card fc-service-card--agents fc-sparks">
 				<div class="flex items-center justify-between mb-4">
 					<h3 class="text-xl font-semibold text-agents">ForgeAgents</h3>
 					<span class="status-badge {getStatusClass(health.forgeagents_status)}">

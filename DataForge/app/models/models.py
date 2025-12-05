@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, DateTime, Table, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
 from app.database import Base
 
@@ -74,6 +75,7 @@ class Chunk(Base):
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer, nullable=False)  # Order within document
     embedding = Column(Vector(1536))  # OpenAI ada-002 dimension (adjust for other providers)
+    search_vector = Column(TSVECTOR)  # Full-text search vector (automatically maintained by trigger)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

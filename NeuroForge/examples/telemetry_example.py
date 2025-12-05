@@ -80,6 +80,7 @@ def example_llm_request_with_telemetry(prompt: str, model: str):
                 "tokens_completion": response["completion_tokens"],
                 "tokens_total": response["total_tokens"],
                 "cost_usd": cost_usd,
+                "evaluation_score": 0.85,  # Mock quality score (0-1)
             }
         )
 
@@ -136,6 +137,7 @@ def example_model_comparison():
         time.sleep(0.2)
         tokens = 100 if "gpt-4" in model else 80
         cost = tokens * MODEL_PRICING.get(model, 0.001)
+        quality = 0.90 if "gpt-4" in model else 0.82  # Vary by model
 
         telemetry.emit(
             service="neuroforge",
@@ -149,6 +151,7 @@ def example_model_comparison():
                 "duration_ms": (time.time() - start_time) * 1000,
                 "tokens_total": tokens,
                 "cost_usd": cost,
+                "evaluation_score": quality,
             }
         )
 

@@ -27,14 +27,18 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/";
+		RouteId(): "/" | "/dataforge" | "/forgeagents" | "/neuroforge" | "/rake";
 		RouteParams(): {
 			
 		};
 		LayoutParams(): {
-			"/": Record<string, never>
+			"/": Record<string, never>;
+			"/dataforge": Record<string, never>;
+			"/forgeagents": Record<string, never>;
+			"/neuroforge": Record<string, never>;
+			"/rake": Record<string, never>
 		};
-		Pathname(): "/";
+		Pathname(): "/" | "/dataforge" | "/dataforge/" | "/forgeagents" | "/forgeagents/" | "/neuroforge" | "/neuroforge/" | "/rake" | "/rake/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}

@@ -1,0 +1,1109 @@
+/* ============================================================
+   Forge Command – Dark Operator Theme v1
+   Single-user, dark-only, readability-first design system
+   ============================================================ */
+
+/* ---------- 1. Design Tokens (CSS Variables) ---------- */
+
+:root {
+  /* Typography */
+  --fc-font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+                  "Segoe UI", sans-serif;
+  --fc-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+                  Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --fc-font-size-base: 17px;   /* core accessibility bump */
+  --fc-line-height-base: 1.6;
+  --fc-letter-spacing-base: 0.2px;
+
+  /* Core background + surfaces (dark-only) */
+  --fc-color-bg: #0b0c0e;          /* main app background */
+  --fc-color-bg-elevated: #17191d; /* panels / shells */
+  --fc-color-surface: #1e2025;     /* cards / widgets */
+  --fc-color-surface-subtle: #24262b;
+
+  /* Borders & separators */
+  --fc-color-border-subtle: #2a2c32;
+  --fc-color-border-strong: #3b3e44;
+
+  /* Text */
+  --fc-color-text: #f1f2f3;
+  --fc-color-text-muted: #bfc2c5;
+  --fc-color-text-soft: #9ca3af;
+  --fc-color-text-disabled: #6d7177;
+
+  /* Generic accents */
+  --fc-color-accent: #0094e8;        /* primary accent (close to DataForge blue) */
+  --fc-color-accent-soft: #38bdf8;   /* hover / lighter accents */
+
+  /* System statuses (universal across Forge ecosystem) */
+  --fc-status-ok: #16a34a;
+  --fc-status-warn: #d4b02a;
+  --fc-status-error: #dc2626;
+  --fc-status-idle: #7c838a;
+
+  /* Forge core backend colors (for charts / badges / tags) */
+  --fc-dataforge: #0094e8;  /* memory / vector search */
+  --fc-neuroforge: #9b4de8; /* AI orchestration */
+  --fc-rake: #22cfc5;       /* ingestion pipeline */
+  --fc-agents: #f59e0b;     /* agent orchestration - OFFICIAL AMBER */
+
+  /* Cinematic / brand */
+  --fc-ember: #d97706;      /* forge ember glow (sparingly) */
+
+  /* Shadows & depth */
+  --fc-shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.45);
+  --fc-shadow-subtle: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- 2. Global Resets & Base ---------- */
+
+html {
+  font-size: var(--fc-font-size-base);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--fc-font-sans);
+  line-height: var(--fc-line-height-base);
+  letter-spacing: var(--fc-letter-spacing-base);
+  color: var(--fc-color-text);
+  background-color: var(--fc-color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Root app shell */
+.fc-app {
+  min-height: 100vh;
+  display: flex;
+  background: radial-gradient(circle at top, #111318 0%, #050609 55%, #020308 100%);
+}
+
+/* Utility for max-width content */
+.fc-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+}
+
+/* ---------- 3. Typography Utilities ---------- */
+
+.fc-text {
+  font-size: 1rem; /* ~17px */
+}
+
+.fc-text-sm {
+  font-size: 0.95rem;
+}
+
+.fc-text-md {
+  font-size: 1.1rem;
+}
+
+.fc-text-lg {
+  font-size: 1.22rem;
+}
+
+.fc-text-muted {
+  color: var(--fc-color-text-muted);
+}
+
+.fc-text-soft {
+  color: var(--fc-color-text-soft);
+}
+
+.fc-mono {
+  font-family: var(--fc-font-mono);
+}
+
+/* Headings tuned for dashboard, not marketing */
+.fc-h1 {
+  font-size: 1.9rem;
+  font-weight: 600;
+  margin: 0 0 0.8rem;
+}
+
+.fc-h2 {
+  font-size: 1.55rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.fc-h3 {
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin: 0 0 0.4rem;
+}
+
+/* ---------- 4. Layout: Sidebar + Main ---------- */
+
+.fc-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.fc-sidebar {
+  background: linear-gradient(to bottom, #050609, #0b0c0e 40%, #050609 100%);
+  border-right: 1px solid var(--fc-color-border-subtle);
+  padding: 1.2rem 1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.fc-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fc-sidebar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.fc-sidebar-section-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fc-color-text-soft);
+  margin: 1rem 0 0.35rem;
+}
+
+.fc-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fc-sidebar-item {
+  font-size: 0.97rem;
+  font-weight: 500;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--fc-color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease,
+              box-shadow 120ms ease;
+}
+
+.fc-sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--fc-color-text);
+}
+
+.fc-sidebar-item.fc-active {
+  background: radial-gradient(circle at top left, #0f172a 0%, #020617 50%);
+  color: var(--fc-color-text);
+  box-shadow: 0 0 0 1px rgba(0, 148, 232, 0.4);
+}
+
+/* Main content area */
+.fc-main {
+  background-color: var(--fc-color-bg);
+  padding: 1.5rem 1.75rem;
+}
+
+/* ---------- 5. Cards, Panels & Sections ---------- */
+
+.fc-card {
+  background-color: var(--fc-color-surface);
+  border-radius: 0.9rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  box-shadow: var(--fc-shadow-subtle);
+  padding: 1rem 1.2rem;
+}
+
+.fc-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.fc-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fc-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--fc-color-text-soft);
+}
+
+.fc-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* ---------- 6. Buttons ---------- */
+
+.fc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.95rem;
+  border-radius: 0.55rem;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease,
+              border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.fc-btn-primary {
+  background: var(--fc-color-accent);
+  color: #020617;
+  box-shadow: 0 0 0 1px rgba(148, 208, 255, 0.15);
+}
+
+.fc-btn-primary:hover {
+  background: var(--fc-color-accent-soft);
+}
+
+.fc-btn-ghost {
+  background: transparent;
+  color: var(--fc-color-text);
+  border-color: var(--fc-color-border-subtle);
+}
+
+.fc-btn-ghost:hover {
+  border-color: var(--fc-color-accent);
+}
+
+.fc-btn-danger {
+  background: var(--fc-status-error);
+  color: #fef2f2;
+}
+
+/* ---------- 7. Form Controls ---------- */
+
+.fc-input,
+.fc-select,
+.fc-textarea {
+  width: 100%;
+  background-color: var(--fc-color-surface);
+  border-radius: 0.55rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  padding: 0.5rem 0.7rem;
+  color: var(--fc-color-text);
+  font-size: 1rem;
+  font-family: var(--fc-font-sans);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease,
+              background-color 120ms ease;
+}
+
+.fc-input::placeholder,
+.fc-textarea::placeholder {
+  color: var(--fc-color-text-soft);
+}
+
+.fc-input:focus,
+.fc-select:focus,
+.fc-textarea:focus {
+  border-color: var(--fc-neuroforge); /* violet focus ring */
+  box-shadow: 0 0 0 1px rgba(155, 77, 232, 0.4);
+}
+
+/* ---------- 8. Tables & Logs ---------- */
+
+.fc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.fc-table thead {
+  background-color: #111217;
+}
+
+.fc-table th,
+.fc-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--fc-color-border-subtle);
+}
+
+.fc-table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--fc-color-text-soft);
+}
+
+.fc-log {
+  font-family: var(--fc-font-mono);
+  font-size: 0.95rem;
+  background-color: #050609;
+  border-radius: 0.55rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  padding: 0.6rem 0.75rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ---------- 9. Status Badges & Tags ---------- */
+
+.fc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.fc-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: currentColor;
+}
+
+/* system health */
+.fc-badge-ok {
+  background: rgba(22, 163, 74, 0.18);
+  color: var(--fc-status-ok);
+}
+
+.fc-badge-warn {
+  background: rgba(212, 176, 42, 0.18);
+  color: var(--fc-status-warn);
+}
+
+.fc-badge-error {
+  background: rgba(220, 38, 38, 0.18);
+  color: var(--fc-status-error);
+}
+
+.fc-badge-idle {
+  background: rgba(124, 131, 138, 0.18);
+  color: var(--fc-status-idle);
+}
+
+/* service badges */
+.fc-badge-dataforge {
+  background: rgba(0, 148, 232, 0.18);
+  color: var(--fc-dataforge);
+}
+
+.fc-badge-neuroforge {
+  background: rgba(155, 77, 232, 0.18);
+  color: var(--fc-neuroforge);
+}
+
+.fc-badge-rake {
+  background: rgba(34, 207, 197, 0.18);
+  color: var(--fc-rake);
+}
+
+.fc-badge-agents {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--fc-agents);
+}
+
+/* service tags */
+.fc-tag {
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fc-tag-dataforge {
+  border-color: rgba(0, 148, 232, 0.55);
+  color: var(--fc-dataforge);
+}
+
+.fc-tag-neuroforge {
+  border-color: rgba(155, 77, 232, 0.55);
+  color: var(--fc-neuroforge);
+}
+
+.fc-tag-rake {
+  border-color: rgba(34, 207, 197, 0.55);
+  color: var(--fc-rake);
+}
+
+.fc-tag-agents {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: var(--fc-agents);
+}
+
+/* ---------- 10. Metrics / KPI Blocks ---------- */
+
+.fc-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fc-kpi-label {
+  font-size: 0.84rem;
+  color: var(--fc-color-text-soft);
+}
+
+.fc-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--fc-color-text);
+}
+
+/* ---------- 11. Dashboard-Specific Layouts ---------- */
+
+/* Main dashboard content wrapper */
+.space-y-8 > * + * {
+  margin-top: 2rem;
+}
+
+/* Metrics grid (4 columns for KPI cards) */
+.grid-cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 1280px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Generic grid gap utilities */
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+/* ---------- 12. Panel Component ---------- */
+
+.panel {
+  background-color: var(--fc-color-surface);
+  border-radius: 0.9rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  box-shadow: var(--fc-shadow-subtle);
+  padding: 1.5rem;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.panel:hover {
+  box-shadow: var(--fc-shadow-soft);
+  border-color: var(--fc-color-border-strong);
+}
+
+/* ---------- 13. KPI Cards ---------- */
+
+.kpi-card {
+  background: linear-gradient(135deg, var(--fc-color-surface) 0%, var(--fc-color-surface-subtle) 100%);
+  border-radius: 0.9rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  box-shadow: var(--fc-shadow-subtle);
+  padding: 1.2rem 1.4rem;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--kpi-accent-color, var(--fc-color-accent)) 50%, transparent 100%);
+  opacity: 0.6;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--fc-shadow-soft);
+  border-color: var(--kpi-accent-color, var(--fc-color-accent));
+}
+
+/* Service-specific KPI card colors */
+.kpi-card.neuroforge {
+  --kpi-accent-color: var(--fc-neuroforge);
+}
+
+.kpi-card.dataforge {
+  --kpi-accent-color: var(--fc-dataforge);
+}
+
+.kpi-card.rake {
+  --kpi-accent-color: var(--fc-rake);
+}
+
+.kpi-card.agents {
+  --kpi-accent-color: var(--fc-agents);
+}
+
+/* ---------- 14. Service Color Utilities ---------- */
+
+.text-neuroforge {
+  color: var(--fc-neuroforge);
+}
+
+.text-dataforge {
+  color: var(--fc-dataforge);
+}
+
+.text-rake {
+  color: var(--fc-rake);
+}
+
+.text-agents {
+  color: var(--fc-agents);
+}
+
+.text-forge-steel {
+  color: var(--fc-color-text-muted);
+}
+
+.text-forge-ember {
+  color: var(--fc-ember);
+}
+
+.bg-neuroforge {
+  background-color: var(--fc-neuroforge);
+}
+
+.bg-dataforge {
+  background-color: var(--fc-dataforge);
+}
+
+.bg-rake {
+  background-color: var(--fc-rake);
+}
+
+.bg-agents {
+  background-color: var(--fc-agents);
+}
+
+/* ---------- 15. Typography Utilities (Dashboard) ---------- */
+
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.font-display {
+  font-family: var(--fc-font-sans);
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-mono {
+  font-family: var(--fc-font-mono);
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.tracking-wide {
+  letter-spacing: 0.05em;
+}
+
+/* ---------- 16. Loading States ---------- */
+
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--fc-color-surface) 0%,
+    var(--fc-color-surface-subtle) 50%,
+    var(--fc-color-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 0.9rem;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--fc-color-border-subtle);
+  border-top-color: var(--fc-color-accent);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 17. Chart Container Styling ---------- */
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  padding: 1rem 0.5rem;
+}
+
+.chart-wrapper {
+  background: linear-gradient(135deg, #0a0b0d 0%, var(--fc-color-bg) 50%, #0a0b0d 100%);
+  border-radius: 0.75rem;
+  border: 1px solid var(--fc-color-border-subtle);
+  padding: 1rem;
+}
+
+/* Chart title styling */
+.chart-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fc-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- 18. Empty States ---------- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--fc-color-text-soft);
+}
+
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+.empty-state-text {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--fc-color-text-muted);
+}
+
+.empty-state-subtext {
+  font-size: 0.875rem;
+  color: var(--fc-color-text-soft);
+}
+
+/* ---------- 19. Error States ---------- */
+
+.error-state {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, transparent 100%);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.9rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.error-state-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fc-status-error);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-state-message {
+  color: var(--fc-color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* Error panel variant */
+.panel.border-forge-ember {
+  border-color: var(--fc-ember);
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.05) 0%, var(--fc-color-surface) 50%);
+}
+
+.bg-forge-ember\/10 {
+  background-color: rgba(217, 119, 6, 0.1);
+}
+
+/* ---------- 20. Table Enhancements ---------- */
+
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--fc-color-border-subtle);
+}
+
+.last\:border-0:last-child {
+  border-bottom: none;
+}
+
+.hover\:bg-forge-steel\/10:hover {
+  background-color: rgba(191, 194, 197, 0.1);
+}
+
+/* Table cell styling */
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Padding utilities for tables */
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+/* ---------- 21. Transition Utilities ---------- */
+
+.transition-colors {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* ---------- 22. Button Hover States ---------- */
+
+.hover\:bg-forge-ember\/80:hover {
+  background-color: rgba(217, 119, 6, 0.8);
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.rounded {
+  border-radius: 0.5rem;
+}
+
+/* ---------- 23. Auto-Refresh Indicator ---------- */
+
+.refresh-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background-color: rgba(0, 148, 232, 0.1);
+  border: 1px solid rgba(0, 148, 232, 0.3);
+  font-size: 0.75rem;
+  color: var(--fc-color-accent);
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.refresh-indicator-dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--fc-color-accent);
+  border-radius: 50%;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+/* ---------- 24. Chart-Specific Overrides ---------- */
+
+/* Chart.js tooltip styling (applied via Chart.js options) */
+.chartjs-tooltip {
+  background-color: var(--fc-color-surface) !important;
+  border: 1px solid var(--fc-color-border-strong) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.75rem !important;
+  box-shadow: var(--fc-shadow-soft) !important;
+}
+
+/* Chart canvas container */
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---------- 25. Service-Specific Panel Accents ---------- */
+
+.panel-neuroforge {
+  border-top: 3px solid var(--fc-neuroforge);
+}
+
+.panel-dataforge {
+  border-top: 3px solid var(--fc-dataforge);
+}
+
+.panel-rake {
+  border-top: 3px solid var(--fc-rake);
+}
+
+.panel-agents {
+  border-top: 3px solid var(--fc-agents);
+}
+
+/* ---------- 26. Number Formatting ---------- */
+
+.number-display {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/* ---------- 27. Responsive Utilities ---------- */
+
+@media (max-width: 1024px) {
+  .fc-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .fc-sidebar {
+    padding: 1rem 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .fc-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fc-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--fc-color-border-subtle);
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+}
+
+/* ---------- 28. Focus States (Accessibility) ---------- */
+
+*:focus-visible {
+  outline: 2px solid var(--fc-color-accent);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--fc-color-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- 29. Scrollbar Styling ---------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--fc-color-bg);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--fc-color-border-strong);
+  border-radius: 5px;
+  border: 2px solid var(--fc-color-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fc-color-text-soft);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fc-color-border-strong) var(--fc-color-bg);
+}
+
+/* ---------- 30. Page Header Styling ---------- */
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-subtitle {
+  font-size: 1rem;
+  color: var(--fc-color-text-muted);
+}
+
+/* ---------- 31. High-Contrast Mode (optional toggle) ---------- */
+
+:root.fc-high-contrast {
+  --fc-color-text: #ffffff;
+  --fc-color-text-muted: #e5e7eb;
+  --fc-color-border-subtle: #4b5563;
+  --fc-color-border-strong: #6b7280;
+}
+
+/* ---------- 32. Animation Performance ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- 33. Print Styles ---------- */
+
+@media print {
+  .fc-sidebar,
+  .refresh-indicator,
+  button {
+    display: none;
+  }
+
+  .panel {
+    border: 1px solid #000;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}

@@ -21,8 +21,8 @@ def stats_rate_limit(request: Request):
     return check_rate_limit(request, max_requests=10, window_seconds=60)
 
 
-@router.post("", response_model=schemas.SearchResponse)
-async def search_knowledge_base(
+@router.post("/semantic", response_model=schemas.SearchResponse)
+async def semantic_search_endpoint(
     search_request: schemas.SearchRequest,
     db: Session = Depends(get_db),
     request: Request = None,
@@ -30,9 +30,9 @@ async def search_knowledge_base(
     x_correlation_id: Optional[str] = Header(None)
 ):
     """
-    Public semantic search endpoint.
+    Semantic search endpoint using vector similarity.
 
-    Search the knowledge base using semantic similarity.
+    Search the knowledge base using semantic similarity (embeddings).
     No authentication required.
 
     Rate limit: 20 requests per minute per IP address.
@@ -58,6 +58,93 @@ async def search_knowledge_base(
         tags=search_request.tags,
         limit=search_request.limit,
         similarity_threshold=search_request.similarity_threshold,
+        correlation_id=correlation_id
+    )
+
+
+@router.post("/keyword", response_model=schemas.SearchResponse)
+async def keyword_search_endpoint(
+    search_request: schemas.SearchRequest,
+    db: Session = Depends(get_db),
+    request: Request = None,
+    rate_limit: None = Depends(search_rate_limit),
+    x_correlation_id: Optional[str] = Header(None)
+):
+    """
+    Keyword search endpoint using PostgreSQL full-text search.
+
+    Search the knowledge base using BM25-style keyword matching.
+    No authentication required.
+
+    Rate limit: 20 requests per minute per IP address.
+
+    Headers:
+        X-Correlation-ID: Optional correlation ID for distributed tracing
+    """
+    # Use provided correlation ID or generate new one
+    correlation_id = None
+    if x_correlation_id:
+        try:
+            correlation_id = uuid.UUID(x_correlation_id)
+        except ValueError:
+            # Invalid UUID format, generate new one
+            correlation_id = uuid.uuid4()
+    else:
+        correlation_id = uuid.uuid4()
+
+    return await search.keyword_search(
+        db=db,
+        query=search_request.query,
+        domain_id=search_request.domain_id,
+        tags=search_request.tags,
+        limit=search_request.limit,
+        min_rank=0.01,  # Default minimum rank threshold
+        correlation_id=correlation_id
+    )
+
+
+@router.post("/hybrid", response_model=schemas.SearchResponse)
+@router.post("", response_model=schemas.SearchResponse)  # Default endpoint
+async def hybrid_search_endpoint(
+    search_request: schemas.SearchRequest,
+    db: Session = Depends(get_db),
+    request: Request = None,
+    rate_limit: None = Depends(search_rate_limit),
+    x_correlation_id: Optional[str] = Header(None)
+):
+    """
+    Hybrid search endpoint combining semantic and keyword search.
+
+    Search the knowledge base using both semantic (vector) and keyword (BM25) search,
+    then combines results using Reciprocal Rank Fusion (RRF) for optimal relevance.
+    This is the recommended default search method.
+
+    No authentication required.
+
+    Rate limit: 20 requests per minute per IP address.
+
+    Headers:
+        X-Correlation-ID: Optional correlation ID for distributed tracing
+    """
+    # Use provided correlation ID or generate new one
+    correlation_id = None
+    if x_correlation_id:
+        try:
+            correlation_id = uuid.UUID(x_correlation_id)
+        except ValueError:
+            # Invalid UUID format, generate new one
+            correlation_id = uuid.uuid4()
+    else:
+        correlation_id = uuid.uuid4()
+
+    return await search.hybrid_search(
+        db=db,
+        query=search_request.query,
+        domain_id=search_request.domain_id,
+        tags=search_request.tags,
+        limit=search_request.limit,
+        similarity_threshold=search_request.similarity_threshold,
+        min_rank=0.01,  # Default minimum rank threshold
         correlation_id=correlation_id
     )
 

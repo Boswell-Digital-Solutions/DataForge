@@ -1,3 +1,7 @@
 {
-	"/": []
+	"/": [],
+	"/dataforge": [],
+	"/forgeagents": [],
+	"/neuroforge": [],
+	"/rake": []
 }

@@ -23,8 +23,9 @@
 @layer components {
   /* Panel - Dark themed container */
   .panel {
-    @apply bg-forge-slate border border-forge-steel rounded-lg p-6;
+    @apply bg-forge-slate border border-forge-steel p-6;
     @apply shadow-lg shadow-black/50;
+    border-radius: 0.9rem;
   }
 
   /* KPI Card */
@@ -64,6 +65,13 @@
 
   .status-badge.degraded {
     @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/50;
+  }
+
+  .status-badge.idle,
+  .status-badge.not_deployed {
+    background: rgba(124, 131, 138, 0.18);
+    color: #7C838A;
+    border: 1px solid rgba(124, 131, 138, 0.3);
   }
 
   /* Navigation Card */
@@ -156,6 +164,13 @@
 .fc-topbar {
   border-bottom: 1px solid rgba(55, 65, 81, 0.9);
   background: linear-gradient(to bottom, #050609, #020308);
+  background-size: 100% 200%;
+  animation: fc-header-shimmer 9s ease-in-out infinite alternate;
+}
+
+@keyframes fc-header-shimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 0% 12%; }
 }
 
 .fc-brand-mark {
@@ -196,33 +211,33 @@
 }
 
 .fc-service-card::before {
-  /* top edge glow */
+  /* bottom edge glow (forge heat rises) */
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
   pointer-events: none;
 }
 
 .fc-service-card--dataforge::before {
-  border-top-color: rgba(0, 148, 232, 0.8);
-  box-shadow: 0 -6px 18px rgba(0, 148, 232, 0.25) inset;
+  border-bottom-color: rgba(0, 148, 232, 0.8);
+  box-shadow: 0 6px 14px rgba(0, 148, 232, 0.22) inset;
 }
 
 .fc-service-card--neuroforge::before {
-  border-top-color: rgba(155, 77, 232, 0.85);
-  box-shadow: 0 -6px 18px rgba(155, 77, 232, 0.25) inset;
+  border-bottom-color: rgba(155, 77, 232, 0.85);
+  box-shadow: 0 6px 14px rgba(155, 77, 232, 0.22) inset;
 }
 
 .fc-service-card--agents::before {
-  border-top-color: rgba(245, 158, 11, 0.9);
-  box-shadow: 0 -6px 18px rgba(245, 158, 11, 0.25) inset;
+  border-bottom-color: rgba(245, 158, 11, 0.9);
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.22) inset;
 }
 
 .fc-service-card--rake::before {
-  border-top-color: rgba(34, 207, 197, 0.85);
-  box-shadow: 0 -6px 18px rgba(34, 207, 197, 0.25) inset;
+  border-bottom-color: rgba(34, 207, 197, 0.85);
+  box-shadow: 0 6px 14px rgba(34, 207, 197, 0.22) inset;
 }
 
 /* progress bar with faint glow */
@@ -256,7 +271,7 @@
 }
 
 .fc-progress--agents .fc-progress-value {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.50);
 }
 
@@ -328,4 +343,52 @@
 
 .fc-badge-overall-ok {
   animation: fc-pulse-soft 4.5s ease-in-out infinite;
+}
+
+/* 8) Hero section heat ripple */
+
+.fc-hero-section {
+  position: relative;
+}
+
+.fc-hero-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 120px;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.025),
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 9) ForgeAgents subtle amber sparks (optional enhancement) */
+
+.fc-sparks {
+  position: relative;
+}
+
+.fc-sparks::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 20% 30%,
+    rgba(245, 158, 11, 0.03) 0%,
+    transparent 25%
+  ),
+  radial-gradient(
+    circle at 80% 70%,
+    rgba(251, 191, 36, 0.02) 0%,
+    transparent 30%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+  border-radius: inherit;
 }

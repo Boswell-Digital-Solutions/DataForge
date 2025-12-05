@@ -17,6 +17,8 @@ struct SystemHealth {
     neuroforge_uptime: f64,
     rake_status: String,
     rake_uptime: f64,
+    forgeagents_status: String,
+    forgeagents_uptime: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,6 +54,84 @@ struct ModelMetric {
     tokens: i64,
     cost: f64,
     avg_latency: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TimeSeriesPoint {
+    timestamp: String,
+    value: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CostOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TokenUsageOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SearchPerformanceOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ForgeAgentsMetrics {
+    active_agents: i64,
+    total_tasks: i64,
+    avg_latency_ms: f64,
+    success_rate: f64,
+    recent_agents: Vec<AgentInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AgentInfo {
+    agent_id: String,
+    agent_name: String,
+    status: String,
+    tasks_completed: i64,
+    avg_latency_ms: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AgentActivityOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AgentLatencyOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RakeMetrics {
+    total_pipelines: i64,
+    active_pipelines: i64,
+    records_ingested: i64,
+    ingestion_rate: f64,
+    error_rate: f64,
+    recent_pipelines: Vec<PipelineInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct PipelineInfo {
+    pipeline_id: String,
+    pipeline_name: String,
+    status: String,
+    records_processed: i64,
+    last_run: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct IngestionOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ErrorRateOverTime {
+    datapoints: Vec<TimeSeriesPoint>,
 }
 
 // ===========================================================================
@@ -106,17 +186,43 @@ async fn get_system_health() -> Result<SystemHealth, String> {
     .map_err(|e| e.to_string())?
     .get::<i64, _>("count");
 
+    // Query for ForgeAgents health
+    let forgeagents_recent = sqlx::query(
+        "SELECT COUNT(*) as count FROM events
+         WHERE service = 'forgeagents'
+         AND datetime(timestamp) > datetime('now', '-5 minutes')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .get::<i64, _>("count");
+
+    // Query for Rake health
+    let rake_recent = sqlx::query(
+        "SELECT COUNT(*) as count FROM events
+         WHERE service = 'rake'
+         AND datetime(timestamp) > datetime('now', '-5 minutes')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .get::<i64, _>("count");
+
     // Calculate uptime (% of successful vs total events in last 24h)
     let dataforge_uptime = calculate_uptime(&pool, "dataforge").await?;
     let neuroforge_uptime = calculate_uptime(&pool, "neuroforge").await?;
+    let forgeagents_uptime = calculate_uptime(&pool, "forgeagents").await?;
+    let rake_uptime = calculate_uptime(&pool, "rake").await?;
 
     Ok(SystemHealth {
         dataforge_status: if dataforge_recent > 0 { "UP".to_string() } else { "DOWN".to_string() },
         dataforge_uptime,
         neuroforge_status: if neuroforge_recent > 0 { "UP".to_string() } else { "DOWN".to_string() },
         neuroforge_uptime,
-        rake_status: "NOT_DEPLOYED".to_string(),
-        rake_uptime: 0.0,
+        rake_status: if rake_recent > 0 { "UP".to_string() } else { "NOT_DEPLOYED".to_string() },
+        rake_uptime,
+        forgeagents_status: if forgeagents_recent > 0 { "UP".to_string() } else { "DOWN".to_string() },
+        forgeagents_uptime,
     })
 }
 
@@ -234,7 +340,7 @@ async fn get_neuroforge_metrics() -> Result<NeuroForgeMetrics, String> {
             COUNT(*) as requests,
             SUM(CAST(json_extract(metrics, '$.tokens_total') AS INTEGER)) as tokens,
             SUM(CAST(json_extract(metrics, '$.cost_usd') AS FLOAT)) as cost,
-            AVG(CAST(json_extract(metrics, '$.model_latency_ms') AS FLOAT)) as avg_latency
+            AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_latency
          FROM events
          WHERE service = 'neuroforge' AND event_type = 'model_request'
          GROUP BY json_extract(metadata, '$.model')
@@ -263,6 +369,367 @@ async fn get_neuroforge_metrics() -> Result<NeuroForgeMetrics, String> {
     })
 }
 
+#[tauri::command]
+async fn get_cost_over_time(hours: i64) -> Result<CostOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00', timestamp) as hour,
+            SUM(CAST(json_extract(metrics, '$.cost_usd') AS FLOAT)) as total_cost
+         FROM events
+         WHERE service = 'neuroforge'
+         AND event_type = 'model_request'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<f64>, _>("total_cost").unwrap_or(0.0),
+    })
+    .collect();
+
+    Ok(CostOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_token_usage_over_time(hours: i64) -> Result<TokenUsageOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00', timestamp) as hour,
+            SUM(CAST(json_extract(metrics, '$.tokens_total') AS INTEGER)) as total_tokens
+         FROM events
+         WHERE service = 'neuroforge'
+         AND event_type = 'model_request'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<i64>, _>("total_tokens").unwrap_or(0) as f64,
+    })
+    .collect();
+
+    Ok(TokenUsageOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_search_performance_over_time(hours: i64) -> Result<SearchPerformanceOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00', timestamp) as hour,
+            AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_duration
+         FROM events
+         WHERE service = 'dataforge'
+         AND event_type = 'query'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<f64>, _>("avg_duration").unwrap_or(0.0),
+    })
+    .collect();
+
+    Ok(SearchPerformanceOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_forgeagents_metrics() -> Result<ForgeAgentsMetrics, String> {
+    let pool = get_db_pool().await?;
+
+    // Get overall agent metrics
+    let overall = sqlx::query(
+        "SELECT
+            COUNT(DISTINCT json_extract(metadata, '$.agent_id')) as active_agents,
+            COUNT(*) as total_tasks,
+            AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_latency,
+            CAST(COUNT(*) FILTER (WHERE event_type = 'agent_task_completed') AS FLOAT) /
+            NULLIF(COUNT(*), 0) * 100.0 as success_rate
+         FROM events
+         WHERE service = 'forgeagents'
+         AND event_type IN ('agent_task_started', 'agent_task_completed', 'agent_task_failed')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Get recent agent activity (top 5 agents)
+    let agents = sqlx::query(
+        "SELECT
+            json_extract(metadata, '$.agent_id') as agent_id,
+            json_extract(metadata, '$.agent_name') as agent_name,
+            json_extract(metadata, '$.status') as status,
+            COUNT(*) as tasks_completed,
+            AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_latency
+         FROM events
+         WHERE service = 'forgeagents'
+         AND event_type = 'agent_task_completed'
+         GROUP BY agent_id
+         ORDER BY tasks_completed DESC
+         LIMIT 5"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| AgentInfo {
+        agent_id: row.get::<Option<String>, _>("agent_id").unwrap_or_else(|| "unknown".to_string()),
+        agent_name: row.get::<Option<String>, _>("agent_name").unwrap_or_else(|| "Unknown Agent".to_string()),
+        status: row.get::<Option<String>, _>("status").unwrap_or_else(|| "active".to_string()),
+        tasks_completed: row.get::<Option<i64>, _>("tasks_completed").unwrap_or(0),
+        avg_latency_ms: row.get::<Option<f64>, _>("avg_latency").unwrap_or(0.0),
+    })
+    .collect();
+
+    Ok(ForgeAgentsMetrics {
+        active_agents: overall.get::<Option<i64>, _>("active_agents").unwrap_or(0),
+        total_tasks: overall.get::<Option<i64>, _>("total_tasks").unwrap_or(0),
+        avg_latency_ms: overall.get::<Option<f64>, _>("avg_latency").unwrap_or(0.0),
+        success_rate: overall.get::<Option<f64>, _>("success_rate").unwrap_or(0.0),
+        recent_agents: agents,
+    })
+}
+
+#[tauri::command]
+async fn get_agent_activity_over_time(hours: i64) -> Result<AgentActivityOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00', timestamp) as hour,
+            COUNT(*) as task_count
+         FROM events
+         WHERE service = 'forgeagents'
+         AND event_type = 'agent_task_completed'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<i64>, _>("task_count").unwrap_or(0) as f64,
+    })
+    .collect();
+
+    Ok(AgentActivityOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_agent_latency_over_time(hours: i64) -> Result<AgentLatencyOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00', timestamp) as hour,
+            AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_latency
+         FROM events
+         WHERE service = 'forgeagents'
+         AND event_type = 'agent_task_completed'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<f64>, _>("avg_latency").unwrap_or(0.0),
+    })
+    .collect();
+
+    Ok(AgentLatencyOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_rake_metrics() -> Result<RakeMetrics, String> {
+    let pool = get_db_pool().await?;
+
+    // Get overall pipeline metrics
+    let metrics = sqlx::query(
+        "SELECT
+            COUNT(DISTINCT json_extract(metrics, '$.pipeline_id')) as total_pipelines,
+            COUNT(*) as records_ingested
+         FROM events
+         WHERE service = 'rake'
+         AND event_type = 'ingestion_complete'"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let total_pipelines: i64 = metrics.get("total_pipelines");
+    let records_ingested: i64 = metrics.get("records_ingested");
+
+    // Calculate active pipelines (active in last hour)
+    let active_pipelines = sqlx::query(
+        "SELECT COUNT(DISTINCT json_extract(metrics, '$.pipeline_id')) as count
+         FROM events
+         WHERE service = 'rake'
+         AND datetime(timestamp) > datetime('now', '-1 hour')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .get::<i64, _>("count");
+
+    // Calculate ingestion rate (records per hour)
+    let ingestion_rate = sqlx::query(
+        "SELECT COUNT(*) / 24.0 as rate
+         FROM events
+         WHERE service = 'rake'
+         AND event_type = 'ingestion_complete'
+         AND datetime(timestamp) > datetime('now', '-24 hours')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .get::<Option<f64>, _>("rate")
+    .unwrap_or(0.0);
+
+    // Calculate error rate
+    let error_rate = sqlx::query(
+        "SELECT
+            CAST(SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) AS FLOAT) /
+            NULLIF(COUNT(*), 0) * 100.0 as error_rate
+         FROM events
+         WHERE service = 'rake'
+         AND datetime(timestamp) > datetime('now', '-24 hours')"
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .get::<Option<f64>, _>("error_rate")
+    .unwrap_or(0.0);
+
+    // Get recent pipelines (top 5 by activity)
+    let recent_pipelines = sqlx::query_as::<_, (String, String, String, i64, String)>(
+        "SELECT
+            COALESCE(json_extract(metrics, '$.pipeline_id'), 'unknown') as pipeline_id,
+            COALESCE(json_extract(metrics, '$.pipeline_name'), 'Unknown Pipeline') as pipeline_name,
+            CASE
+                WHEN MAX(datetime(timestamp)) > datetime('now', '-1 hour') THEN 'active'
+                ELSE 'idle'
+            END as status,
+            COUNT(*) as records_processed,
+            MAX(timestamp) as last_run
+         FROM events
+         WHERE service = 'rake'
+         GROUP BY pipeline_id
+         ORDER BY records_processed DESC
+         LIMIT 5"
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|(pipeline_id, pipeline_name, status, records_processed, last_run)| PipelineInfo {
+        pipeline_id,
+        pipeline_name,
+        status,
+        records_processed,
+        last_run,
+    })
+    .collect();
+
+    Ok(RakeMetrics {
+        total_pipelines,
+        active_pipelines,
+        records_ingested,
+        ingestion_rate,
+        error_rate,
+        recent_pipelines,
+    })
+}
+
+#[tauri::command]
+async fn get_ingestion_over_time(hours: i64) -> Result<IngestionOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints: Vec<TimeSeriesPoint> = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+            COUNT(*) as count
+         FROM events
+         WHERE service = 'rake'
+         AND event_type = 'ingestion_complete'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<i64, _>("count") as f64,
+    })
+    .collect();
+
+    Ok(IngestionOverTime { datapoints })
+}
+
+#[tauri::command]
+async fn get_error_rate_over_time(hours: i64) -> Result<ErrorRateOverTime, String> {
+    let pool = get_db_pool().await?;
+
+    let datapoints: Vec<TimeSeriesPoint> = sqlx::query(
+        "SELECT
+            strftime('%Y-%m-%d %H:00:00', timestamp) as hour,
+            CAST(SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) AS FLOAT) /
+            NULLIF(COUNT(*), 0) * 100.0 as error_rate
+         FROM events
+         WHERE service = 'rake'
+         AND datetime(timestamp) > datetime('now', ? || ' hours')
+         GROUP BY hour
+         ORDER BY hour ASC"
+    )
+    .bind(format!("-{}", hours))
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .into_iter()
+    .map(|row| TimeSeriesPoint {
+        timestamp: row.get::<String, _>("hour"),
+        value: row.get::<Option<f64>, _>("error_rate").unwrap_or(0.0),
+    })
+    .collect();
+
+    Ok(ErrorRateOverTime { datapoints })
+}
+
 // ===========================================================================
 // Main
 // ===========================================================================
@@ -274,6 +741,15 @@ fn main() {
             get_recent_events,
             get_dataforge_metrics,
             get_neuroforge_metrics,
+            get_cost_over_time,
+            get_token_usage_over_time,
+            get_search_performance_over_time,
+            get_forgeagents_metrics,
+            get_agent_activity_over_time,
+            get_agent_latency_over_time,
+            get_rake_metrics,
+            get_ingestion_over_time,
+            get_error_rate_over_time,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

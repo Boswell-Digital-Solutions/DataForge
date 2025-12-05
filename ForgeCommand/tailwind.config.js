@@ -4,13 +4,14 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				// Forge brand colors
-				'dataforge': '#00A3FF',      // Blue
-				'neuroforge': '#A855F7',     // Violet
-				'rake': '#2DD4BF',           // Cyan
-				'forge-black': '#0D0D0F',    // Background
-				'forge-slate': '#1A1A1D',    // Panels
-				'forge-steel': '#4A4A4F',    // Borders/subtle
+				// Forge brand colors (CANONICAL - from design system)
+				'dataforge': '#0094E8',      // Blue - memory / vector search
+				'neuroforge': '#9B4DE8',     // Violet - AI orchestration
+				'rake': '#22CFC5',           // Cyan/Teal - ingestion pipeline
+				'agents': '#F59E0B',         // Amber - agent orchestration
+				'forge-black': '#0B0C0E',    // Background
+				'forge-slate': '#1E2025',    // Panels/Surface
+				'forge-steel': '#BFC2C5',    // Muted text
 				'forge-ember': '#D97706',    // Accent/alerts
 			},
 			fontFamily: {
