@@ -145,6 +145,7 @@
 .fc-app {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   background:
     radial-gradient(circle at top center, #111827 0%, transparent 55%),
     radial-gradient(circle at bottom center, #020617 0%, #020308 55%),
