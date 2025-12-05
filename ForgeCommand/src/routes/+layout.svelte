@@ -2,15 +2,15 @@
 	import '../app.css';
 </script>
 
-<div class="min-h-screen bg-forge-black">
+<div class="min-h-screen bg-forge-black fc-app">
 	<!-- Header -->
-	<header class="border-b border-forge-steel bg-forge-slate/50 backdrop-blur-sm sticky top-0 z-50">
+	<header class="fc-topbar border-b border-forge-steel backdrop-blur-sm sticky top-0 z-50">
 		<div class="container mx-auto px-6 py-4">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center space-x-4">
-					<h1 class="text-2xl font-display font-bold">
+					<h1 class="text-2xl font-display font-bold fc-brand-mark">
 						<span class="text-dataforge">Forge</span>
-						<span class="text-white"> Command</span>
+						<span class="text-white fc-brand-name"> Command</span>
 					</h1>
 					<span class="text-forge-steel text-sm">Mission Control</span>
 				</div>
@@ -25,7 +25,10 @@
 					<a href="/neuroforge" class="text-white hover:text-neuroforge transition-colors">
 						NeuroForge
 					</a>
-					<a href="/rake" class="text-white hover:text-rake transition-colors opacity-50 cursor-not-allowed">
+					<a href="/forgeagents" class="text-white hover:text-agents transition-colors">
+						ForgeAgents
+					</a>
+					<a href="/rake" class="text-white hover:text-rake transition-colors">
 						Rake
 					</a>
 				</nav>
