@@ -986,3 +986,813 @@
 **Duration:** 4 weeks (Nov 6 - Dec 6, 2025)
 **Completion criteria:** ✅ Full backend integration, ✅ Real LLM execution, ✅ Cortex Multi-AI Planning Orchestrator, ✅ Production-ready
 **Achievement:** **Phase 2 COMPLETE!** All 16 tasks finished including comprehensive documentation suite (Deployment Guide, Troubleshooting Guide, API Reference)
+
+---
+
+# VibeForge V2 Frontend – Phase 3 TODO (Advanced Features & Production)
+
+**Status codes:** BACKLOG → READY → DOING → REVIEW → BLOCKED → DONE
+**Priority:** P0 critical, P1 high, P2 normal, P3 nice-to-have
+
+**Phase 3 Overview:**
+Build advanced features and production infrastructure for VibeForge V2 Workbench + Cortex Multi-AI Planning Orchestrator. Focus on backend persistence, reusable patterns, team collaboration, automated evaluation, and production readiness.
+
+**Focus Areas (6 tracks, 24 tasks):**
+1. **Track A: Backend Persistence** - DataForge integration for workspaces, runs, context (VF-300 to VF-303) - 4 tasks
+2. **Track B: Patterns & Templates** - Reusable prompt patterns and template system (VF-310 to VF-313) - 4 tasks
+3. **Track C: Advanced Cortex** - Plan comparison, iterative refinement, multi-path planning (VF-320 to VF-323) - 4 tasks
+4. **Track D: Team Collaboration** - Shared workspaces, collaborative sessions (VF-330 to VF-333) - 4 tasks
+5. **Track E: Evals & Testing** - Automated evaluation and regression testing (VF-340 to VF-343) - 4 tasks
+6. **Track F: Production Ready** - Auth, billing, monitoring, admin (VF-350 to VF-353) - 4 tasks
+
+**Recommended Execution Order:**
+- **Sprint 1 (Week 1-2)**: Track A (VF-300 to VF-303) - Backend Persistence foundation
+- **Sprint 2 (Week 3-4)**: Track B (VF-310 to VF-313) - Patterns Library (high user value)
+- **Sprint 3 (Week 5-6)**: Track E (VF-340 to VF-343) - Evals Framework (quality assurance)
+- **Sprint 4 (Week 7-8)**: Track C (VF-320 to VF-323) - Advanced Cortex features
+- **Sprint 5 (Week 9-10)**: Track F (VF-350 to VF-353) - Production readiness
+- **Sprint 6 (Week 11-12)**: Track D (VF-330 to VF-333) - Team collaboration (enterprise)
+
+---
+
+## Track A: Backend Persistence (Foundation)
+
+### VF-300: DataForge API Client & Sync
+**Status:** BACKLOG
+**Priority:** P0
+**Owner:** Claude
+**Area:** Backend/Persistence
+**Files:** `lib/core/api/dataforgeClient.ts`, `lib/core/stores/sync.svelte.ts`
+**Deps:** VF-215
+**Estimated Time:** 6-8 hours
+
+**Acceptance:**
+- [ ] Create DataForge HTTP client with retry/timeout
+- [ ] Implement workspace CRUD (create, read, update, delete, list)
+- [ ] Implement runs CRUD with metadata and outputs
+- [ ] Implement context blocks CRUD
+- [ ] Implement prompts library CRUD
+- [ ] Add batch operations for efficiency
+- [ ] Add WebSocket support for real-time sync
+- [ ] Add offline-first IndexedDB cache
+- [ ] Add optimistic updates with rollback
+- [ ] Add conflict resolution (last-write-wins + manual)
+- [ ] Write comprehensive tests (100% coverage)
+
+**Notes:** Critical foundation for all persistence features. Enables multi-device workflows.
+
+---
+
+### VF-301: Workspace Persistence & Sync
+**Status:** BACKLOG
+**Priority:** P0
+**Owner:** Claude
+**Area:** Persistence
+**Files:** `lib/core/stores/workspace.svelte.ts`
+**Deps:** VF-300
+**Estimated Time:** 3-4 hours
+
+**Acceptance:**
+- [ ] Save workspace to DataForge on changes (debounced)
+- [ ] Load workspace from DataForge on mount
+- [ ] Sync workspace across tabs/devices in real-time
+- [ ] Handle conflicts (show diff, allow merge)
+- [ ] Add "Save Draft" and "Publish" states
+- [ ] Add workspace version history
+- [ ] Write tests (100% coverage)
+
+**Notes:** Core workspace persistence with real-time sync.
+
+---
+
+### VF-302: Runs History Persistence
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** History
+**Files:** `lib/core/stores/runs.svelte.ts`, `lib/workbench/history/*.svelte`
+**Deps:** VF-300
+**Estimated Time:** 4-5 hours
+
+**Acceptance:**
+- [ ] Save all runs to DataForge automatically
+- [ ] Paginated runs history (100 per page)
+- [ ] Full-text search across run outputs
+- [ ] Filter by model, date, status, cost, tokens
+- [ ] Sort by date, cost, tokens, latency
+- [ ] Export runs to CSV/JSON
+- [ ] Run comparison UI (side-by-side diff)
+- [ ] Favorite/star runs
+- [ ] Delete runs with confirmation
+- [ ] Write tests (100% coverage)
+
+**Notes:** Essential for analyzing model performance over time.
+
+---
+
+### VF-303: Context Library Persistence
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Context
+**Files:** `lib/core/stores/contextBlocks.svelte.ts`, `lib/workbench/context/ContextLibrary.svelte`
+**Deps:** VF-300
+**Estimated Time:** 3-4 hours
+
+**Acceptance:**
+- [ ] Save context blocks to DataForge library
+- [ ] Organize blocks into collections
+- [ ] Tag system for filtering (tags: api, database, auth, etc.)
+- [ ] Search context blocks by name/content/tags
+- [ ] Import/export collections (JSON)
+- [ ] Clone blocks across workspaces
+- [ ] Write tests (100% coverage)
+
+**Notes:** Reusable context blocks for common development scenarios.
+
+---
+
+## Track B: Patterns & Templates (User Value)
+
+### VF-310: Prompt Patterns Library
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Patterns
+**Files:** `lib/core/types/patterns.ts`, `lib/workbench/patterns/*.svelte`
+**Deps:** VF-303
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Define PromptPattern type (id, name, description, template, variables, category, tags, author)
+- [ ] Create 20+ built-in patterns (code review, bug analysis, API design, documentation, test generation, etc.)
+- [ ] Pattern categories (coding, writing, analysis, debugging, refactoring, documentation)
+- [ ] Variable extraction from templates ({{variableName}} syntax)
+- [ ] Pattern preview with sample data substitution
+- [ ] Custom pattern creation UI
+- [ ] Pattern import/export (JSON)
+- [ ] Pattern search and filtering
+- [ ] Write tests (100% coverage)
+
+**Built-in Patterns Examples:**
+- Code Review (analyzes code quality, suggests improvements)
+- Bug Root Cause Analysis (investigates bugs systematically)
+- API Design Review (evaluates API design decisions)
+- Documentation Generator (creates comprehensive docs)
+- Test Case Generator (generates unit/integration tests)
+- Refactoring Suggestions (proposes code improvements)
+- Performance Analysis (identifies bottlenecks)
+- Security Audit (checks for vulnerabilities)
+
+**Notes:** Accelerates common prompt engineering workflows with proven patterns.
+
+---
+
+### VF-311: Enhanced Template System
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Templates
+**Files:** `lib/core/execution/templateProcessor.ts`
+**Deps:** VF-310
+**Estimated Time:** 3-4 hours
+
+**Acceptance:**
+- [ ] Enhanced variable syntax: {{var}}, {{var:default}}, {{var|filter}}
+- [ ] Variable type validation (string, number, boolean, array)
+- [ ] Custom filters (uppercase, lowercase, escape, truncate, etc.)
+- [ ] Conditional blocks ({{#if condition}}...{{else}}...{{/if}})
+- [ ] Loop blocks ({{#each items}}...{{/each}})
+- [ ] Nested variables and filters
+- [ ] Variable auto-suggestion in prompt editor
+- [ ] Template validation and error reporting
+- [ ] Write tests (100% coverage)
+
+**Examples:**
+```
+{{#if language}}
+Code review for {{language|uppercase}} code:
+{{/if}}
+
+{{#each files}}
+- {{name}}: {{lines}} lines
+{{/each}}
+```
+
+**Notes:** Powerful template system inspired by Handlebars.
+
+---
+
+### VF-312: Pattern Marketplace (Community)
+**Status:** BACKLOG
+**Priority:** P3
+**Owner:** Claude
+**Area:** Marketplace
+**Files:** `lib/workbench/marketplace/*.svelte`
+**Deps:** VF-310
+**Estimated Time:** 6-8 hours
+
+**Acceptance:**
+- [ ] Browse community-submitted patterns
+- [ ] Search and filter (category, tags, rating)
+- [ ] Pattern detail page with preview
+- [ ] Rating and review system (1-5 stars + comments)
+- [ ] One-click pattern installation
+- [ ] Pattern versioning and changelogs
+- [ ] Author profiles with stats
+- [ ] Usage analytics per pattern
+- [ ] Report inappropriate content
+- [ ] Write tests (100% coverage)
+
+**Notes:** Community-driven pattern library for knowledge sharing (future monetization via premium patterns).
+
+---
+
+### VF-313: AI Pattern Suggestions
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** AI
+**Files:** `lib/core/llm/patternMatcher.ts`
+**Deps:** VF-310
+**Estimated Time:** 4-5 hours
+
+**Acceptance:**
+- [ ] Analyze prompt text to detect intent
+- [ ] Suggest 3-5 relevant patterns
+- [ ] Show confidence scores (0-100%)
+- [ ] One-click pattern application
+- [ ] Learn from user accept/reject choices
+- [ ] Track pattern usage frequency
+- [ ] Write tests (100% coverage)
+
+**Algorithm:**
+- Extract keywords from prompt
+- Classify intent (code review, bug fix, documentation, etc.)
+- Match against pattern tags and descriptions
+- Rank by relevance score
+- Show top 5 suggestions
+
+**Notes:** AI-powered pattern discovery to accelerate workflow.
+
+---
+
+## Track C: Advanced Cortex Features (Differentiation)
+
+### VF-320: Cortex Plan Comparison
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Cortex/Comparison
+**Files:** `lib/workbench/planning/components/PlanComparison.svelte`
+**Deps:** VF-211
+**Estimated Time:** 4-5 hours
+
+**Acceptance:**
+- [ ] Select 2-3 planning sessions for comparison
+- [ ] Side-by-side view of implementation plans
+- [ ] Diff view showing differences (added/removed/changed sections)
+- [ ] Metrics comparison table (cost, tokens, duration, stages)
+- [ ] Quality scoring (completeness, clarity, detail, feasibility)
+- [ ] Merge best sections from multiple plans
+- [ ] Export comparison report (PDF/Markdown)
+- [ ] Write tests (100% coverage)
+
+**UI Layout:**
+```
+┌──────────────┬──────────────┬──────────────┐
+│   Plan A     │   Plan B     │   Plan C     │
+│  (ChatGPT)   │  (Claude)    │  (Gemini)    │
+├──────────────┼──────────────┼──────────────┤
+│  Phase 1...  │  Phase 1...  │  Phase 1...  │
+│  Phase 2...  │  Phase 2...  │  Phase 2...  │
+└──────────────┴──────────────┴──────────────┘
+```
+
+**Notes:** Helps users choose the best plan or synthesize insights from multiple runs.
+
+---
+
+### VF-321: Iterative Plan Refinement
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Cortex/Refinement
+**Files:** `lib/workbench/planning/services/orchestrator.ts`
+**Deps:** VF-209
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Resume completed planning sessions
+- [ ] Add new requirements to existing plan
+- [ ] Re-run only refinement stages (skip initial plan)
+- [ ] Track refinement history (v1, v2, v3, etc.)
+- [ ] Diff view showing plan evolution
+- [ ] Preserve all plan versions
+- [ ] Rollback to previous versions
+- [ ] Write tests (100% coverage)
+
+**Workflow:**
+1. User completes planning session → Plan v1
+2. User adds new requirement "Add OAuth support"
+3. System re-runs refinement stage with context: [Plan v1 + new requirement]
+4. Claude generates Plan v2 with OAuth integration
+5. User can diff v1 vs v2, rollback, or continue
+
+**Notes:** Enables iterative improvement without starting over (saves time and cost).
+
+---
+
+### VF-322: Multi-Path Planning
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Cortex/MultiPath
+**Files:** `lib/workbench/planning/types/index.ts`, `lib/workbench/planning/services/orchestrator.ts`
+**Deps:** VF-208
+**Estimated Time:** 7-8 hours
+
+**Acceptance:**
+- [ ] Define planning variants (optimistic, conservative, experimental)
+- [ ] Execute multiple planning paths in parallel
+- [ ] Variant configuration (different models, temperatures, prompts)
+- [ ] Automatic comparison of all variants
+- [ ] Merge best aspects across variants
+- [ ] Cost-aware execution (stop if budget exceeded)
+- [ ] Write tests (100% coverage)
+
+**Variants:**
+- **Optimistic**: Fast timeline, assumes best-case scenario
+- **Conservative**: Realistic timeline, includes contingencies
+- **Experimental**: Novel approaches, higher risk/reward
+
+**Notes:** Explores solution space comprehensively for complex planning tasks.
+
+---
+
+### VF-323: Plan Templates Library
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Cortex/Templates
+**Files:** `lib/workbench/planning/templates/*.ts`
+**Deps:** VF-209
+**Estimated Time:** 4-5 hours
+
+**Acceptance:**
+- [ ] Pre-defined templates for common features (auth, CRUD, REST API, GraphQL API, etc.)
+- [ ] Template categories (backend, frontend, full-stack, mobile, data)
+- [ ] Template customization form (technology stack, framework, database)
+- [ ] One-click template application
+- [ ] Custom template creation from existing plans
+- [ ] Template sharing via JSON export
+- [ ] Write tests (100% coverage)
+
+**Built-in Templates:**
+- User Authentication (JWT, OAuth, Session)
+- CRUD API (REST, GraphQL)
+- Real-time Chat (WebSocket, SSE)
+- File Upload System
+- Payment Integration (Stripe)
+- Admin Dashboard
+- E-commerce Cart
+
+**Notes:** Accelerates planning for common development patterns (80/20 rule).
+
+---
+
+## Track D: Team Collaboration (Enterprise)
+
+### VF-330: Team Workspaces
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Collaboration
+**Files:** `lib/core/types/team.ts`, `lib/core/stores/team.svelte.ts`
+**Deps:** VF-301
+**Estimated Time:** 6-8 hours
+
+**Acceptance:**
+- [ ] Create team workspaces (name, members, billing)
+- [ ] Invite team members via email
+- [ ] Role-based permissions (owner, admin, member, viewer)
+- [ ] Shared runs library
+- [ ] Shared context libraries
+- [ ] Team activity feed (recent actions)
+- [ ] Team settings (API keys, quotas, preferences)
+- [ ] Write tests (100% coverage)
+
+**Permissions:**
+- Owner: All permissions + billing
+- Admin: Manage members, settings, workspaces
+- Member: Create/edit runs, use Cortex
+- Viewer: Read-only access
+
+**Notes:** Foundation for enterprise collaboration features.
+
+---
+
+### VF-331: Collaborative Planning
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Cortex/Collaboration
+**Files:** `lib/workbench/planning/stores/planning.svelte.ts`
+**Deps:** VF-330
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Share planning sessions with team members
+- [ ] Real-time collaboration on plan refinement
+- [ ] Comment system (inline comments on plan sections)
+- [ ] Voting on plan quality (thumbs up/down)
+- [ ] Merge collaborative feedback into plan
+- [ ] Notifications for plan updates
+- [ ] Write tests (100% coverage)
+
+**Workflow:**
+1. Alice creates planning session
+2. Alice shares with team
+3. Bob adds comment: "Consider adding caching layer"
+4. Carol upvotes Bob's comment
+5. Alice injects comment as context for refinement stage
+6. System generates updated plan with caching
+
+**Notes:** Team-based planning for complex projects with multiple stakeholders.
+
+---
+
+### VF-332: Team Analytics
+**Status:** BACKLOG
+**Priority:** P3
+**Owner:** Claude
+**Area:** Analytics
+**Files:** `lib/workbench/team/analytics/*.svelte`
+**Deps:** VF-330
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Team usage metrics (runs per member, Cortex sessions, API calls)
+- [ ] Model preference analysis (which models used most)
+- [ ] Cost tracking by team and member
+- [ ] Success rate by member (quality scores)
+- [ ] Pattern usage analytics
+- [ ] Export team reports (CSV, PDF)
+- [ ] Trend charts (usage over time)
+- [ ] Write tests (100% coverage)
+
+**Metrics:**
+- Total runs this month
+- Average cost per run
+- Most used models
+- Top performers (highest quality scores)
+- Pattern adoption rate
+
+**Notes:** Analytics for team performance optimization and budget management.
+
+---
+
+### VF-333: Team Pattern Library
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Patterns/Collaboration
+**Files:** `lib/workbench/patterns/*.svelte`
+**Deps:** VF-310, VF-330
+**Estimated Time:** 3-4 hours
+
+**Acceptance:**
+- [ ] Team-shared pattern library (private to team)
+- [ ] Team-only patterns (not public)
+- [ ] Pattern approval workflow (submit → review → approve)
+- [ ] Usage tracking per pattern
+- [ ] Best practices documentation per pattern
+- [ ] Pattern categories for organization
+- [ ] Write tests (100% coverage)
+
+**Workflow:**
+1. Developer creates pattern
+2. Submits for team approval
+3. Team lead reviews and approves
+4. Pattern added to team library
+5. All team members can use
+
+**Notes:** Centralized team knowledge base and standards enforcement.
+
+---
+
+## Track E: Evals & Testing (Quality Assurance)
+
+### VF-340: Eval Framework
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Testing/Evals
+**Files:** `lib/core/evals/*.ts`, `lib/workbench/evals/*.svelte`
+**Deps:** VF-302
+**Estimated Time:** 8-10 hours
+
+**Acceptance:**
+- [ ] Define Eval type (name, prompt, expected output, rubric, created_at)
+- [ ] Create eval suite builder UI
+- [ ] Run evals against single or multiple models
+- [ ] Score outputs automatically (LLM-as-judge with Claude/GPT-4)
+- [ ] Generate eval reports with pass/fail summary
+- [ ] Track eval history over time (detect regressions)
+- [ ] Baseline management (set baseline, compare against baseline)
+- [ ] Export eval results (JSON, CSV)
+- [ ] Write tests (100% coverage)
+
+**Eval Structure:**
+```typescript
+interface Eval {
+  id: string;
+  name: string;
+  prompt: string;
+  expectedOutput?: string; // Optional reference answer
+  rubric: ScoringRubric;
+  createdAt: Date;
+}
+
+interface ScoringRubric {
+  criteria: Criterion[];
+  passingScore: number; // 0-100
+}
+
+interface Criterion {
+  name: string; // "Accuracy", "Completeness", "Clarity"
+  weight: number; // 0-1 (sum to 1)
+  description: string;
+}
+```
+
+**Notes:** Critical for maintaining prompt quality and catching regressions.
+
+---
+
+### VF-341: LLM-as-Judge Scoring
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Evals
+**Files:** `lib/core/evals/judge.ts`
+**Deps:** VF-340
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Define scoring rubrics for common criteria
+- [ ] Use Claude/GPT-4 to score outputs (LLM-as-judge pattern)
+- [ ] Multi-criteria scoring (accuracy, clarity, completeness, coherence, etc.)
+- [ ] Confidence scores (how confident is the judge)
+- [ ] Explanation generation (why this score)
+- [ ] Calibration against human scores (validate judge accuracy)
+- [ ] Batch scoring for efficiency
+- [ ] Write tests (100% coverage)
+
+**Rubric Example:**
+```
+Criterion: Code Quality
+Weight: 0.4
+Scoring Guide:
+- 90-100: Production-ready, follows best practices
+- 70-89: Good quality, minor improvements needed
+- 50-69: Acceptable, several issues to address
+- 0-49: Poor quality, major refactoring required
+```
+
+**Notes:** Automated evaluation using LLM judgment (reduces manual review time by 80%+).
+
+---
+
+### VF-342: Regression Testing
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Testing
+**Files:** `lib/core/evals/regression.ts`
+**Deps:** VF-340
+**Estimated Time:** 4-5 hours
+
+**Acceptance:**
+- [ ] Set baseline eval runs for prompts
+- [ ] Detect score regressions (>5% drop from baseline)
+- [ ] Alert on quality degradation (email, Slack, in-app)
+- [ ] Track prompt performance over time (trend charts)
+- [ ] A/B testing for prompt variants (compare scores)
+- [ ] Automatic rollback on regressions (optional)
+- [ ] Write tests (100% coverage)
+
+**Workflow:**
+1. Developer creates prompt v1
+2. Runs evals, scores 85% → Set as baseline
+3. Developer updates prompt to v2
+4. Runs evals, scores 78% → Regression detected!
+5. System alerts developer
+6. Developer reviews changes, fixes issue
+
+**Notes:** Ensures prompt quality doesn't degrade over time (critical for production prompts).
+
+---
+
+### VF-343: CI/CD Integration for Evals
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Testing/CI
+**Files:** `.github/workflows/evals.yml`
+**Deps:** VF-340
+**Estimated Time:** 3-4 hours
+
+**Acceptance:**
+- [ ] Run evals on every PR (GitHub Actions)
+- [ ] Block merge if regressions detected (configurable threshold)
+- [ ] Post eval reports as PR comments
+- [ ] Track eval trends over commits (dashboard)
+- [ ] Scheduled eval runs (daily, weekly)
+- [ ] Slack/Discord notifications for failures
+- [ ] Write tests (100% coverage)
+
+**GitHub Action Example:**
+```yaml
+name: Evals
+on: [pull_request]
+jobs:
+  run-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: pnpm install
+      - run: pnpm test:evals
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            // Post eval results as PR comment
+```
+
+**Notes:** Automated quality assurance in development workflow (catch issues before production).
+
+---
+
+## Track F: Production Ready (Monetization)
+
+### VF-350: Authentication & Authorization
+**Status:** BACKLOG
+**Priority:** P0
+**Owner:** Claude
+**Area:** Auth
+**Files:** `lib/core/auth/*.ts`, `src/routes/(auth)/*.svelte`
+**Deps:** VF-300
+**Estimated Time:** 7-8 hours
+
+**Acceptance:**
+- [ ] User registration with email/password
+- [ ] Email verification (send verification link)
+- [ ] Login with session management
+- [ ] OAuth integration (Google, GitHub)
+- [ ] JWT token generation and validation
+- [ ] Refresh token rotation
+- [ ] Password reset flow (email with reset link)
+- [ ] Multi-factor authentication (TOTP - optional)
+- [ ] Session persistence across tabs/devices
+- [ ] Write tests (100% coverage)
+
+**Auth Flow:**
+1. User signs up → Email verification sent
+2. User clicks verification link → Account activated
+3. User logs in → JWT + refresh token issued
+4. Frontend stores tokens in httpOnly cookies
+5. API validates JWT on each request
+6. Refresh token rotates every 7 days
+
+**Notes:** Required for production deployment with user accounts (security critical).
+
+---
+
+### VF-351: Billing & Subscription
+**Status:** BACKLOG
+**Priority:** P0
+**Owner:** Claude
+**Area:** Billing
+**Files:** `lib/core/billing/*.ts`, `src/routes/(billing)/*.svelte`
+**Deps:** VF-350
+**Estimated Time:** 9-10 hours
+
+**Acceptance:**
+- [ ] Stripe integration (checkout, webhooks)
+- [ ] Subscription plans (Free: $0, Pro: $20/mo, Team: $50/mo, Enterprise: custom)
+- [ ] Usage tracking and metering (runs, Cortex sessions, tokens)
+- [ ] Invoice generation (monthly, annual)
+- [ ] Payment method management (add, update, remove cards)
+- [ ] Subscription upgrades/downgrades (prorated billing)
+- [ ] Quota enforcement (block usage when quota exceeded)
+- [ ] Billing portal (Stripe customer portal)
+- [ ] Write tests (100% coverage)
+
+**Subscription Plans:**
+- **Free**: 50 runs/month, 3 Cortex sessions/month, 1 workspace
+- **Pro**: 500 runs/month, 20 Cortex sessions/month, 5 workspaces, pattern marketplace
+- **Team**: 2000 runs/month, 100 Cortex sessions/month, unlimited workspaces, team collaboration
+- **Enterprise**: Unlimited, custom integrations, SLA, dedicated support
+
+**Notes:** Monetization infrastructure for SaaS deployment.
+
+---
+
+### VF-352: Production Monitoring
+**Status:** BACKLOG
+**Priority:** P1
+**Owner:** Claude
+**Area:** Monitoring
+**Files:** `lib/core/monitoring/*.ts`
+**Deps:** VF-350
+**Estimated Time:** 5-6 hours
+
+**Acceptance:**
+- [ ] Error tracking (Sentry integration)
+- [ ] Performance monitoring (Web Vitals, API latency)
+- [ ] Usage analytics (PostHog or Mixpanel)
+- [ ] Cost tracking per user (LLM API costs)
+- [ ] Health checks (API, database, MCP servers)
+- [ ] Uptime monitoring (ping endpoints)
+- [ ] Alert system (email, Slack, PagerDuty)
+- [ ] Write tests (100% coverage)
+
+**Metrics to Track:**
+- Error rate (errors per 1000 requests)
+- API latency (p50, p95, p99)
+- LLM cost per user
+- Active users (DAU, MAU)
+- Feature usage (which features used most)
+- Model usage distribution
+
+**Notes:** Production observability and incident response (detect issues before users complain).
+
+---
+
+### VF-353: Admin Dashboard
+**Status:** BACKLOG
+**Priority:** P2
+**Owner:** Claude
+**Area:** Admin
+**Files:** `src/routes/(admin)/*.svelte`
+**Deps:** VF-350
+**Estimated Time:** 7-8 hours
+
+**Acceptance:**
+- [ ] User management (view all users, search, filter)
+- [ ] User details (usage, billing, runs history)
+- [ ] Suspend/unsuspend users
+- [ ] Subscription management (upgrade, downgrade, cancel)
+- [ ] Usage analytics dashboard (charts, graphs)
+- [ ] Cost tracking and billing reports
+- [ ] System health metrics (API status, error rates)
+- [ ] Feature flag management (enable/disable features)
+- [ ] Impersonate user (for support)
+- [ ] Write tests (100% coverage)
+
+**Admin Pages:**
+- `/admin/users` - User list with search/filter
+- `/admin/users/:id` - User detail page
+- `/admin/analytics` - System-wide analytics
+- `/admin/billing` - Billing reports
+- `/admin/health` - System health dashboard
+- `/admin/flags` - Feature flags
+
+**Notes:** Admin tools for managing production deployment (support and operations).
+
+---
+
+**Phase 3 Summary:**
+**Total tasks:** 24 (VF-300 through VF-353)
+**Completed:** 0 / 24 (0%)
+**Status:** BACKLOG
+**Last updated:** 2025-12-06
+**Estimated duration:** 12-16 weeks (3-4 months)
+
+**Track Breakdown:**
+- Track A (Backend Persistence): 4 tasks, ~18 hours
+- Track B (Patterns & Templates): 4 tasks, ~20 hours
+- Track C (Advanced Cortex): 4 tasks, ~20 hours
+- Track D (Team Collaboration): 4 tasks, ~20 hours
+- Track E (Evals & Testing): 4 tasks, ~20 hours
+- Track F (Production Ready): 4 tasks, ~28 hours
+
+**Total Estimated Time:** ~126 hours (~3 months at 10 hours/week)
+
+**Recommended Execution Order:**
+1. **Sprint 1-2 (VF-300 to VF-303)**: Backend Persistence - Critical foundation
+2. **Sprint 3-4 (VF-310 to VF-313)**: Patterns Library - High user value, accelerates workflows
+3. **Sprint 5-6 (VF-340 to VF-343)**: Evals Framework - Quality assurance, regression testing
+4. **Sprint 7-8 (VF-320 to VF-323)**: Advanced Cortex - Differentiation, premium features
+5. **Sprint 9-10 (VF-350 to VF-353)**: Production Ready - Auth, billing, monitoring (launch!)
+6. **Sprint 11-12 (VF-330 to VF-333)**: Team Collaboration - Enterprise features, upsell
+
+**Phase 3 Completion Criteria:**
+- ✅ All workspaces, runs, context synced to DataForge
+- ✅ 20+ prompt patterns available
+- ✅ Advanced Cortex features (comparison, refinement, multi-path)
+- ✅ Eval framework with LLM-as-judge
+- ✅ Production deployment with auth and billing
+- ✅ Team collaboration features operational
+- ✅ 100% test coverage on all new code
+- ✅ Comprehensive documentation for all features
