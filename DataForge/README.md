@@ -32,20 +32,21 @@
 ## 📘 Table of Contents
 
 1. [Overview](#-overview)
-2. [Ecosystem Role](#-ecosystem-role)
-3. [Key Features](#-key-features)
-4. [System Architecture](#%EF%B8%8F-system-architecture)
-5. [Quick Start](#-quick-start)
-6. [API Quick Reference](#-api-quick-reference)
-7. [Technology Stack](#-technology-stack)
-8. [Project Phases](#-project-phases)
-9. [Deployment](#-deployment)
-10. [Performance & Scaling](#-performance--scaling)
-11. [Documentation](#-documentation)
-12. [Troubleshooting](#-troubleshooting)
-13. [Security & Compliance](#-security--compliance)
-14. [Development Workflow](#-development-workflow)
-15. [Support](#-support)
+2. [Ecosystem Integration](#-ecosystem-integration)
+3. [Ecosystem Role](#-ecosystem-role)
+4. [Key Features](#-key-features)
+5. [System Architecture](#%EF%B8%8F-system-architecture)
+6. [Quick Start](#-quick-start)
+7. [API Quick Reference](#-api-quick-reference)
+8. [Technology Stack](#-technology-stack)
+9. [Project Phases](#-project-phases)
+10. [Deployment](#-deployment)
+11. [Performance & Scaling](#-performance--scaling)
+12. [Documentation](#-documentation)
+13. [Troubleshooting](#-troubleshooting)
+14. [Security & Compliance](#-security--compliance)
+15. [Development Workflow](#-development-workflow)
+16. [Support](#-support)
 
 ---
 
@@ -84,6 +85,30 @@ Built with enterprise security, high availability, and compliance as first-class
 | **Commercial License**  | ✅ [LICENSE.md](./LICENSE.md) |
 | **IP Protection**       | ✅ [LEGAL.md](./LEGAL.md)     |
 | **Uptime SLA**          | 99.99% (multi-node)           |
+
+---
+
+## 🌐 Ecosystem Integration
+
+**DataForge is part of the complete Forge Ecosystem with all 4 services operational (as of December 11, 2025):**
+
+| Service | Port | Status | Purpose |
+|---------|------|--------|---------|
+| **DataForge** | 8788 | ✅ HEALTHY | Vector search & embeddings (this service) |
+| **NeuroForge** | 8000 | ✅ HEALTHY | Multi-model AI routing (5 models) |
+| **ForgeAgents** | 8787 | ✅ HEALTHY | AI agents & skills (120 skills) |
+| **Rake** | 8002 | ✅ HEALTHY | Data ingestion pipeline |
+
+**System Grade:** A (100% functional) - All services operational after December 11, 2025 bug fixes
+
+### Quick Links to Ecosystem Documentation
+
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Complete API reference & get all services running
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment guide
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet for all services
+- **[Ecosystem Architecture](../docs/architecture/FORGE_UNIFIED_ARCHITECTURE.md)** - Complete system design
+- **[Latest Session Report](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11 bug fixes (100% operational)
+- **[Organized Documentation](../docs/README.md)** - Complete documentation index
 
 ---
 
@@ -951,7 +976,13 @@ All guides, references, and runbooks are organized consistently:
 | **[LICENSE.md](./LICENSE.md)**                                                     | Commercial license terms                           | 93    |
 | **[LEGAL.md](./LEGAL.md)**                                                         | IP rights and legal protections                    | 113   |
 
-**Master index:** [CONSOLIDATED_DOCUMENTATION_INDEX.md](../CONSOLIDATED_DOCUMENTATION_INDEX.md) (project root)
+**Master index:** [../docs/README.md](../docs/README.md) - Complete organized documentation hub
+
+**Ecosystem Documentation:**
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Get all services running
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet
+- **[Latest Status](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11, 2025 updates
 
 ---
 
@@ -1248,6 +1279,8 @@ DataForge is built with enterprise security as a first-class requirement:
 - 🐛 **Known Issues** – See [TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)
 - 📊 **Architecture Overview** – [ARCHITECTURE.md](./ARCHITECTURE.md)
 - 🔐 **Security Policy** – [SECURITY.md](./SECURITY.md)
+- 🌐 **Ecosystem Docs** – [../docs/README.md](../docs/README.md)
+- 🚀 **Quick Start All Services** – [../QUICK_START_GUIDE.md](../QUICK_START_GUIDE.md)
 
 ---
 
@@ -1360,5 +1393,6 @@ pytest tests/ --cov=app --cov-report=html
 
 ---
 
-**Last Updated:** November 26, 2025
+**Last Updated:** December 11, 2025
+**System Status:** ✅ HEALTHY (100% Operational - All 4 Forge services running)
 **Next Review:** Q1 2026
