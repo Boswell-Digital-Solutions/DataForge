@@ -73,7 +73,12 @@ class Team(Base):
 
     # Relationships
     owner = relationship("User", foreign_keys=[owner_id])
-    members = relationship("User", secondary=team_members, backref="teams")
+    members = relationship(
+        "User",
+        secondary=team_members,
+        foreign_keys=[team_members.c.team_id, team_members.c.user_id],
+        backref="teams"
+    )
     learning_aggregates = relationship("TeamLearningAggregate", back_populates="team", cascade="all, delete-orphan")
     invites = relationship("TeamInvite", back_populates="team", cascade="all, delete-orphan")
     projects = relationship("TeamProject", back_populates="team", cascade="all, delete-orphan")
