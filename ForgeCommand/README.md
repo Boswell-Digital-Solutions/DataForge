@@ -14,6 +14,12 @@
 
 ---
 
+## 📖 Need Help?
+
+**👉 See [HELP.md](HELP.md)** for a comprehensive help page with quick access to all documentation, common tasks, and troubleshooting.
+
+---
+
 ## 📑 Table of Contents
 
 1. [Overview](#-overview)
@@ -474,6 +480,7 @@ See [docs/TEST_REPORT.md](docs/TEST_REPORT.md) for detailed test results.
 | Document | Purpose | Lines |
 |----------|---------|-------|
 | **README.md** | This file - complete overview | 900+ |
+| **[HELP.md](HELP.md)** | 🆕 Comprehensive help page with all links | 600+ |
 | **[docs/BUILD_COMPLETE.md](docs/BUILD_COMPLETE.md)** | Build guide and setup | 200 |
 | **[docs/PHASE_1_COMPLETE.md](docs/PHASE_1_COMPLETE.md)** | Chart integration details | 550 |
 | **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** | Detailed setup instructions | 300 |
