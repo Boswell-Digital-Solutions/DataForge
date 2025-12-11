@@ -17,15 +17,16 @@
 ## 📑 Table of Contents
 
 1. [Overview](#-overview)
-2. [Features](#-features)
-3. [Quick Start](#-quick-start)
-4. [Technology Stack](#-technology-stack)
-5. [Architecture](#-architecture)
-6. [Dashboards](#-dashboards)
-7. [Development](#-development)
-8. [Testing](#-testing)
-9. [Documentation](#-documentation)
-10. [Troubleshooting](#-troubleshooting)
+2. [Ecosystem Integration](#-ecosystem-integration)
+3. [Features](#-features)
+4. [Quick Start](#-quick-start)
+5. [Technology Stack](#-technology-stack)
+6. [Architecture](#-architecture)
+7. [Dashboards](#-dashboards)
+8. [Development](#-development)
+9. [Testing](#-testing)
+10. [Documentation](#-documentation)
+11. [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -53,6 +54,30 @@ ForgeCommand is a **mission-control monitoring dashboard** that:
 | **Real-Time Charts** | ✅ Complete | 4 interactive Chart.js visualizations |
 | **Auto-Refresh** | ✅ Complete | 30-second update intervals |
 | **Tauri v2** | ✅ Complete | Native desktop application |
+
+---
+
+## 🌐 Ecosystem Integration
+
+ForgeCommand is part of the complete Forge Ecosystem with **4 operational services** (as of December 11, 2025):
+
+| Service | Port | Status | Purpose |
+|---------|------|--------|---------|
+| **DataForge** | 8788 | ✅ HEALTHY | Vector search & embeddings |
+| **NeuroForge** | 8000 | ✅ HEALTHY | Multi-model AI routing (5 models) |
+| **ForgeAgents** | 8787 | ✅ HEALTHY | AI agents & skills (120 skills) |
+| **Rake** | 8002 | ✅ HEALTHY | Data ingestion pipeline |
+
+**System Grade:** A (100% functional) - All services operational after December 11 bug fixes
+
+### Quick Links to Ecosystem Documentation
+
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Complete API reference & get all services running
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment guide
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet for all services
+- **[Ecosystem Architecture](../docs/architecture/FORGE_UNIFIED_ARCHITECTURE.md)** - Complete system design
+- **[Latest Session Report](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11 bug fixes (100% operational)
+- **[Organized Documentation](../docs/README.md)** - Complete documentation index with guides, sessions, and architecture
 
 ---
 
@@ -444,7 +469,7 @@ See [docs/TEST_REPORT.md](docs/TEST_REPORT.md) for detailed test results.
 
 ## 📚 Documentation
 
-### Complete Documentation Index
+### ForgeCommand Documentation
 
 | Document | Purpose | Lines |
 |----------|---------|-------|
@@ -454,12 +479,35 @@ See [docs/TEST_REPORT.md](docs/TEST_REPORT.md) for detailed test results.
 | **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** | Detailed setup instructions | 300 |
 | **[docs/TEST_REPORT.md](docs/TEST_REPORT.md)** | Test results and validation | 150 |
 
+### Ecosystem Documentation (Parent Directory)
+
+ForgeCommand integrates with the complete Forge Ecosystem. All documentation has been organized in the parent `docs/` directory:
+
+**Essential Guides:**
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Get all services running, complete API reference
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment, scaling, monitoring
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet for all services
+- **[Changelog](../CHANGELOG.md)** - Version history and updates
+
+**Organized Documentation Index:**
+- **[../docs/README.md](../docs/README.md)** - Central documentation hub
+- **[../docs/guides/](../docs/guides/)** - User guides and tutorials
+- **[../docs/sessions/](../docs/sessions/)** - Development session reports
+- **[../docs/architecture/](../docs/architecture/)** - System architecture and contracts
+- **[../docs/vibeforge/](../docs/vibeforge/)** - VibeForge-specific documentation
+
+**Latest Updates (December 11, 2025):**
+- **[Session Report](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Bug fixes session (100% operational)
+- **[Test Results](../docs/guides/FINAL_TEST_RESULTS.md)** - Complete test validation
+- **[Fixes Applied](../docs/guides/FIXES_APPLIED_SUMMARY.md)** - All bugs resolved
+
 ### Quick Reference
 
 **Installation:** See [Quick Start](#-quick-start)
 **Architecture:** See [Architecture](#-architecture)
 **Chart Integration:** See [docs/PHASE_1_COMPLETE.md](docs/PHASE_1_COMPLETE.md)
 **Troubleshooting:** See [Troubleshooting](#-troubleshooting) below
+**Ecosystem Setup:** See [../QUICK_START_GUIDE.md](../QUICK_START_GUIDE.md)
 
 ---
 
@@ -626,8 +674,11 @@ See parent Forge Ecosystem license for details.
 ## 📞 Support
 
 - **Technical Support:** charlesboswell@boswelldigitalsolutions.com
-- **Documentation:** See [docs/](docs/) directory
+- **ForgeCommand Documentation:** See [docs/](docs/) directory
+- **Ecosystem Documentation:** See [../docs/README.md](../docs/README.md) for organized documentation index
 - **Forge Ecosystem:** See parent [README.md](../README.md)
+- **Quick Start All Services:** See [../QUICK_START_GUIDE.md](../QUICK_START_GUIDE.md)
+- **Latest Status:** See [../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)
 
 ---
 
@@ -652,7 +703,7 @@ See parent Forge Ecosystem license for details.
 
 ---
 
-**Last Updated:** December 5, 2025
+**Last Updated:** December 11, 2025
 **Version:** 1.0 (Phase 1 Complete)
-**Status:** ✅ Production Ready (Charts Operational)
+**Status:** ✅ Production Ready (All Services Operational - 100%)
 **Maintained by:** Boswell Digital Solutions LLC
