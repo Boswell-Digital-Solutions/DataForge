@@ -57,7 +57,7 @@ Forge is an **integrated professional platform** where:
 - 🔒 **AuthorForge** (Commercial) – Genre-aware creative writing assistant
 - 🔒 **TradeForge** (Commercial) – Market intelligence and financial datasets
 - 🔒 **Leopold/Livy** (Commercial) – Ecological and historical analysis modules
-- 🔍 **Cortex** (Standalone) – Desktop file intelligence and search
+- 🔍 **Cortex BDS** (Standalone/MIT) – AI-powered semantic file search and discovery
 
 ### Unified Architecture
 
@@ -75,7 +75,7 @@ Forge is an **integrated professional platform** where:
 | **Ecosystem Status**         | 🔵 Active Development (Alpha/Beta)         |
 | **Free Entry Product**       | VibeForge (Freeware with restrictions)     |
 | **Commercial Products**      | 6 (DataForge, NeuroForge, ForgeAgents, AuthorForge, TradeForge, Leopold/Livy) |
-| **Standalone Product**       | Cortex (Desktop file intelligence)         |
+| **Standalone Product**       | Cortex BDS (AI-powered semantic search)    |
 | **DataForge Version**        | 5.2 (18/18 core phases complete)           |
 | **ForgeAgents Version**      | 0.1.0 (Phase 7 complete, production-ready) |
 | **VibeForge Version**        | 5.6 (695 tests, Jan 2026 launch)           |
@@ -218,22 +218,26 @@ The Forge Ecosystem consists of 8 specialized products with unified backend infr
 - **Role:** Specialized domain analysis tools
 - **Documentation:** Commercial modules - details pending public release
 
-### 8. Cortex 🔍 – Desktop File Intelligence (STANDALONE)
+### 8. Cortex BDS 🔍 – Desktop File Intelligence (STANDALONE)
 
-- **Purpose:** Fast, offline-first file indexing and intelligent search
-- **Status:** ✅ **Alpha** (Phase 0: 82% complete)
-- **Repository:** `./cortex/`
-- **License:** TBD (standalone desktop application)
+- **Purpose:** AI-powered semantic search and file discovery (Brain-Driven Search)
+- **Status:** 🟡 **Beta** (Phase 2: 50% complete - Phase 0 ✅, Phase 1 ✅)
+- **Repository:** `./cortex_bds/`
+- **License:** MIT (standalone desktop application)
 - **Key Features:**
-  - **Lightning-fast search** - Sub-100ms FTS5 queries, 50+ files/sec indexing
-  - **VS Code Claude Export** - Export indexed content for AI coding assistants
-  - **Offline-first** - All data stored locally in SQLite
+  - **Dual Search Modes** - Toggle between keyword (FTS5) and semantic (AI) search
+  - **Find Similar Files** - AI-powered related file discovery with adjustable similarity
+  - **Smart Collections** - Rule-based dynamic file grouping (12 built-in collections)
+  - **Command Palette** - Cmd+K fuzzy search for all actions (36 commands)
+  - **Keyboard Shortcuts** - 15+ global shortcuts with help modal
+  - **VS Code Claude Export** - Export indexed content for AI coding assistants (Production ready)
+  - **Offline AI** - Local ONNX embeddings (no cloud, complete privacy)
+  - **Lightning-fast** - Sub-100ms keyword search, <500ms semantic search
   - **Cross-platform** - Linux, macOS, Windows support via Tauri
-  - **Content extraction** - txt, md, pdf, docx, source code
-  - **Real-time progress** - Live indexing status with progress tracking
-- **Technology:** Rust/Tauri 2.0 + SvelteKit
-- **Role:** Personal search engine for developers, writers, researchers
-- **Documentation:** [cortex/README.md](./cortex/README.md)
+  - **15+ formats** - txt, md, pdf, docx, source code, and more
+- **Technology:** Rust/Tauri 2.0 + SvelteKit 5 + ONNX Runtime
+- **Role:** Next-gen knowledge graph for developers, writers, researchers
+- **Documentation:** [cortex_bds/README.md](./cortex_bds/README.md) | [Docs Index](./cortex_bds/DOCS_INDEX.md)
 
 ---
 
@@ -382,7 +386,7 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 | Rake         | Production ✅     | 77    | v1.0, 80%+ coverage          |
 | ForgeAgents  | Advanced Alpha ✅ | 61    | v0.1.0, Phase 7 complete     |
 | VibeForge    | Beta ✅           | 695   | v5.6, Jan 2026 launch        |
-| Cortex       | Alpha            | 60    | Phase 0: 82% complete        |
+| Cortex BDS   | Beta             | 60    | Phase 2: 50% (Phase 0 ✅ 100%, Phase 1 ✅ 100%) |
 | AuthorForge  | Alpha            | —     | SolidStart boilerplate       |
 | TradeForge   | Planned          | —     | —                            |
 | Leopold/Livy | Planned          | —     | —                            |
@@ -398,7 +402,7 @@ DataForge is the **unified data and knowledge engine** powering all Forge produc
 - ✅ VibeForge – January 2026 launch product
 
 **Tier 3: Local Applications (In Progress)**
-- 🔄 Cortex – Local file management bridge (82%)
+- ✅ Cortex BDS – AI-powered semantic file search (Phase 0 & 1: 100%, Phase 2: 50%)
 - 🔄 AuthorForge – Writing OS (started)
 
 **Tier 4: Orchestration (Complete)**
@@ -677,7 +681,7 @@ All code, documentation, schemas, diagrams, algorithms, and business logic acros
 
 ## 🎯 Summary
 
-**The Forge Ecosystem** is a professional development platform comprising eight specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge), autonomous orchestration (ForgeAgents), and professional domain tools (AuthorForge, TradeForge, Leopold, Livy), plus the standalone Cortex desktop application.
+**The Forge Ecosystem** is a professional development platform comprising eight specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge), autonomous orchestration (ForgeAgents), and professional domain tools (AuthorForge, TradeForge, Leopold, Livy), plus the standalone Cortex BDS (Brain-Driven Search) desktop application with AI-powered semantic file discovery.
 
 ### Key Achievements
 
@@ -700,7 +704,7 @@ All code, documentation, schemas, diagrams, algorithms, and business logic acros
 | Rake           | Production     | v1.0 complete                      |
 | ForgeAgents    | Advanced Alpha | v0.1.0, Phase 7 complete, production-ready |
 | VibeForge      | Beta           | January 2026 freeware launch       |
-| Cortex         | Alpha          | Phase 0: 82% complete              |
+| Cortex BDS     | Beta           | Phase 2: 50% (Phase 0 ✅, Phase 1 ✅) |
 | AuthorForge    | Alpha          | Active development                 |
 | TradeForge     | Planned        | —                                  |
 | Leopold/Livy   | Planned        | —                                  |

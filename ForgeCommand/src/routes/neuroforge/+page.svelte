@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import LineChart from '$lib/components/LineChart.svelte';
+	import { exportToCSV, exportChartToPNG } from '$lib/utils/exports';
 
 	// Types
 	interface NeuroForgeMetrics {
@@ -38,6 +39,8 @@
 	let tokenData: TokenUsageOverTime | null = null;
 	let loading = true;
 	let error: string | null = null;
+	let costChartCanvas: HTMLCanvasElement | null = null;
+	let tokenChartCanvas: HTMLCanvasElement | null = null;
 
 	// Fetch data
 	async function fetchData() {
@@ -87,6 +90,85 @@
 	function formatScore(score: number): string {
 		return `${(score * 100).toFixed(1)}%`;
 	}
+
+	// Export functions
+	function handleExportMetricsCSV() {
+		if (!metrics) {
+			alert('No metrics data to export');
+			return;
+		}
+
+		// Export metrics and model breakdown
+		const exportData = [
+			{
+				metric: 'Total Requests',
+				value: metrics.total_requests.toString()
+			},
+			{
+				metric: 'Total Tokens',
+				value: formatTokens(metrics.total_tokens)
+			},
+			{
+				metric: 'Total Cost',
+				value: formatCost(metrics.total_cost)
+			},
+			{
+				metric: 'Avg Quality Score',
+				value: formatScore(metrics.avg_evaluation_score)
+			},
+			...metrics.top_models.map(model => ({
+				model: model.model,
+				requests: model.requests.toString(),
+				tokens: formatTokens(model.tokens),
+				cost: formatCost(model.cost),
+				avg_cost_per_request: formatCost(model.cost / model.requests)
+			}))
+		];
+
+		exportToCSV(exportData, 'neuroforge_metrics');
+	}
+
+	function handleExportCostChart() {
+		if (!costChartCanvas) {
+			// Try to find the canvas element
+			const chartElements = document.querySelectorAll('canvas');
+			costChartCanvas = chartElements[0] as HTMLCanvasElement || null;
+		}
+
+		if (!costChartCanvas) {
+			alert('Cost chart not found. Please try again.');
+			return;
+		}
+
+		exportChartToPNG(costChartCanvas, 'neuroforge_cost_chart');
+	}
+
+	function handleExportTokenChart() {
+		if (!tokenChartCanvas) {
+			// Try to find the canvas element
+			const chartElements = document.querySelectorAll('canvas');
+			tokenChartCanvas = chartElements[1] as HTMLCanvasElement || null;
+		}
+
+		if (!tokenChartCanvas) {
+			alert('Token chart not found. Please try again.');
+			return;
+		}
+
+		exportChartToPNG(tokenChartCanvas, 'neuroforge_token_chart');
+	}
+
+	// Update canvas references when charts are rendered
+	onMount(() => {
+		// Wait a bit for charts to render
+		setTimeout(() => {
+			const chartElements = document.querySelectorAll('canvas');
+			if (chartElements.length >= 2) {
+				costChartCanvas = chartElements[0] as HTMLCanvasElement;
+				tokenChartCanvas = chartElements[1] as HTMLCanvasElement;
+			}
+		}, 1000);
+	});
 </script>
 
 <svelte:head>
@@ -96,10 +178,48 @@
 <div class="space-y-8">
 	<!-- Page Header -->
 	<div>
-		<h1 class="text-4xl font-display font-bold mb-2">
-			<span class="text-neuroforge">NeuroForge</span> Analytics
-		</h1>
-		<p class="text-forge-steel">LLM usage, cost tracking, and model performance metrics</p>
+		<div class="flex justify-between items-start mb-2">
+			<div>
+				<h1 class="text-4xl font-display font-bold mb-2">
+					<span class="text-neuroforge">NeuroForge</span> Analytics
+				</h1>
+				<p class="text-forge-steel">LLM usage, cost tracking, and model performance metrics</p>
+			</div>
+			{#if metrics}
+				<div class="flex gap-3">
+					<button
+						on:click={handleExportMetricsCSV}
+						class="export-button neuroforge"
+						title="Export Metrics to CSV"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+						</svg>
+						<span>Export CSV</span>
+					</button>
+					<button
+						on:click={handleExportCostChart}
+						class="export-button neuroforge"
+						title="Export Cost Chart"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+						</svg>
+						<span>Cost Chart</span>
+					</button>
+					<button
+						on:click={handleExportTokenChart}
+						class="export-button neuroforge"
+						title="Export Token Chart"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+						</svg>
+						<span>Token Chart</span>
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	{#if error}
@@ -248,3 +368,39 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.export-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.export-button.neuroforge {
+		background: rgba(168, 85, 247, 0.1);
+		border: 1px solid rgba(168, 85, 247, 0.3);
+		color: #A855F7;
+	}
+
+	.export-button.neuroforge:hover {
+		background: rgba(168, 85, 247, 0.2);
+		border-color: #A855F7;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+	}
+
+	.export-button:active {
+		transform: translateY(0);
+	}
+
+	.export-button svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+</style>

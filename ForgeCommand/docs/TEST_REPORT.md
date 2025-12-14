@@ -149,7 +149,8 @@ AND datetime(timestamp) > datetime('now', '-24 hours')
 **Result**:
 - DataForge Uptime: 92.9% (13 success / 14 total)
 - NeuroForge Status: UP (8 recent requests)
-- Rake Status: NOT_DEPLOYED (expected)
+- Rake Status: ✅ DEPLOYED (Port 8002, health endpoint responding)
+  - **Updated**: December 10, 2025 - Rake now operational
 
 **SQLite FILTER Clause**: ✅ Supported (SQLite 3.30+)
 
@@ -258,7 +259,7 @@ AVG(CAST(json_extract(metrics, '$.duration_ms') AS FLOAT)) as avg_latency
 - ✅ DataForge Uptime: 92.9%
 - ✅ NeuroForge Status: UP
 - ✅ NeuroForge Uptime: 100.0%
-- ✅ Rake Status: NOT_DEPLOYED
+- ✅ Rake Status: ✅ DEPLOYED (Port 8002) - Updated Dec 10, 2025
 - ✅ Recent Events: 10 events displayed
 - ✅ Auto-refresh: Every 30 seconds
 

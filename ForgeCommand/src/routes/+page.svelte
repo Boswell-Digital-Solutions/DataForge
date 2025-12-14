@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
+	import { exportToCSV, exportToPDF } from '$lib/utils/exports';
 
 	// Types
 	interface SystemHealth {
@@ -79,6 +80,97 @@
 		const date = new Date(timestamp);
 		return date.toLocaleTimeString();
 	}
+
+	// Export functions
+	function handleExportCSV() {
+		if (!health || !recentEvents) {
+			alert('No data to export');
+			return;
+		}
+
+		// Combine system health and events into exportable format
+		const exportData = [
+			{
+				section: 'System Health',
+				service: 'DataForge',
+				status: health.dataforge_status,
+				uptime: `${health.dataforge_uptime.toFixed(1)}%`
+			},
+			{
+				section: 'System Health',
+				service: 'NeuroForge',
+				status: health.neuroforge_status,
+				uptime: `${health.neuroforge_uptime.toFixed(1)}%`
+			},
+			{
+				section: 'System Health',
+				service: 'ForgeAgents',
+				status: health.forgeagents_status,
+				uptime: `${health.forgeagents_uptime.toFixed(1)}%`
+			},
+			{
+				section: 'System Health',
+				service: 'Rake',
+				status: health.rake_status,
+				uptime: `${health.rake_uptime.toFixed(1)}%`
+			},
+			...recentEvents.map(event => ({
+				section: 'Recent Events',
+				service: event.service,
+				event_type: event.event_type,
+				severity: event.severity,
+				timestamp: event.timestamp
+			}))
+		];
+
+		exportToCSV(exportData, 'forge_overview');
+	}
+
+	function handleExportPDF() {
+		if (!health || !recentEvents) {
+			alert('No data to export');
+			return;
+		}
+
+		// Format data for PDF
+		const healthData = [
+			{
+				Service: 'DataForge',
+				Status: health.dataforge_status,
+				Uptime: `${health.dataforge_uptime.toFixed(1)}%`
+			},
+			{
+				Service: 'NeuroForge',
+				Status: health.neuroforge_status,
+				Uptime: `${health.neuroforge_uptime.toFixed(1)}%`
+			},
+			{
+				Service: 'ForgeAgents',
+				Status: health.forgeagents_status,
+				Uptime: `${health.forgeagents_uptime.toFixed(1)}%`
+			},
+			{
+				Service: 'Rake',
+				Status: health.rake_status,
+				Uptime: `${health.rake_uptime.toFixed(1)}%`
+			}
+		];
+
+		const eventsData = recentEvents.map(event => ({
+			Service: event.service,
+			Type: event.event_type,
+			Severity: event.severity,
+			Time: formatTimestamp(event.timestamp)
+		}));
+
+		// Combine all data for PDF
+		const allData = [
+			...healthData.map(item => ({ ...item, Section: 'System Health' })),
+			...eventsData.map(item => ({ ...item, Section: 'Recent Events' }))
+		];
+
+		exportToPDF(allData, 'Forge Command - System Overview', 'forge_overview');
+	}
 </script>
 
 <svelte:head>
@@ -88,8 +180,36 @@
 <div class="space-y-8">
 	<!-- Page Header -->
 	<div class="fc-hero-section">
-		<h1 class="text-4xl font-display font-bold mb-2 relative z-10">System Overview</h1>
-		<p class="text-forge-steel relative z-10">Real-time monitoring of all Forge services</p>
+		<div class="flex justify-between items-start">
+			<div>
+				<h1 class="text-4xl font-display font-bold mb-2 relative z-10">System Overview</h1>
+				<p class="text-forge-steel relative z-10">Real-time monitoring of all Forge services</p>
+			</div>
+			{#if health}
+				<div class="flex gap-3 relative z-10">
+					<button
+						on:click={handleExportCSV}
+						class="export-button"
+						title="Export to CSV"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+						</svg>
+						<span>Export CSV</span>
+					</button>
+					<button
+						on:click={handleExportPDF}
+						class="export-button"
+						title="Export to PDF"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+						</svg>
+						<span>Export PDF</span>
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	{#if error}
@@ -257,3 +377,36 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.export-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: rgba(0, 163, 255, 0.1);
+		border: 1px solid rgba(0, 163, 255, 0.3);
+		color: #00A3FF;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.export-button:hover {
+		background: rgba(0, 163, 255, 0.2);
+		border-color: #00A3FF;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 163, 255, 0.2);
+	}
+
+	.export-button:active {
+		transform: translateY(0);
+	}
+
+	.export-button svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+</style>

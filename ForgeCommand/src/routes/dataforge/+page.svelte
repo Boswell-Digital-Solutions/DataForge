@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import LineChart from '$lib/components/LineChart.svelte';
+	import { exportToCSV, exportChartToPNG } from '$lib/utils/exports';
 
 	// Types
 	interface DataForgeMetrics {
@@ -25,6 +26,7 @@
 	let performanceData: SearchPerformanceOverTime | null = null;
 	let loading = true;
 	let error: string | null = null;
+	let performanceChartCanvas: HTMLCanvasElement | null = null;
 
 	// Fetch data
 	async function fetchData() {
@@ -72,6 +74,62 @@
 		if (duration < 1000) return 'text-yellow-400';
 		return 'text-red-400';
 	}
+
+	// Export functions
+	function handleExportMetricsCSV() {
+		if (!metrics) {
+			alert('No metrics data to export');
+			return;
+		}
+
+		// Export metrics data
+		const exportData = [
+			{
+				metric: 'Total Searches',
+				value: metrics.total_searches.toString()
+			},
+			{
+				metric: 'Avg Search Duration',
+				value: formatDuration(metrics.avg_search_duration)
+			},
+			{
+				metric: 'Avg Similarity',
+				value: formatPercentage(metrics.avg_similarity)
+			},
+			{
+				metric: 'Error Rate',
+				value: formatPercentage(metrics.error_rate)
+			}
+		];
+
+		exportToCSV(exportData, 'dataforge_metrics');
+	}
+
+	function handleExportPerformanceChart() {
+		if (!performanceChartCanvas) {
+			// Try to find the canvas element
+			const chartElements = document.querySelectorAll('canvas');
+			performanceChartCanvas = chartElements[0] as HTMLCanvasElement || null;
+		}
+
+		if (!performanceChartCanvas) {
+			alert('Performance chart not found. Please try again.');
+			return;
+		}
+
+		exportChartToPNG(performanceChartCanvas, 'dataforge_performance_chart');
+	}
+
+	// Update canvas reference when chart is rendered
+	onMount(() => {
+		// Wait a bit for chart to render
+		setTimeout(() => {
+			const chartElements = document.querySelectorAll('canvas');
+			if (chartElements.length > 0) {
+				performanceChartCanvas = chartElements[0] as HTMLCanvasElement;
+			}
+		}, 1000);
+	});
 </script>
 
 <svelte:head>
@@ -81,10 +139,38 @@
 <div class="space-y-8">
 	<!-- Page Header -->
 	<div>
-		<h1 class="text-4xl font-display font-bold mb-2">
-			<span class="text-dataforge">DataForge</span> Analytics
-		</h1>
-		<p class="text-forge-steel">Vector search performance, query metrics, and storage analytics</p>
+		<div class="flex justify-between items-start mb-2">
+			<div>
+				<h1 class="text-4xl font-display font-bold mb-2">
+					<span class="text-dataforge">DataForge</span> Analytics
+				</h1>
+				<p class="text-forge-steel">Vector search performance, query metrics, and storage analytics</p>
+			</div>
+			{#if metrics}
+				<div class="flex gap-3">
+					<button
+						on:click={handleExportMetricsCSV}
+						class="export-button dataforge"
+						title="Export Metrics to CSV"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+						</svg>
+						<span>Export CSV</span>
+					</button>
+					<button
+						on:click={handleExportPerformanceChart}
+						class="export-button dataforge"
+						title="Export Performance Chart"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+						</svg>
+						<span>Performance Chart</span>
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	{#if error}
@@ -214,3 +300,39 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.export-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.export-button.dataforge {
+		background: rgba(0, 163, 255, 0.1);
+		border: 1px solid rgba(0, 163, 255, 0.3);
+		color: #00A3FF;
+	}
+
+	.export-button.dataforge:hover {
+		background: rgba(0, 163, 255, 0.2);
+		border-color: #00A3FF;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 163, 255, 0.2);
+	}
+
+	.export-button:active {
+		transform: translateY(0);
+	}
+
+	.export-button svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+</style>
