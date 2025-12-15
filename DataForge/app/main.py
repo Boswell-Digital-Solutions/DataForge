@@ -190,6 +190,30 @@ async def health_check():
         "database": db_status
     }
 
+
+@app.get("/health/render", tags=["info"])
+async def render_health_check():
+    """
+    Render deployment health check.
+    Simple status check for service and Redis connectivity.
+    """
+    result = {"service": "ok"}
+
+    # Check Redis
+    try:
+        from app.utils.redis_utils import get_redis_client
+        redis = await get_redis_client()
+        if redis:
+            await redis.ping()
+            result["redis"] = "ok"
+        else:
+            result["redis"] = "not_configured"
+    except Exception:
+        result["redis"] = "error"
+
+    return result
+
+
 # ============================================
 # Admin UI
 # ============================================
