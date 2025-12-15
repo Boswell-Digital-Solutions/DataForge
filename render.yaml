@@ -13,9 +13,9 @@ services:
   - type: web
     name: dataforge
     runtime: python
-    repo: https://github.com/Boswecw/rake.git
+    repo: https://github.com/Boswecw/DataForge.git
     branch: master
-    rootDir: ecosystem/DataForge/DataForge
+    rootDir: DataForge
     plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
