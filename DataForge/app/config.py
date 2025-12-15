@@ -3,8 +3,10 @@ DataForge Configuration
 
 Central configuration for constants and settings.
 """
+
 import os
 from dotenv import load_dotenv
+from forge_keys import get_key
 
 load_dotenv()
 
@@ -56,17 +58,17 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 # ============================================
 # Security Configuration
 # ============================================
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = get_key("SECRET_KEY") or os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 # ============================================
 # API Keys
 # ============================================
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")  # For future use (Claude API)
-VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")  # Recommended for embeddings (Anthropic-owned)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+ANTHROPIC_API_KEY = get_key("anthropic")  # For future use (Claude API)
+VOYAGE_API_KEY = get_key("voyage-ai")  # Recommended for embeddings (Anthropic-owned)
+OPENAI_API_KEY = get_key("openai")
+COHERE_API_KEY = get_key("cohere")
 
 # ============================================
 # Server Configuration

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Start all Forge backend services in background
 
-FORGE_DIR="/home/charles/projects/Coding2025/Forge"
+FORGE_DIR="/home/charlieboswell/Forge/ecosystem"
 cd "$FORGE_DIR"
 
 # Colors
@@ -57,27 +57,31 @@ start_service() {
 # Start each service
 cd "$FORGE_DIR"
 
+
 start_service "DataForge" "8788" \
-    "$FORGE_DIR/DataForge" \
-    "venv/bin/python -m uvicorn app.main:app --port 8788"
+    "$FORGE_DIR/DataForge/DataForge" \
+    "export DATABASE_URL=sqlite:///$(pwd)/dataforge.db && /home/charlieboswell/Forge/.venv/bin/python -m uvicorn app.main:app --port 8788"
 
 echo ""
+
 
 start_service "NeuroForge" "8000" \
     "$FORGE_DIR/NeuroForge" \
-    "DATABASE_URL=sqlite:///./neuroforge_telemetry.db neuroforge_backend/.venv/bin/uvicorn neuroforge_backend.main:app --port 8000"
+    "/home/charlieboswell/Forge/.venv/bin/python -m uvicorn neuroforge_backend.main:app --port 8000"
 
 echo ""
+
 
 start_service "ForgeAgents" "8787" \
-    "$FORGE_DIR/forge_agents_bds_api" \
-    "venv/bin/python -m uvicorn app.main:app --port 8787"
+    "$FORGE_DIR/Forge-Agents" \
+    "/home/charlieboswell/Forge/.venv/bin/python -m uvicorn app.main:app --port 8787"
 
 echo ""
+
 
 start_service "Rake" "8002" \
     "$FORGE_DIR/rake" \
-    "venv/bin/python -m uvicorn main:app --port 8002"
+    "/home/charlieboswell/Forge/.venv/bin/python -m uvicorn main:app --port 8002"
 
 echo ""
 echo "======================================="
@@ -88,11 +92,14 @@ echo "Services running:"
 lsof -i:8788,8000,8787,8002 | grep LISTEN || echo "No services detected"
 echo ""
 echo "To stop all services:"
-echo "  bash stop_all_services.sh"
+echo "  cd /home/charlieboswell/Forge/ecosystem/DataForge && bash stop_all_services.sh"
 echo ""
 echo "To view logs:"
 echo "  tail -f /tmp/DataForge_service.log"
 echo "  tail -f /tmp/NeuroForge_service.log"
 echo "  tail -f /tmp/ForgeAgents_service.log"
 echo "  tail -f /tmp/Rake_service.log"
+echo ""
+echo "To start all services, run:"
+echo "  cd /home/charlieboswell/Forge/ecosystem/DataForge && ./start_all_services.sh"
 echo ""

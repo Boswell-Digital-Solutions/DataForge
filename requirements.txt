@@ -1,0 +1,40 @@
+# DataForge Dependencies
+
+# Web framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+jinja2==3.1.2
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Vector support
+pgvector==0.2.4
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# Environment
+python-dotenv==1.0.0
+
+# HTTP client
+httpx==0.26.0
+
+# Embeddings (choose one or more)
+# Voyage AI is recommended (Anthropic-owned)
+voyageai==0.2.3
+openai==1.10.0
+# cohere==4.47
+
+# Utilities
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Caching
+redis==5.0.1
+aioredis==2.0.1
