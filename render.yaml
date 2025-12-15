@@ -6,7 +6,7 @@ databases:
   - name: dataforge-db
     databaseName: dataforge
     user: dataforge_user
-    plan: starter
+    plan: basic-256mb
     ipAllowList: []
 
 services:
