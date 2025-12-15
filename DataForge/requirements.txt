@@ -32,8 +32,8 @@ openai==1.10.0
 # cohere==4.47
 
 # Utilities
-pydantic==2.5.3
-pydantic-settings==2.1.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
 
 # Caching
 redis==5.0.1
