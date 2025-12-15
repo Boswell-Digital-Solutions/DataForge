@@ -1,0 +1,42 @@
+# DataForge - Knowledge/Data Layer Service
+# Render Blueprint for independent deployment
+# Deploy: render blueprint apply
+
+databases:
+  - name: dataforge-db
+    plan: starter
+    databaseName: dataforge
+    user: dataforge_user
+    postgresMajorVersion: 15
+    ipAllowList: []
+
+services:
+  - type: web
+    name: dataforge
+    runtime: python
+    plan: starter
+    rootDir: DataForge
+    buildCommand: pip install -r requirements.txt && python -c "from app.database import engine, Base; Base.metadata.create_all(bind=engine)"
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dataforge-db
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: EMBEDDING_PROVIDER
+        value: voyage
+      - key: EMBEDDING_MODEL
+        value: voyage-2
