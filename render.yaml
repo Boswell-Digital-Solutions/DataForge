@@ -4,19 +4,20 @@
 
 databases:
   - name: dataforge-db
-    plan: starter
     databaseName: dataforge
     user: dataforge_user
-    postgresMajorVersion: 15
+    plan: starter
     ipAllowList: []
 
 services:
   - type: web
     name: dataforge
     runtime: python
+    repo: https://github.com/Boswecw/rake.git
+    branch: master
+    rootDir: ecosystem/DataForge/DataForge
     plan: starter
-    rootDir: DataForge
-    buildCommand: pip install -r requirements.txt && python -c "from app.database import engine, Base; Base.metadata.create_all(bind=engine)"
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
