@@ -6,7 +6,7 @@ databases:
   - name: dataforge-db
     databaseName: dataforge
     user: dataforge_user
-    plan: basic-256mb
+    plan: free
     ipAllowList: []
 
 services:
@@ -16,7 +16,7 @@ services:
     repo: https://github.com/Boswecw/DataForge.git
     branch: master
     rootDir: DataForge
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
