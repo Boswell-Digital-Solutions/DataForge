@@ -32,9 +32,9 @@ openai==1.10.0
 # cohere==4.47
 
 # Utilities
-pydantic-core==2.14.5  # Exact version for pydantic 2.5.0, has pre-built wheels
-pydantic==2.5.0  # Using specific version to avoid Rust compilation on Render
-pydantic-settings==2.1.0
+# Using latest pydantic with Python 3.13 wheel support
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
 
 # Caching
 redis==5.0.1
