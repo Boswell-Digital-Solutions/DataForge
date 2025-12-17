@@ -1,7 +1,12 @@
 # DataForge - Knowledge/Data Layer Service
 # Render Blueprint for independent deployment
 # Deploy: render blueprint apply
-# NOTE: Database removed - set DATABASE_URL manually in Render dashboard
+
+databases:
+  - name: dataforge-db
+    databaseName: dataforge
+    user: dataforge
+    plan: free
 
 services:
   - type: web
@@ -18,7 +23,9 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: dataforge-db
+          property: connectionString
       - key: OPENAI_API_KEY
         sync: false
       - key: VOYAGE_API_KEY
