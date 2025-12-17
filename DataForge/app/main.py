@@ -71,6 +71,23 @@ async def lifespan(app: FastAPI):
     else:
         main_logger.warning("⚠️  No embedding provider configured")
 
+    # Enable pgvector extension
+    main_logger.info("📦 Enabling pgvector extension...")
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
+        main_logger.info("✅ pgvector extension enabled")
+    except Exception as e:
+        main_logger.error(f"❌ Failed to enable pgvector extension: {e}")
+        log_security_event(
+            main_logger,
+            "EXTENSION_INIT_FAILURE",
+            f"Failed to enable pgvector extension: {e}"
+        )
+        sys.exit(1)
+
     # Create database tables
     main_logger.info("📊 Creating database tables...")
     try:
