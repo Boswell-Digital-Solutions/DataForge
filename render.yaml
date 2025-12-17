@@ -20,7 +20,7 @@ services:
       python --version
       pip install --upgrade pip
       pip install -e ../forge-telemetry
-      pip install --no-cache-dir -r requirements.txt
+      pip install --only-binary=:all: --no-cache-dir -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
