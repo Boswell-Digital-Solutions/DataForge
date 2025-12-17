@@ -32,6 +32,7 @@ openai==1.10.0
 # cohere==4.47
 
 # Utilities
+pydantic-core==2.14.6  # Pre-built wheels, no Rust compilation needed
 pydantic==2.5.0  # Using specific version to avoid Rust compilation on Render
 pydantic-settings==2.1.0
 
