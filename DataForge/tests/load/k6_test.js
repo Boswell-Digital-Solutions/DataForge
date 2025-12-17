@@ -1,3 +1,5 @@
+
+/* global __ENV, __VU, console, success */
 /**
  * K6 Load Testing Script
  *
@@ -119,12 +121,12 @@ export default function (data) {
       apiDuration.add(duration);
       apiThroughput.add(1);
 
-      const success = check(response, {
-        "status is 200": (r) => r.status === 200,
-        "has results": (r) => r.json("length") > 0 || true,
-      });
-
-      if (success) {
+      if (
+        check(response, {
+          "status is 200": (r) => r.status === 200,
+          "has results": (r) => r.json("length") > 0 || true,
+        })
+      ) {
         apiSuccesses.add(1);
       } else {
         apiErrors.add(1);
@@ -153,11 +155,11 @@ export default function (data) {
       apiDuration.add(duration);
       apiThroughput.add(1);
 
-      const success = check(response, {
-        "status is 200": (r) => r.status === 200,
-      });
-
-      if (success) {
+      if (
+        check(response, {
+          "status is 200": (r) => r.status === 200,
+        })
+      ) {
         apiSuccesses.add(1);
         // Store project ID for later tests
         const project = response.json();
@@ -184,15 +186,17 @@ export default function (data) {
         apiDuration.add(duration);
         apiThroughput.add(1);
 
-        const success = check(response, {
-          "status is 200": (r) => r.status === 200 || r.status === 404,
-        });
-
-        if (response.status === 200) {
-          apiSuccesses.add(1);
-        } else if (response.status === 404) {
-          // Expected if project was deleted
-          apiSuccesses.add(1);
+        if (
+          check(response, {
+            "status is 200": (r) => r.status === 200 || r.status === 404,
+          })
+        ) {
+          if (response.status === 200) {
+            apiSuccesses.add(1);
+          } else if (response.status === 404) {
+            // Expected if project was deleted
+            apiSuccesses.add(1);
+          }
         } else {
           apiErrors.add(1);
         }
@@ -223,12 +227,14 @@ export default function (data) {
         apiDuration.add(duration);
         apiThroughput.add(1);
 
-        const success = check(response, {
-          "status is 200": (r) => r.status === 200 || r.status === 404,
-        });
-
-        if (response.status === 200 || response.status === 404) {
-          apiSuccesses.add(1);
+        if (
+          check(response, {
+            "status is 200": (r) => r.status === 200 || r.status === 404,
+          })
+        ) {
+          if (response.status === 200 || response.status === 404) {
+            apiSuccesses.add(1);
+          }
         } else {
           apiErrors.add(1);
         }
@@ -250,11 +256,11 @@ export default function (data) {
       apiDuration.add(duration);
       apiThroughput.add(1);
 
-      const success = check(response, {
-        "status is 200": (r) => r.status === 200,
-      });
-
-      if (success) {
+      if (
+        check(response, {
+          "status is 200": (r) => r.status === 200,
+        })
+      ) {
         apiSuccesses.add(1);
       } else {
         apiErrors.add(1);
@@ -285,11 +291,11 @@ export default function (data) {
         apiDuration.add(duration);
         apiThroughput.add(1);
 
-        const success = check(response, {
-          "status is 200": (r) => r.status === 200 || r.status === 404,
-        });
-
-        if (success) {
+        if (
+          check(response, {
+            "status is 200": (r) => r.status === 200 || r.status === 404,
+          })
+        ) {
           apiSuccesses.add(1);
         } else {
           apiErrors.add(1);
@@ -307,11 +313,11 @@ export default function (data) {
       apiDuration.add(duration);
       apiThroughput.add(1);
 
-      const success = check(response, {
-        "status is 200": (r) => r.status === 200,
-      });
-
-      if (success) {
+      if (
+        check(response, {
+          "status is 200": (r) => r.status === 200,
+        })
+      ) {
         apiSuccesses.add(1);
       } else {
         apiErrors.add(1);
@@ -343,7 +349,7 @@ export function handleSummary(data) {
 /**
  * Text summary formatter
  */
-function textSummary(data, options) {
+function textSummary(summaryData, options) {
   const indent = options.indent || "";
   const lines = [];
 
@@ -357,10 +363,10 @@ function textSummary(data, options) {
   );
   lines.push("");
 
-  if (data.metrics) {
+  if (summaryData.metrics) {
     lines.push("Response Times:");
-    if (data.metrics.api_duration) {
-      const trend = data.metrics.api_duration;
+    if (summaryData.metrics.api_duration) {
+      const trend = summaryData.metrics.api_duration;
       lines.push(`${indent}Mean: ${trend.values.mean || "N/A"} ms`);
       lines.push(`${indent}P95: ${trend.values["p(95)"] || "N/A"} ms`);
       lines.push(`${indent}P99: ${trend.values["p(99)"] || "N/A"} ms`);
@@ -369,18 +375,18 @@ function textSummary(data, options) {
     lines.push("");
 
     lines.push("Success Rates:");
-    if (data.metrics.api_success) {
-      const successRate = (data.metrics.api_success.value * 100).toFixed(2);
+    if (summaryData.metrics.api_success) {
+      const successRate = (summaryData.metrics.api_success.value * 100).toFixed(2);
       lines.push(`${indent}API Success: ${successRate}%`);
     }
-    if (data.metrics.api_errors) {
-      const errorRate = (data.metrics.api_errors.value * 100).toFixed(2);
+    if (summaryData.metrics.api_errors) {
+      const errorRate = (summaryData.metrics.api_errors.value * 100).toFixed(2);
       lines.push(`${indent}API Errors: ${errorRate}%`);
     }
     lines.push("");
 
-    if (data.metrics.api_throughput) {
-      lines.push(`Throughput: ${data.metrics.api_throughput.value} requests`);
+    if (summaryData.metrics.api_throughput) {
+      lines.push(`Throughput: ${summaryData.metrics.api_throughput.value} requests`);
     }
   }
 

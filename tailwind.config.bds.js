@@ -16,21 +16,21 @@ export default {
         'midnight': '#1B1E24',      // Dark background
         'brass': '#C19745',         // Primary action color
         'steel-blue': '#6A87A6',    // Secondary hierarchy
-        
+
         // Secondary Colors
         'graphite': '#2A2D33',      // Mid-tone surfaces
         'cool-gray': '#8A8F99',     // Secondary text
-        
+
         // Accent Colors
         'bds-violet': '#7B5FF1',    // Premium accent
         'success': '#49C883',       // Positive state
         'warning': '#E8A64D',       // Alert state
         'error': '#EF4444',         // Error state
-        
+
         // Neutral Scale
         'off-white': '#F5F6F7',     // Primary text
         'disabled': '#555557',      // Disabled state
-        
+
         // Transparent variants
         'brass-transparent': 'rgba(193, 151, 69, 0.1)',
         'border-light': 'rgba(255, 255, 255, 0.08)',
@@ -51,12 +51,12 @@ export default {
         'h1': ['32px', { lineHeight: '1.2', letterSpacing: '0.5px' }],
         'h2': ['24px', { lineHeight: '1.3', letterSpacing: '0.4px' }],
         'h3': ['18px', { lineHeight: '1.4', letterSpacing: '0.3px' }],
-        
+
         // Body
         'body': ['14px', { lineHeight: '1.5', letterSpacing: '0' }],
         'body-sm': ['12px', { lineHeight: '1.4', letterSpacing: '0' }],
         'caption': ['11px', { lineHeight: '1.4', letterSpacing: '0' }],
-        
+
         // Code/Mono
         'code': ['13px', { lineHeight: '1.6', letterSpacing: '0.3px' }],
         'code-sm': ['12px', { lineHeight: '1.5', letterSpacing: '0.2px' }],
@@ -249,7 +249,7 @@ export default {
   // PLUGINS - Component Definitions
   // ═══════════════════════════════════════════════════════════════════════════
   plugins: [
-    function ({ addComponents, theme }) {
+    function ({ addComponents }) {
       const components = {
         // ─────────────────────────────────────────────────────────────
         // BUTTONS
