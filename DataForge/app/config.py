@@ -73,7 +73,7 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 # Server Configuration
 # ============================================
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "8001"))
+PORT = int(os.getenv("PORT", "8788"))  # Default port for DataForge
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 
 # ============================================
