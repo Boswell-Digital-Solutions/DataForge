@@ -252,6 +252,11 @@ The Forge Ecosystem consists of 8 specialized products with unified backend infr
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
+│     Forge Command (Mission Control Dashboard)                │
+│  Health Monitoring · Metrics · Alerts · Operational Control │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
 │     ForgeAgents Orchestration Layer                          │
 │  Autonomous Agents · Task Coordination · Cross-Service API  │
 └──────────────────────────┬──────────────────────────────────┘
@@ -266,13 +271,18 @@ The Forge Ecosystem consists of 8 specialized products with unified backend infr
 │  NeuroForge (AI) · DataForge (Data) · Rake (Ingestion)     │
 └──────────┬──────────────────┬──────────────────┬────────────┘
            │                  │                  │
-      ┌────▼─────┐    ┌──────▼──────┐    ┌─────▼──────┐
-      │PostgreSQL│    │    Redis     │    │  RabbitMQ  │
-      │+ pgvector│    │  (Cache)     │    │  (Queue)   │
-      └──────────┘    └──────────────┘    └────────────┘
-
-           │                  │                  │
-     ┌─────▼──────────────────▼──────────────────▼─────┐
+           └──────────────────┼──────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────┐
+│     Infrastructure Layer                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │  PostgreSQL  │  │    Redis     │  │   RabbitMQ   │       │
+│  │  + pgvector  │  │   (Cache)    │  │   (Queue)    │       │
+│  │    :5432     │  │    :6379     │  │    :5672     │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+     ┌────────────────────────▼────────────────────────┐
      │  Observability Layer                            │
      │  Prometheus · OpenTelemetry · Grafana · Alerts │
      └─────────────────────────────────────────────────┘
@@ -564,6 +574,8 @@ Forge/
 | DataForge   | 8001 | Advanced Alpha   |
 | Rake        | 8002 | Production Ready |
 | ForgeAgents | 8003 | Advanced Alpha   |
+| PostgreSQL  | 5432 | Production Ready |
+| Redis       | 6379 | Production Ready |
 
 ---
 
@@ -711,8 +723,8 @@ All code, documentation, schemas, diagrams, algorithms, and business logic acros
 
 ---
 
-**Maintained by:** Boswell Digital Solutions LLC  
-**Ecosystem Version:** 5.3  
-**Last Updated:** December 17, 2025
+**Maintained by:** Boswell Digital Solutions LLC
+**Ecosystem Version:** 5.3
+**Last Updated:** December 19, 2025
 
 **For questions, licensing, or support, contact:** charlesboswell@boswelldigitalsolutions.com
