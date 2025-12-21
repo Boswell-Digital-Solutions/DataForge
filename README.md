@@ -1,605 +1,1280 @@
 <p align="center">
-  <img src="https://firebasestorage.googleapis.com/v0/b/endless-fire-467204-n2.firebasestorage.app/o/Forge%2FForge_Ecosystem_icon.avif?alt=media&token=4f342440-6299-46c0-a825-c37b1f75170d"
-       alt="Forge Ecosystem Logo"
-       width="200"
+  <img src="https://firebasestorage.googleapis.com/v0/b/endless-fire-467204-n2.firebasestorage.app/o/Forge%2FDataForge_icon.avif?alt=media&token=1e81b1bd-9cf2-4e56-9f3a-e9aa14b9cd0a"
+       alt="DataForge Logo"
+       width="180"
        style="border-radius: 12px;" />
 </p>
 
-<h1 align="center">🔥 The Forge Ecosystem</h1>
-<h3 align="center">Professional AI Development Platform</h3>
+<h1 align="center">DataForge</h1>
+<h3 align="center">Core Data & Knowledge Engine</h3>
+<h4 align="center">Unified intelligence layer for the Forge Ecosystem</h4>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Active%20Development-blue" />
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
-  <img src="https://img.shields.io/badge/Products-8%20Applications-blue" />
-  <img src="https://img.shields.io/badge/VibeForge-Freeware-purple" />
-  <img src="https://img.shields.io/badge/Documentation-12%2C300%2B%20lines-green" />
+  <img src="https://img.shields.io/badge/Tests-296%20Passing-brightgreen" />
+  <img src="https://img.shields.io/badge/Python-3.11%2B-blue" />
+  <img src="https://img.shields.io/badge/Version-5.2-blue" />
+  <img src="https://img.shields.io/badge/Core%20Phases-18/18-brightgreen" />
+  <img src="https://img.shields.io/badge/Coverage-82%25-green" />
 </p>
 
 ---
 
-> **License:** Commercial – All products except VibeForge are proprietary commercial software.  
-> **VibeForge:** Freeware with restrictions (entry product).  
-> **© 2025 Boswell Digital Solutions LLC. All Rights Reserved.**  
-> All intellectual property, code, datasets, and documentation are owned by BDS.  
-> See individual product READMEs for specific licensing terms.
+> **📄 License (Commercial)**  
+> This product is commercial, closed-source software owned by **Boswell Digital Solutions LLC (BDS)**.  
+> You may not redistribute, modify, reverse engineer, or use in derivative products.  
+> All rights reserved © 2025 Boswell Digital Solutions LLC.  
+> See [LICENSE.md](./LICENSE.md) and [LEGAL.md](./LEGAL.md) for complete terms.
 
 ---
 
-## 📑 Table of Contents
+## 📘 Table of Contents
 
-1. [Forge Ecosystem Overview](#-forge-ecosystem-overview)
-2. [Core Products](#-core-products)
-3. [System Architecture](#-system-architecture)
-4. [Getting Started](#-getting-started)
-5. [DataForge (Core Engine)](#-dataforge-core-engine)
-6. [Project Status](#-project-status)
-7. [Documentation](#-documentation)
+1. [Overview](#-overview)
+2. [Ecosystem Integration](#-ecosystem-integration)
+3. [Ecosystem Role](#-ecosystem-role)
+4. [Key Features](#-key-features)
+5. [System Architecture](#%EF%B8%8F-system-architecture)
+6. [Quick Start](#-quick-start)
+7. [API Quick Reference](#-api-quick-reference)
 8. [Technology Stack](#-technology-stack)
-9. [Security & Compliance](#-security--compliance)
-10. [License & Copyright](#-license--copyright)
-11. [Support & Contact](#-support--contact)
+9. [Project Phases](#-project-phases)
+10. [Deployment](#-deployment)
+11. [Performance & Scaling](#-performance--scaling)
+12. [Documentation](#-documentation)
+13. [Troubleshooting](#-troubleshooting)
+14. [Security & Compliance](#-security--compliance)
+15. [Development Workflow](#-development-workflow)
+16. [Support](#-support)
 
 ---
 
-## 🔥 Forge Ecosystem Overview
+## 📘 Overview
 
-**The Forge Ecosystem** is a cathedral-level development platform comprising eight specialized products for AI-driven content creation, intelligent project automation, market intelligence, and data management. All products share a unified backend architecture powered by **DataForge** (data engine) and **NeuroForge** (AI orchestration).
+**DataForge** is the central data and knowledge engine powering the entire **Forge Ecosystem**. As **production-ready infrastructure**, it serves as the shared memory layer and single source of truth for all Forge products: VibeForge (freeware), NeuroForge, AuthorForge, TradeForge, and specialized analysis modules.
 
-### What is Forge?
+Built with enterprise security, high availability, and compliance as first-class requirements, DataForge provides the persistent storage layer that enables stateless, horizontally-scalable applications across the Forge suite.
 
-Forge is an **integrated professional platform** where:
+### Core Capabilities
 
-- 🔓 **VibeForge** (Freeware) – AI prompt engineering workbench (entry product)
-- 🔒 **DataForge** (Commercial) – Core data engine and knowledge layer
-- 🔒 **NeuroForge** (Commercial) – LLM orchestration and model routing
-- 🔒 **ForgeAgents** (Commercial) – Autonomous agent orchestration layer
-- 🔒 **AuthorForge** (Commercial) – Genre-aware creative writing assistant
-- 🔒 **TradeForge** (Commercial) – Market intelligence and financial datasets
-- 🔒 **Leopold/Livy** (Commercial) – Ecological and historical analysis modules
-- 🔍 **Cortex BDS** (Standalone/MIT) – AI-powered semantic file search and discovery
+- **🎯 Unified Intelligence Layer** – Single source of truth for all Forge products
+- **🔍 Hybrid Search (NEW)** – Combines semantic (vector) + keyword (BM25) search using Reciprocal Rank Fusion for +40% better accuracy
+- **🧠 Semantic Retrieval** – pgvector embeddings for context-aware search and RAG pipelines
+- **🤖 AI Planning Learning** – Multi-AI orchestration with continuous learning and model performance tracking
+- **📝 Event Auditing** – Immutable, cryptographically signed logs with 90+ day retention
+- **🔐 Field-Level Encryption** – AES-256 encryption for sensitive data with automatic key rotation
+- **🚨 Anomaly Detection** – 6 detector types (impossible travel, brute force, data exfiltration, suspicious patterns, after-hours access, bulk mutations)
+- **⚖️ Compliance Frameworks** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS automation with extensible policy engine
+- **📊 Production Observability** – Prometheus metrics, OpenTelemetry tracing, Grafana dashboards
+- **🚀 High Availability** – Multi-node replication, automatic failover, 99.99% SLA
+- **⚡ Performance** – Sub-100ms API latency, 1,000+ RPS sustained throughput
 
-### Unified Architecture
+### Project Status at a Glance
 
-- ✅ **Shared Intelligence Layer** – DataForge stores all product knowledge
-- ✅ **Centralized AI Orchestration** – NeuroForge routes LLM requests across all products
-- ✅ **Autonomous Agents** – ForgeAgents coordinates cross-service automation
-- ✅ **Commercial Backend** – All products (including VibeForge) connect to commercial services
-- ✅ **Enterprise-Grade Security** – OAuth2, field-level encryption, audit logs
-- ✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring
-
-### Quick Facts
-
-| Metric                       | Value                                      |
-| ---------------------------- | ------------------------------------------ |
-| **Ecosystem Status**         | 🔵 Active Development (Alpha/Beta)         |
-| **Free Entry Product**       | VibeForge (Freeware with restrictions)     |
-| **Commercial Products**      | 6 (DataForge, NeuroForge, ForgeAgents, AuthorForge, TradeForge, Leopold/Livy) |
-| **Standalone Product**       | Cortex BDS (AI-powered semantic search)    |
-| **DataForge Version**        | 5.2 (18/18 core phases complete)           |
-| **ForgeAgents Version**      | 0.1.0 (Phase 7 complete, production-ready) |
-| **VibeForge Version**        | 5.6 (695 tests, Jan 2026 launch)           |
-| **RAG Pipeline**             | Production Ready ✅                         |
-| **Total Documentation**      | 12,300+ lines                              |
-| **Production Code**          | 53,250+ lines (includes ForgeAgents 20K)   |
-| **Ecosystem Version**        | 5.3                                        |
+| Metric                  | Value                         |
+| ----------------------- | ----------------------------- |
+| **Development Stage**   | **Production Ready** ✅       |
+| **Core Phases**         | 18/18 complete (100%) ✅      |
+| **Tests Passing**       | 296/296 (100%) ✅             |
+| **Test Coverage**       | 82% (critical paths)          |
+| **Production Code**     | 28,257+ lines                 |
+| **Total Documentation** | 7,242+ lines                  |
+| **Current Version**     | 5.2                           |
+| **API Endpoints**       | 24 REST endpoints             |
+| **Commercial License**  | ✅ [LICENSE.md](./LICENSE.md) |
+| **IP Protection**       | ✅ [LEGAL.md](./LEGAL.md)     |
+| **Uptime SLA**          | 99.99% (multi-node)           |
 
 ---
 
-## 🧩 Core Products
+## 🌐 Ecosystem Integration
 
-The Forge Ecosystem consists of 8 specialized products with unified backend infrastructure:
+**DataForge is part of the complete Forge Ecosystem (as of December 19, 2025):**
 
-### 1. VibeForge 🎨 – AI Prompt Engineering Workbench (FREEWARE)
+| Service | Port | Status | Purpose |
+|---------|------|--------|---------|
+| **DataForge** | 8001 | ✅ HEALTHY | Vector search & embeddings (this service) |
+| **NeuroForge** | 8000 | ✅ HEALTHY | Multi-model AI routing (5 models) |
+| **ForgeAgents** | 8787 | ✅ HEALTHY | AI agents & EcosystemAgent (35 tools) |
+| **Rake** | 8002 | ✅ HEALTHY | Data ingestion pipeline |
+| **Forge Command** | 1420 | ✅ HEALTHY | Mission control dashboard |
+| **VibeForge_BDS** | - | ✅ HEALTHY | AI prompt engineering workbench (Tauri) |
+| **Cortex BDS** | - | ✅ HEALTHY | AI-powered semantic file search |
+| **PostgreSQL** | 5432 | ✅ HEALTHY | Shared telemetry database |
+| **Redis** | 6379 | ✅ HEALTHY | Distributed cache & sessions |
 
-- **Purpose:** Pro-grade prompt creation and testing environment
-- **Status:** 🟣 **Beta** - Free download, restricted modifications
-- **Repository:** `./vibeforge/`
-- **License:** Freeware with restrictions (see VibeForge README)
-- **Backend:** Uses commercial NeuroForge + DataForge services
-- **Key Features:**
-  - 3-column prompt builder with Monaco editor
-  - Multi-model test runner (local + cloud)
-  - 15 languages across 4 categories
-  - 10 production-ready stack profiles
-  - Learning-based recommendations with success prediction
-  - Export to JSON/Markdown/Claude/Augment
-  - MCP support and plugin system
-  - **Code Analysis & GitHub Integration:**
-    - Architecture analysis (complexity, code smells, god functions)
-    - Security scanning (vulnerabilities, secrets, XSS, SQL injection)
-    - Performance detection (nested loops, memory leaks, blocking operations)
-    - Repository health scoring and recommendations
-- **Launch:** January 2026 as freeware for Linux community
-- **Documentation:** [vibeforge/README.md](./vibeforge/README.md)
+**System Grade:** A (100% functional) - All services operational
 
-### 2. DataForge 🗄️ – Core Data Engine (COMMERCIAL)
+**Note:** Forge Command now routes all ecosystem operations through ForgeAgents EcosystemAgent (`POST /api/v1/tasks/ecosystem`) instead of connecting to services directly.
 
-- **Purpose:** Unified data storage, semantic retrieval, event auditing
-- **Status:** 🔒 **Advanced Alpha** (18/18 phases complete)
-- **Repository:** `./DataForge/`
-- **License:** Commercial - All rights reserved
-- **Key Features:**
-  - **🔍 Hybrid Search** - Combines semantic (vector) + keyword (BM25) search with RRF
-  - PostgreSQL with pgvector embeddings
-  - Field-level AES-256 encryption
-  - Immutable audit logs
-  - 6-type anomaly detection
-  - GDPR/CCPA/HIPAA compliance frameworks
-  - Prometheus + OpenTelemetry observability
-- **Role:** Shared intelligence layer for all Forge products
-- **Documentation:** [DataForge/README.md](./DataForge/README.md)
+### Quick Links to Ecosystem Documentation
 
-### 3. NeuroForge 🧠 – AI Orchestration Engine (COMMERCIAL)
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Complete API reference & get all services running
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment guide
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet for all services
+- **[Ecosystem Architecture](../docs/architecture/FORGE_UNIFIED_ARCHITECTURE.md)** - Complete system design
+- **[Latest Session Report](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11 bug fixes (100% operational)
+- **[Organized Documentation](../docs/README.md)** - Complete documentation index
 
-- **Purpose:** LLM routing, inference optimization, model management
-- **Status:** 🔒 **Advanced Alpha**
-- **Repository:** `./NeuroForge/`
-- **License:** Commercial - All rights reserved
-- **Key Features:**
-  - Multi-provider LLM routing (Anthropic, OpenAI, Ollama)
-  - Champion model selection system
-  - Five-stage LLM pipeline (Retrieve → Prepare → Execute → Score → Return)
-  - Domain-specific adapters
-  - Circuit breakers and retry logic
-  - Performance tracking and optimization
-  - Context integration with DataForge
-- **Role:** Centralized AI orchestration for all products
-- **Documentation:** [NeuroForge/neuroforge_backend/README.md](./NeuroForge/neuroforge_backend/README.md)
+---
 
-### 4. ForgeAgents 🤖 – Autonomous Agent Orchestration (COMMERCIAL)
+## 🔗 Ecosystem Role
 
-- **Purpose:** Orchestration layer enabling autonomous AI agents within the Forge Ecosystem
-- **Status:** 🔒 **Advanced Alpha** - Phase 7 Complete (100%) ✅
-- **Repository:** `./ForgeAgents/`
-- **Version:** 0.1.0
-- **License:** Commercial - All rights reserved
-- **Production Code:** ~20,050 lines (Python)
-- **Key Features:**
-  - **Agent Lifecycle Management** - Plan → Act → Observe → Reflect → Decide → Next/Finish
-  - **Multi-Provider LLM Integration** - OpenAI GPT-4 + Anthropic Claude 3 with automatic failover
-  - **Tool System** - 23 tools across 4 adapters (Rake, NeuroForge, DataForge, Filesystem)
-  - **Memory System** - Short-term (in-memory), Long-term (DataForge), Episodic (timeline)
-  - **Policy Engine** - 11 production policies (Safety, Domain, Resource)
-  - **Authentication** - JWT + RBAC with multi-tenancy support
-  - **Monitoring** - 19 Prometheus metrics across all systems
-  - **Testing** - 61 automated tests with coverage reporting
-  - **Reference Agents (5 Production-Ready):**
-    - AssistantAgent (Writer) - General-purpose task assistance (629 lines)
-    - DeveloperAgent (Coder) - Code generation and refactoring (582 lines)
-    - AnalystAgent (Analyst) - Data analysis and reporting (312 lines)
-    - ResearchAgent (Researcher) - Information gathering (385 lines)
-    - CoordinatorAgent (Orchestrator) - Multi-agent coordination (380 lines)
-- **Service Integration:**
-  - DataForge (8001) - Memory persistence, semantic search
-  - NeuroForge (8000) - LLM inference and routing
-  - Rake (8002) - Background job processing
-  - Coordinates all services via unified API
-- **Role:** Production-ready autonomous coordination across all ecosystem services
-- **Port:** 8003
-- **Documentation:** [ForgeAgents/README.md](./ForgeAgents/README.md)
+DataForge acts as the **shared intelligence layer** for the Forge Suite of products:
 
-### 5. AuthorForge ✍️ – AI Writing Platform (COMMERCIAL)
+| Product         | Port | Role                                                                                          | Integration Status |
+| --------------- | ---- | --------------------------------------------------------------------------------------------- | ------------------ |
+| **NeuroForge**  | 8000 | Model routing, embeddings generation, context retrieval, inference tracking                   | ✅ Complete        |
+| **VibeForge**   | -    | Project creation wizard, code analysis, GitHub integration, stack analytics, language tracking | ✅ Complete        |
+| **AuthorForge** | -    | Writing knowledge, narrative structures, pacing, genre-level analysis                         | 🚧 Planned         |
+| **TradeForge**  | -    | Market signals, historical feeds, structured financial datasets                               | 🚧 Planned         |
+| **Leopold**     | -    | Ecological observations, biological datasets, environmental tracking                          | 🚧 Planned         |
+| **Livy**        | -    | Historical data, geospatial narratives, temporal analysis                                     | 🚧 Planned         |
 
-- **Purpose:** Genre-aware creative writing with narrative structuring
-- **Status:** 🔒 **Alpha** - Active Development
-- **Repository:** `./AuthorForge/`
-- **License:** Commercial - All rights reserved
-- **Key Features:**
-  - Multi-genre writing framework (Fantasy, Sci-Fi, Christian Fiction)
-  - Seven themed workspaces (Hearth, Foundry, Smithy, Anvil, Lore, Bloom, Tempering)
-  - AI-powered research assistant
-  - Character and scene management
-  - Pacing and structure analysis
-  - Full DataForge + NeuroForge integration
-- **Role:** Professional writing suite for authors
-- **Documentation:** [AuthorForge/README.md](./AuthorForge/README.md)
+### Integration Architecture
 
-### 6. TradeForge 📈 – Market Intelligence (COMMERCIAL)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Forge Products (Clients)                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  NeuroForge (Port 8000)     VibeForge Tauri App            │
+│  • LLM execution logs        • Project sessions             │
+│  • Context retrieval         • Stack outcomes               │
+│  • Model performance         • Language preferences         │
+│                                                              │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP REST API
+                         │ JWT Authentication
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  DataForge (Port 8001)                       │
+│                  Single Source of Truth                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Runs API    │  │VibeForge API │  │  Search API  │     │
+│  │ (NeuroForge) │  │  (Projects)  │  │   (Vector)   │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                              │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│          PostgreSQL + pgvector + Redis                       │
+│          Persistent Storage Layer                            │
+└─────────────────────────────────────────────────────────────┘
+```
 
-- **Purpose:** Market signals, historical feeds, financial datasets
-- **Status:** 🔒 **Planned**
-- **License:** Commercial - All rights reserved
-- **Key Features:**
-  - Real-time market data integration
-  - Historical feed management
-  - Structured financial datasets
-  - Risk analysis and trading signals
-  - Full DataForge + NeuroForge integration
-- **Role:** Professional market intelligence for traders and analysts
-- **Documentation:** Commercial module - details pending public release
+### Current Integrations
 
-### 7. Leopold & Livy 🌿📚 – Analysis Modules (COMMERCIAL)
+**NeuroForge → DataForge:**
 
-- **Leopold:** Ecological observations, biological datasets, environmental tracking
-- **Livy:** Historical data, geospatial narratives, temporal analysis
-- **Status:** 🔒 **Planned**
-- **License:** Commercial - All rights reserved
-- **Role:** Specialized domain analysis tools
-- **Documentation:** Commercial modules - details pending public release
+- Logs all LLM execution runs (`/api/v1/runs`)
+- Stores prompt/chain/deployment data
+- Retrieves context from knowledge base
+- Tracks model performance metrics
 
-### 8. Cortex BDS 🔍 – Desktop File Intelligence (STANDALONE)
+**VibeForge → DataForge:**
 
-- **Purpose:** AI-powered semantic search and file discovery (Brain-Driven Search)
-- **Status:** 🟡 **Beta** (Phase 2: 50% complete - Phase 0 ✅, Phase 1 ✅)
-- **Repository:** `./cortex_bds/`
-- **License:** MIT (standalone desktop application)
-- **Key Features:**
-  - **Dual Search Modes** - Toggle between keyword (FTS5) and semantic (AI) search
-  - **Find Similar Files** - AI-powered related file discovery with adjustable similarity
-  - **Smart Collections** - Rule-based dynamic file grouping (12 built-in collections)
-  - **Command Palette** - Cmd+K fuzzy search for all actions (36 commands)
-  - **Keyboard Shortcuts** - 15+ global shortcuts with help modal
-  - **VS Code Claude Export** - Export indexed content for AI coding assistants (Production ready)
-  - **Offline AI** - Local ONNX embeddings (no cloud, complete privacy)
-  - **Lightning-fast** - Sub-100ms keyword search, <500ms semantic search
-  - **Cross-platform** - Linux, macOS, Windows support via Tauri
-  - **15+ formats** - txt, md, pdf, docx, source code, and more
-- **Technology:** Rust/Tauri 2.0 + SvelteKit 5 + ONNX Runtime
-- **Role:** Next-gen knowledge graph for developers, writers, researchers
-- **Documentation:** [cortex_bds/README.md](./cortex_bds/README.md) | [Docs Index](./cortex_bds/DOCS_INDEX.md)
+- Saves project creation sessions (`/api/vibeforge/projects`)
+- Tracks wizard interaction patterns
+- Records stack outcomes (success/failure)
+- Analyzes language preferences
+- Monitors build/test/deploy results
+- Stores code analysis results and quality metrics
+- Caches GitHub repository metadata and file contents
+
+### Benefits of Shared Intelligence Layer
+
+Every Forge product consumes DataForge as the **source of truth**, ensuring:
+
+- ✅ **Consistency** – All products see the same data
+- ✅ **Stateless Applications** – Products can scale horizontally
+- ✅ **Enterprise Compliance** – Unified audit trails and encryption
+- ✅ **Cross-Product Analytics** – Insights across the entire ecosystem
+- ✅ **Unified Security** – Single authentication and authorization layer
+- ✅ **Data Persistence** – Survives application restarts
+- ✅ **Shared Context** – Products can leverage each other's data
+
+---
+
+## ✨ Key Features
+
+### 🔐 Security & Compliance
+
+- **OAuth2 + OIDC** – Enterprise identity provider integration
+- **Multi-factor authentication** – TOTP, backup codes, device tracking, SSO
+- **Field-level encryption** – AES-256 encryption at rest with transparent decryption
+- **Immutable audit logs** – HMAC-SHA256-signed events with 90+ day retention
+- **Automatic key rotation** – Secrets and certificate rotation without downtime
+- **6-type anomaly detection** – Impossible travel, brute force, bulk extraction, suspicious patterns, after-hours, mutations
+- **Full compliance frameworks** – GDPR, CCPA, HIPAA, SOC2 Type II, PCI-DSS
+- **Zero-trust architecture** – Certificate pinning, rate limiting, Fail2Ban, segmented networks
+
+### 📦 Data Management
+
+- **PostgreSQL 13+** – Battle-tested relational database
+- **pgvector extension** – Vector embeddings with similarity search
+- **Field-level encryption** – Transparent AES-256 for sensitive columns
+- **Automated migrations** – Alembic-managed schema evolution with zero-downtime
+- **Row-level access control** – Fine-grained permission enforcement at DB layer
+- **Connection pooling** – PgBouncer for optimal resource utilization
+
+### 🧠 Semantic Capabilities
+
+#### New Hybrid Search (Dec 2025) 🔍
+
+DataForge now includes production-ready hybrid search combining:
+- **Semantic Search**: Vector similarity (pgvector) for contextual matching
+- **Keyword Search**: PostgreSQL full-text search with BM25-style ranking
+- **Hybrid Search**: Reciprocal Rank Fusion combining both methods (+40% accuracy)
+
+**API Endpoints:**
+- `POST /api/search/semantic` - Pure vector search
+- `POST /api/search/keyword` - Pure BM25 keyword search (requires PostgreSQL)
+- `POST /api/search/hybrid` - Hybrid search (default, recommended)
+
+**Performance:**
+- Semantic search: 20-50ms
+- Keyword search: 10-30ms
+- Hybrid search: 30-80ms (combined)
+
+**See:** [RAG_PIPELINE_REFACTORING_COMPLETE.md](../RAG_PIPELINE_REFACTORING_COMPLETE.md) for technical details.
+
+#### Core Semantic Features
+
+- **Vector embeddings** – OpenAI, Anthropic, or local model support
+- **Similarity search** – Fast cosine/L2 distance queries over embeddings
+- **Context retrieval** – Intelligent chunk selection for RAG pipelines
+- **Knowledge base queries** – Natural language QA over documents
+- **Semantic caching** – Redis-backed deduplication for repeated queries
+- **Embedding versioning** – Track embedding model changes over time
+
+### 🤖 Multi-AI Planning Learning Layer
+
+- **Planning outcome tracking** – Complete session records with stage-by-stage metrics
+- **Model performance analytics** – EMA-based continuous learning for optimal model selection
+- **Time estimation feedback** – AI execution time predictions that improve with usage
+- **Multi-stage orchestration** – 4-stage ChatGPT ↔ Claude planning workflows
+- **Recommendation engine** – Data-driven model selections based on historical success
+- **Feedback loops** – User ratings, execution results, and plan modifications recorded
+- **Confidence scoring** – Sample-size weighted recommendations (1.0 at 10+ samples)
+- **Task complexity analysis** – Simple/medium/complex categorization with tailored estimates
+
+### 🚀 High Availability & Reliability
+
+- **Multi-node replication** – Streaming replication with automatic failover
+- **Redis Sentinel** – Automatic cache cluster failover
+- **RabbitMQ mirroring** – High-availability message broker
+- **Circuit breakers** – Graceful degradation under load
+- **Automatic retries** – Exponential backoff with jitter
+- **Dead-letter queues** – Failed job recovery and debugging
+- **99.99% SLA** – Multi-node deployments with geo-redundancy
+- **Automated backups** – Hourly, daily, weekly, monthly snapshots
+- **Point-in-time recovery** – Restore to any point in the last 90 days
+
+### 📊 Observability & Operations
+
+- **Prometheus metrics** – 40+ application-level metrics
+- **OpenTelemetry tracing** – Distributed traces for all HTTP requests and database operations
+- **Structured logging** – JSON logs with correlation IDs and trace context
+- **Grafana dashboards** – Pre-built dashboards for performance, security, business metrics
+- **Real-time alerting** – Slack, PagerDuty, email, webhook integrations
+- **Alert automation** – 12+ alert categories with intelligent thresholding
+- **SLO tracking** – Built-in SLA calculations and reporting
+- **Incident playbooks** – Automated runbook procedures for common issues
+
+### ⚙️ Async Processing
+
+- **Celery task queue** – Background jobs for heavy computations, exports, notifications
+- **RabbitMQ integration** – Reliable message delivery with persistent queues
+- **Job scheduling** – Periodic tasks (health checks, cache warming, log rotation)
+- **Progress tracking** – Real-time job status and result retrieval
+- **Task prioritization** – Multiple queues for different workload types
+
+### 🔄 Kubernetes & Cloud-Native
+
+- **Kubernetes-native** – Full Helm charts and manifests
+- **Liveness/readiness probes** – Automatic pod health checking
+- **Horizontal pod autoscaling** – Scale based on CPU/memory/custom metrics
+- **StatefulSet support** – Persistent volumes for database/cache layers
+- **Ingress integration** – Nginx/HAProxy compatible routing
+- **ConfigMap/Secret management** – Environment-safe secrets handling
+- **Resource limits & requests** – Proper QoS configuration
 
 ---
 
 ## 🏗️ System Architecture
 
-### 5-Layer Forge Architecture
-
 ```
-┌─────────────────────────────────────────────────────────────┐
-│         Application Layer (Client-Facing Products)          │
-│  AuthorForge · VibeForge · TradeForge · Leopold · Livy     │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│     Forge Command (Mission Control Dashboard)                │
-│  Health Monitoring · Metrics · Alerts · Operational Control │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│     ForgeAgents Orchestration Layer                          │
-│  Autonomous Agents · Task Coordination · Cross-Service API  │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│     API Gateway / Load Balancer Layer                        │
-│  Authentication · Rate Limiting · Request Routing · TLS    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│     Core Services Layer                                      │
-│  NeuroForge (AI) · DataForge (Data) · Rake (Ingestion)     │
-└──────────┬──────────────────┬──────────────────┬────────────┘
-           │                  │                  │
-           └──────────────────┼──────────────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────────┐
-│     Infrastructure Layer                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │  PostgreSQL  │  │    Redis     │  │   RabbitMQ   │       │
-│  │  + pgvector  │  │   (Cache)    │  │   (Queue)    │       │
-│  │    :5432     │  │    :6379     │  │    :5672     │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-     ┌────────────────────────▼────────────────────────┐
-     │  Observability Layer                            │
-     │  Prometheus · OpenTelemetry · Grafana · Alerts │
-     └─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│         Client Layer                            │
+│  AuthorForge · NeuroForge · VibeForge · Apps   │
+└──────────────────────┬──────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────┐
+│     API Gateway / Load Balancer                 │
+│  Routing · Rate Limiting · TLS Termination     │
+└──────────────────────┬──────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────┐
+│     Application Layer (FastAPI)                 │
+│  ┌────────────────────────────────────────┐    │
+│  │  Authentication & Authorization        │    │
+│  │  Business Logic & Validation           │    │
+│  │  Event Audit & Compliance              │    │
+│  │  Anomaly Detection & Rate Limiting     │    │
+│  └────────────────────────────────────────┘    │
+└──────────────────────┬──────────────────────────┘
+        ┌──────────────┼──────────────┐
+        │              │              │
+┌───────▼─────┐  ┌────▼────┐  ┌─────▼───────┐
+│ PostgreSQL  │  │  Redis   │  │  RabbitMQ   │
+│ + pgvector  │  │ (Cache & │  │  (Queue)    │
+│ (Primary)   │  │ Sessions)│  │             │
+└─────────────┘  └──────────┘  └─────────────┘
+
+      ▼               ▼               ▼
+  ┌─────────────────────────────────────┐
+  │  Observability Layer                │
+  │  Prometheus · OpenTelemetry         │
+  │  Grafana · Alertmanager             │
+  └─────────────────────────────────────┘
 ```
 
-### Key Design Principles
+**5-Layer Architecture:**
 
-1. **Layered & Modular** – Clear separation of concerns
-2. **Zero-Trust Security** – All traffic encrypted, mutual TLS, secrets rotation
-3. **Compliance-First** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS automation built-in
-4. **Cloud-Agnostic** – Deploy on AWS, GCP, Azure, or on-premises
-5. **Observable & Transparent** – Every action logged, traced, and alerted
+1. **Client Layer** – Forge products and external applications
+2. **Gateway Layer** – Load balancing, rate limiting, TLS
+3. **Application Layer** – FastAPI services, business logic, validation
+4. **Data Layer** – PostgreSQL (primary), Redis (cache), RabbitMQ (queue)
+5. **Observability Layer** – Prometheus, OpenTelemetry, alerting
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Python** 3.11+
-- **PostgreSQL** 13+ (with pgvector extension)
-- **Redis** 6+ (caching and sessions)
-- **RabbitMQ** 3.8+ (async task processing)
-- **Docker** 24+ (for containerized deployment)
+- **PostgreSQL** 13+ (with `pgvector` extension)
+- **Redis** 6+ (for caching and sessions)
+- **RabbitMQ** 3.8+ (optional, for async tasks)
 - **Linux/macOS/WSL2** (Windows native not supported)
 
-### Quick Start with DataForge (Core Engine)
+### Installation (Development)
 
 ```bash
-# Clone DataForge
-git clone https://github.com/Boswecw/DataForge.git
-cd DataForge
+# 1. Clone the repository
+cd /path/to/Forge/DataForge
 
-# Setup environment
+# 2. Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# Run database migrations
+# 4. Configure environment
+cp .env.example .env
+# Edit .env with your database credentials and API keys
+
+# 5. Setup PostgreSQL with pgvector
+sudo apt-get install postgresql-13 postgresql-contrib
+sudo -u postgres psql -c "CREATE DATABASE dataforge;"
+sudo -u postgres psql -d dataforge -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+# 6. Run database migrations
 alembic upgrade head
 
-# Start the server
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+# 7. Start Redis (if not already running)
+redis-server
 
-# Verify installation
-curl http://localhost:8000/health
-open http://localhost:8000/docs
+# 8. Start the server
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
-### Deployment Options
+### Verify Installation
 
-| Option                     | Setup Time | Nodes | SLA    | Best For                  |
-| -------------------------- | ---------- | ----- | ------ | ------------------------- |
-| **Development**            | 15 min     | 1     | -      | Local testing             |
-| **Single-Node Production** | 30 min     | 1     | 99.0%  | Small-scale production    |
-| **Multi-Node Production**  | 2 hours    | 3+    | 99.99% | Enterprise deployments    |
-| **Kubernetes**             | 1–2 hours  | 3+    | 99.99% | Cloud-native environments |
+```bash
+# Health check
+curl http://localhost:8001/health
 
-**Full deployment guide:** [DataForge/docs/guides/DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)
+# Expected response:
+{
+  "status": "healthy",
+  "version": "5.2",
+  "database": "connected",
+  "redis": "connected",
+  "timestamp": "2025-11-23T..."
+}
+
+# Interactive API docs
+open http://localhost:8001/docs
+
+# ReDoc documentation
+open http://localhost:8001/redoc
+
+# Prometheus metrics
+curl http://localhost:8001/metrics
+```
+
+### Running with Other Forge Products
+
+DataForge is typically used as a dependency for other Forge products:
+
+**Terminal 1: DataForge**
+
+```bash
+cd DataForge
+source venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
+
+**Terminal 2: NeuroForge (example)**
+
+```bash
+cd NeuroForge/neuroforge_backend
+source .venv/bin/activate
+# Set DATAFORGE_BASE_URL=http://localhost:8001 in .env
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Configuration
+
+Create `.env` in the DataForge root directory:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/dataforge
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# RabbitMQ (optional)
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+
+# Security
+SECRET_KEY=your-secret-key-here  # Use strong random key
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# Encryption
+ENCRYPTION_KEY=your-32-byte-encryption-key  # For field-level encryption
+
+# API Keys (for integrations)
+OPENAI_API_KEY=sk-...  # For embeddings
+ANTHROPIC_API_KEY=sk-ant-...  # Alternative embeddings
+
+# Application
+LOG_LEVEL=INFO
+ENVIRONMENT=development  # development, staging, production
+API_VERSION=v1
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Observability
+PROMETHEUS_ENABLED=true
+OPENTELEMETRY_ENABLED=false  # Set true for distributed tracing
+```
+
+### Next Steps
+
+- **Read the full setup guide:** [docs/setup/SETUP.md](./docs/setup/SETUP.md)
+- **Deploy to production:** [docs/guides/DEPLOYMENT_GUIDE.md](./docs/guides/DEPLOYMENT_GUIDE.md)
+- **Explore the API:** [docs/guides/API_REFERENCE.md](./docs/guides/API_REFERENCE.md)
+- **Run operational tasks:** [docs/guides/OPERATIONS_RUNBOOK.md](./docs/guides/OPERATIONS_RUNBOOK.md)
+- **Load testing:** [docs/guides/LOAD_TESTING_GUIDE.md](./docs/guides/LOAD_TESTING_GUIDE.md)
 
 ---
 
-## 🗄️ DataForge: Core Engine
+## 📑 Project Phases
 
-DataForge is the **unified data and knowledge engine** powering all Forge products.
+All **18 phases completed (100%)**:
 
-### Core Capabilities
-
-- **Hybrid search** – Combines semantic (vector) + keyword (BM25) search with Reciprocal Rank Fusion (+40% accuracy)
-- **High-availability data storage** – 99.99% uptime SLA with automatic failover
-- **Semantic retrieval** – pgvector embeddings for intelligent similarity search
-- **Event auditing** – Immutable, cryptographically-signed logs with 90+ day retention
-- **Field-level encryption** – AES-256 for sensitive data with automatic key rotation
-- **Anomaly detection** – 6 detector types (impossible travel, brute force, data exfiltration, suspicious patterns, after-hours, bulk mutations)
-- **Compliance automation** – GDPR, CCPA, HIPAA, SOC2, PCI-DSS ready
-- **Production observability** – Prometheus metrics, OpenTelemetry tracing, Grafana dashboards, 24/7 alerting
-
-### DataForge Status
-
-| Metric              | Value                  |
-| ------------------- | ---------------------- |
-| **Completion**      | 18/18 phases (100%) ✅ |
-| **Tests Passing**   | 296/296 (100%) ✅      |
-| **Production Code** | 28,257 lines           |
-| **Documentation**   | 5,742+ lines           |
-| **RAG Features**    | Hybrid Search ✅       |
-| **Version**         | 5.2                    |
-| **SLA Target**      | 99.99% (multi-node)    |
-
-### Documentation
-
-- 📖 **README:** [DataForge/README.md](./DataForge/README.md)
-- 📋 **API Reference:** [DataForge/docs/guides/API_REFERENCE.md](./DataForge/docs/guides/API_REFERENCE.md)
-- 🛠️ **Deployment:** [DataForge/docs/guides/DEPLOYMENT_GUIDE.md](./DataForge/docs/guides/DEPLOYMENT_GUIDE.md)
-- 📚 **Operations:** [DataForge/docs/guides/OPERATIONS_RUNBOOK.md](./DataForge/docs/guides/OPERATIONS_RUNBOOK.md)
-- 🔒 **Security:** [DataForge/SECURITY.md](./DataForge/SECURITY.md)
-- 🏛️ **Architecture:** [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)
-
----
-
-## 📊 Project Status
-
-### Product Status Summary
-
-| Product      | Status           | Tests | Notes                        |
-| ------------ | ---------------- | ----- | ---------------------------- |
-| DataForge    | Advanced Alpha ✅ | 296   | v5.2, 18/18 phases complete  |
-| NeuroForge   | Advanced Alpha ✅ | 100+  | 89% coverage                 |
-| Rake         | Production ✅     | 77    | v1.0, 80%+ coverage          |
-| ForgeAgents  | Advanced Alpha ✅ | 61    | v0.1.0, Phase 7 complete     |
-| VibeForge    | Beta ✅           | 695   | v5.6, Jan 2026 launch        |
-| Cortex BDS   | Beta             | 60    | Phase 2: 50% (Phase 0 ✅ 100%, Phase 1 ✅ 100%) |
-| AuthorForge  | Alpha            | —     | SolidStart boilerplate       |
-| TradeForge   | Planned          | —     | —                            |
-| Leopold/Livy | Planned          | —     | —                            |
-
-### Development Roadmap
-
-**Tier 1: Foundation (Complete)**
-- ✅ DataForge – Memory substrate for everything
-- ✅ NeuroForge – Inference engine with pipeline
-
-**Tier 2: Pipeline (Complete)**
-- ✅ Rake – Ingestion pipeline feeding DataForge
-- ✅ VibeForge – January 2026 launch product
-
-**Tier 3: Local Applications (In Progress)**
-- ✅ Cortex BDS – AI-powered semantic file search (Phase 0 & 1: 100%, Phase 2: 50%)
-- 🔄 AuthorForge – Writing OS (started)
-
-**Tier 4: Orchestration (Complete)**
-- ✅ ForgeAgents – Autonomous agent coordination (Phase 7: 100%)
-
-**Tier 5: Future Products**
-- 📋 TradeForge – Stock analysis
-- 📋 Leopold – Wildlife biology
-- 📋 Livy – Historical tours
-
-### Key Milestones
-
-| Timeline      | Milestone           | Deliverable                      |
-| ------------- | ------------------- | -------------------------------- |
-| December 2025 | ForgeAgents v0.1.0  | Phase 7 complete, production-ready ✅ |
-| January 2026  | VibeForge Launch    | Freeware for Linux community     |
-| Q2 2026       | AuthorForge Beta    | MVP with core workspaces         |
-| Q3 2026       | ForgeAgents v1.0    | Enhanced features, scale-up      |
-| 2027          | Revenue Target      | 500+ users, $50K+ revenue        |
-
-### Feature Coverage
-
-**Security & Compliance:**
-
-- ✅ OAuth2 / OIDC authentication
-- ✅ Multi-factor authentication (TOTP + backup codes)
-- ✅ Field-level AES-256 encryption
-- ✅ Immutable audit logs
-- ✅ 6-type anomaly detection
-- ✅ GDPR, CCPA, HIPAA, SOC2, PCI-DSS compliance frameworks
-
-**High Availability:**
-
-- ✅ Multi-node replication with automatic failover
-- ✅ Redis Sentinel for cache failover
-- ✅ RabbitMQ mirroring for queue reliability
-- ✅ Circuit breakers and retry mechanisms
-- ✅ Automated backups (hourly/daily/weekly/monthly)
-- ✅ Point-in-time recovery capability
-- ✅ 99.99% SLA for multi-node deployments
-
-**Observability:**
-
-- ✅ Prometheus metrics (40+ application metrics)
-- ✅ OpenTelemetry distributed tracing
-- ✅ Structured JSON logging with correlation IDs
-- ✅ Grafana pre-built dashboards
-- ✅ Real-time alerting (Slack, PagerDuty, email)
-
----
-
-## 📚 Documentation
-
-### Master Index
-
-**Complete Documentation Index:** [CONSOLIDATED_DOCUMENTATION_INDEX.md](./CONSOLIDATED_DOCUMENTATION_INDEX.md)
-
-### DataForge Documentation Suite
-
-| Document                         | Purpose               | Lines |
-| -------------------------------- | --------------------- | ----- |
-| README.md                        | Enterprise overview   | 562   |
-| COMPREHENSIVE_DOCUMENTATION.md   | Complete architecture | 1,158 |
-| API_REFERENCE.md                 | 24 API endpoints      | 884   |
-| DEPLOYMENT_GUIDE.md              | Deployment procedures | 729   |
-| OPERATIONS_RUNBOOK.md            | Daily operations      | 686   |
-| TROUBLESHOOTING_GUIDE.md         | Problem diagnostics   | 752   |
-| SECURITY.md                      | Security architecture | 117   |
-| ARCHITECTURE.md                  | System design         | 164   |
-| **Total**                        | **All guides**        | **5,742** |
-
-### VibeForge Documentation Suite
-
-| Document                           | Purpose                      | Lines |
-| ---------------------------------- | ---------------------------- | ----- |
-| PHASE_3_2_COMPLETION_SUMMARY.md    | Backend integration summary  | 450   |
-| PHASE_3_3_COMPLETION_SUMMARY.md    | Frontend integration summary | 580   |
-| TECHNICAL_DUE_DILIGENCE_REVIEW.md  | Quality assessment           | 620   |
-| TECHNICAL_ISSUES_RESOLVED.md       | Issue resolution log         | 463   |
-| VIBEFORGE_ROADMAP.md               | Product roadmap              | 1,200 |
-| **Total**                          | **Phase 3 docs**             | **3,313** |
-
-### Directory Structure
-
-```
-Forge/
-├── DataForge/                          # Core data engine (18 phases complete)
-│   ├── README.md                       # DataForge overview
-│   ├── LICENSE.md, LEGAL.md            # Commercial licensing
-│   ├── SECURITY.md, ARCHITECTURE.md    # Technical documentation
-│   ├── docs/
-│   │   ├── setup/                      # Installation & setup guides
-│   │   ├── guides/                     # Comprehensive operational guides
-│   │   ├── references/                 # Technical references
-│   │   └── archive/                    # Historical documentation
-│   └── app/                            # Python application code
-│
-├── NeuroForge/                         # AI orchestration engine
-│   └── neuroforge_backend/
-│
-├── ForgeAgents/                        # Autonomous agent orchestration (v0.1.0, Phase 7 complete)
-│   ├── README.md                       # Complete overview (960+ lines)
-│   ├── PHASE_7_COMPLETE.md             # Phase 7 summary
-│   ├── docs/phases/                    # Phase completion reports (2-7)
-│   ├── docs/ARCHITECTURE.md            # System architecture
-│   ├── docs/API.md                     # API reference
-│   └── app/                            # Python application code
-│
-├── AuthorForge/                        # AI writing platform
-│   └── README.md
-│
-├── vibeforge/                          # Prompt engineering workbench
-│   └── README.md
-│
-├── cortex/                             # Desktop file intelligence
-│   └── README.md
-│
-├── CONSOLIDATED_DOCUMENTATION_INDEX.md # Master documentation index
-└── README.md                           # This file
-```
+| Phase   | Focus Area              | Status      |
+| ------- | ----------------------- | ----------- |
+| **0**   | Automated Backups       | ✅ Complete |
+| **1**   | Operational Excellence  | ✅ Complete |
+| **2**   | Fault Tolerance         | ✅ Complete |
+| **3**   | High Availability       | ✅ Complete |
+| **4**   | Security Hardening      | ✅ Complete |
+| **5**   | Documentation & Testing | ✅ Complete |
+| **5.1** | Final Deployment Polish | ✅ Complete |
 
 ---
 
 ## 🧪 Technology Stack
 
-### Core Technologies
+| Layer                       | Technology    | Version | Purpose                  |
+| --------------------------- | ------------- | ------- | ------------------------ |
+| **Language**                | Python        | 3.11+   | Core application         |
+| **Web Framework**           | FastAPI       | 0.104+  | API and routing          |
+| **ORM**                     | SQLAlchemy    | 2.0+    | Database abstraction     |
+| **Migration**               | Alembic       | 1.13+   | Schema management        |
+| **Primary Database**        | PostgreSQL    | 13+     | Main datastore           |
+| **Vector Search**           | pgvector      | 0.5+    | Embeddings storage       |
+| **Cache & Sessions**        | Redis         | 6+      | High-speed data access   |
+| **Message Queue**           | RabbitMQ      | 3.8+    | Async task processing    |
+| **Task Worker**             | Celery        | 5.3+    | Background jobs          |
+| **Metrics**                 | Prometheus    | 2.48+   | Performance monitoring   |
+| **Tracing**                 | OpenTelemetry | 1.21+   | Distributed tracing      |
+| **Dashboards**              | Grafana       | 10.2+   | Visualization            |
+| **Container Orchestration** | Kubernetes    | 1.28+   | Deployment (optional)    |
+| **Container Runtime**       | Docker        | 24+     | Containerization         |
+| **Testing Framework**       | pytest        | 7.4+    | Unit & integration tests |
+| **Load Testing**            | k6            | 0.48+   | Performance benchmarks   |
+| **API Documentation**       | OpenAPI 3.0   | -       | Auto-generated docs      |
 
-| Layer                 | Technology    | Version | Purpose                   |
-| --------------------- | ------------- | ------- | ------------------------- |
-| **Language**          | Python        | 3.11+   | Backend application       |
-| **Web Framework**     | FastAPI       | 0.104+  | REST API and routing      |
-| **ORM**               | SQLAlchemy    | 2.0+    | Database abstraction      |
-| **Database**          | PostgreSQL    | 13+     | Primary datastore         |
-| **Vector Search**     | pgvector      | 0.5+    | Embeddings storage        |
-| **Cache**             | Redis         | 6+      | Session & cache layer     |
-| **Queue**             | RabbitMQ      | 3.8+    | Async message broker      |
-| **Task Worker**       | Celery        | 5.3+    | Background job processing |
-| **Metrics**           | Prometheus    | 2.48+   | Performance monitoring    |
-| **Tracing**           | OpenTelemetry | 1.21+   | Distributed tracing       |
-| **Dashboards**        | Grafana       | 10.2+   | Visualization & alerts    |
-| **Orchestration**     | Kubernetes    | 1.28+   | Container orchestration   |
-| **Container Runtime** | Docker        | 24+     | Containerization          |
-| **Testing**           | pytest        | 7.4+    | Unit & integration tests  |
+---
 
-### Frontend Technologies
+## 🔍 API Quick Reference
 
-| Layer       | Technology | Purpose                  |
-| ----------- | ---------- | ------------------------ |
-| **Web**     | SvelteKit  | VibeForge frontend       |
-| **Desktop** | Tauri      | Cross-platform apps      |
-| **Alt Web** | SolidJS    | AuthorForge frontend     |
-| **Styling** | Tailwind   | Utility-first CSS        |
+DataForge exposes **24 REST endpoints** organized by domain. All endpoints (except `/health`) require JWT authentication.
 
-### Port Assignments
+### Authentication
 
-| Service     | Port | Status           |
-| ----------- | ---- | ---------------- |
-| NeuroForge  | 8000 | Advanced Alpha   |
-| DataForge   | 8001 | Advanced Alpha   |
-| Rake        | 8002 | Production Ready |
-| ForgeAgents | 8003 | Advanced Alpha   |
-| PostgreSQL  | 5432 | Production Ready |
-| Redis       | 6379 | Production Ready |
+**Get Access Token:**
+
+```bash
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "password": "password"}'
+
+# Response:
+{
+  "access_token": "eyJhbGc...",
+  "token_type": "bearer",
+  "expires_in": 86400
+}
+```
+
+**Use Token in Requests:**
+
+```bash
+curl -H "Authorization: Bearer eyJhbGc..." \
+  http://localhost:8001/api/v1/runs
+```
+
+### Core Endpoints
+
+#### Health & Status (No Auth Required)
+
+```bash
+# System health check
+GET /health
+
+# API documentation
+GET /docs              # Swagger UI
+GET /redoc             # ReDoc
+```
+
+#### Authentication (4 endpoints)
+
+```bash
+# Login
+POST /api/v1/auth/login
+{
+  "username": "user",
+  "password": "password"
+}
+
+# Token refresh
+POST /api/v1/auth/token/refresh
+{
+  "refresh_token": "..."
+}
+
+# MFA setup
+POST /api/v1/auth/mfa/setup
+GET /api/v1/auth/mfa/verify
+```
+
+#### NeuroForge Integration - Runs API (8 endpoints)
+
+```bash
+# Log LLM execution
+POST /api/v1/runs
+{
+  "user_id": "user123",
+  "operation_type": "prompt_execution",
+  "project_name": "my-project",
+  "model_name": "gpt-4",
+  "input_data": {"prompt": "..."},
+  "output_data": {"response": "..."},
+  "metadata": {
+    "tokens_used": 450,
+    "latency_ms": 1234
+  }
+}
+
+# Get single run
+GET /api/v1/runs/{run_id}
+
+# List runs
+GET /api/v1/runs?user_id=user123&limit=50
+
+# Filter by operation type
+GET /api/v1/runs?operation_type=prompt_execution
+
+# Get usage metrics
+GET /api/v1/runs/usage/metrics?user_id=user123&days=30
+
+# Delete run
+DELETE /api/v1/runs/{run_id}
+```
+
+#### VibeForge Integration - Projects API (8 endpoints)
+
+```bash
+# Create project
+POST /api/vibeforge/projects
+{
+  "user_id": "user123",
+  "project_name": "My App",
+  "project_type": "web_app",
+  "selected_languages": ["javascript", "python"],
+  "selected_stack": "next-js-gpt",
+  "team_size": "solo",
+  "timeline_weeks": 8
+}
+
+# Get project by ID
+GET /api/vibeforge/projects/{project_id}
+
+# List user projects
+GET /api/vibeforge/projects?user_id=user123
+
+# Project sessions (wizard tracking)
+POST /api/vibeforge/sessions
+GET /api/vibeforge/sessions/{session_id}
+PATCH /api/vibeforge/sessions/{session_id}
+
+# Stack outcomes (success metrics)
+POST /api/vibeforge/outcomes
+GET /api/vibeforge/outcomes/stack/{stack_id}
+
+# Analytics
+GET /api/vibeforge/analytics/stack-success
+GET /api/vibeforge/analytics/language-trends
+```
+
+#### Vector Search (4 endpoints)
+
+```bash
+# Semantic search
+POST /api/v1/search/semantic
+{
+  "query": "What is quantum computing?",
+  "top_k": 5,
+  "filters": {
+    "user_id": "user123"
+  }
+}
+
+# Store document with embedding
+POST /api/v1/documents
+{
+  "content": "Document text...",
+  "metadata": {...}
+}
+
+# Get document
+GET /api/v1/documents/{document_id}
+
+# Delete document
+DELETE /api/v1/documents/{document_id}
+```
+
+#### Telemetry Events (ForgeCommand Integration)
+
+```bash
+# Query telemetry events (via telemetry_events view)
+SELECT * FROM telemetry_events
+WHERE service = 'neuroforge'
+  AND timestamp > NOW() - INTERVAL '1 hour'
+ORDER BY timestamp DESC;
+
+# Get metric baselines for anomaly detection
+SELECT * FROM metric_baselines
+WHERE service = 'dataforge'
+ORDER BY window_end DESC
+LIMIT 1;
+
+# View detected anomalies
+SELECT * FROM detected_anomalies
+WHERE severity IN ('high', 'critical')
+  AND acknowledged = false
+ORDER BY detected_at DESC;
+```
+
+**Tables/Views for ForgeCommand:**
+
+- `events` - Base telemetry table for all Forge services
+- `telemetry_events` - View alias for ForgeCommand compatibility
+- `metric_baselines` - Statistical baselines for anomaly detection
+- `detected_anomalies` - Anomalies detected via Z-score analysis
+
+#### Audit & Compliance (3 endpoints)
+
+```bash
+# Get audit logs
+GET /api/v1/audit/logs?user_id=user123&start_date=2025-01-01
+
+# Compliance report
+GET /api/v1/audit/compliance/report?framework=GDPR
+
+# Anomaly detection events
+GET /api/v1/audit/anomalies?severity=high
+```
+
+#### Multi-AI Planning Learning API (8 endpoints)
+
+```bash
+# Record planning outcome
+POST /api/v1/learning/planning-outcomes
+{
+  "session_id": "abc123",
+  "workflow_type": "multi_ai_planning",
+  "task_type": "feature",
+  "request_complexity": "medium",
+  "stages": [
+    {
+      "stage": 1,
+      "type": "initial",
+      "model": "gpt-4",
+      "provider": "openai",
+      "duration_ms": 5000,
+      "tokens_in": 1500,
+      "tokens_out": 2000
+    }
+  ],
+  "total_duration_ms": 25000,
+  "total_tokens_used": 7500,
+  "total_cost_cents": 85
+}
+
+# Update execution result
+PATCH /api/v1/learning/planning-outcomes/{id}/execution
+{
+  "success": true,
+  "duration_seconds": 180,
+  "tasks_completed": 5,
+  "tasks_failed": 0
+}
+
+# Record user feedback
+PATCH /api/v1/learning/planning-outcomes/{id}/feedback
+{
+  "rating": 5,
+  "feedback": "Excellent plan!",
+  "plan_was_modified": false
+}
+
+# Get model performance metrics
+GET /api/v1/learning/model-performance?model=gpt-4&stage_type=initial
+
+# Get stage model recommendations
+GET /api/v1/learning/recommendations/stage-models?task_type=feature
+
+# Get time estimate
+GET /api/v1/learning/recommendations/time-estimate?task_category=feature&task_complexity=medium
+
+# Get iteration count recommendation
+GET /api/v1/learning/recommendations/iteration-count?task_type=feature&complexity=complex
+
+# Record estimation feedback
+POST /api/v1/learning/estimation-feedback
+[
+  {
+    "task_category": "feature",
+    "task_complexity": "medium",
+    "executor_type": "claude_code",
+    "estimated_minutes": 60,
+    "actual_minutes": 55,
+    "accuracy_ratio": 0.92
+  }
+]
+```
+
+### Response Formats
+
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "data": {...},
+  "timestamp": "2025-11-23T12:00:00Z"
+}
+```
+
+**Error Response (4xx/5xx):**
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "Run with ID abc123 not found",
+    "details": {...}
+  },
+  "timestamp": "2025-11-23T12:00:00Z"
+}
+```
+
+**Full API documentation:** [docs/guides/API_REFERENCE.md](./docs/guides/API_REFERENCE.md) or http://localhost:8001/docs
+
+---
+
+## 🛠️ Deployment
+
+Three deployment options with increasing complexity and reliability:
+
+| Mode                       | Setup Time | Nodes | SLA    | Best For                 |
+| -------------------------- | ---------- | ----- | ------ | ------------------------ |
+| **Development**            | 15 min     | 1     | -      | Local testing            |
+| **Single-Node Production** | 30 min     | 1     | 99.0%  | Small-scale production   |
+| **Multi-Node Production**  | 2 hours    | 3+    | 99.99% | Enterprise deployments   |
+| **Kubernetes**             | 1–2 hours  | 3+    | 99.99% | Cloud-native deployments |
+
+### Quick Deploy Commands
+
+```bash
+# Single-node production
+bash scripts/deploy-single-node.sh
+
+# Multi-node production
+bash scripts/deploy-multi-node.sh
+
+# Kubernetes (requires Helm)
+helm install dataforge ./k8s/helm-chart -f values-prod.yaml
+```
+
+**Detailed instructions:** [docs/guides/DEPLOYMENT_GUIDE.md](./docs/guides/DEPLOYMENT_GUIDE.md)
+
+---
+
+## 📈 Performance & Scaling
+
+### Target Metrics
+
+- **API Latency:** <100ms (p95)
+- **Throughput:** 1,000+ RPS sustained
+- **Concurrent Clients:** 10,000+
+- **Database Connections:** 500+ (with connection pooling)
+- **Cache Hit Rate:** >95%
+
+### Load Testing Results
+
+Tested with **k6** framework under realistic production loads:
+
+```bash
+# Run performance tests
+bash scripts/load-test.sh
+
+# View results
+cat results/k6-summary.json
+```
+
+**Load testing guide:** [docs/guides/LOAD_TESTING_GUIDE.md](./docs/guides/LOAD_TESTING_GUIDE.md)
+
+### Scaling Strategies
+
+**Vertical Scaling:**
+
+- Increase CPU/memory allocation
+- Tune database parameters (shared_buffers, work_mem)
+- Optimize connection pooling
+- Enable compression for large payloads
+
+**Horizontal Scaling:**
+
+- Multiple application instances behind load balancer
+- PostgreSQL read replicas
+- Redis Sentinel for cache failover
+- RabbitMQ clustering for queue redundancy
+
+---
+
+## 📂 Project Structure
+
+```
+DataForge/
+├── app/                          # Application source code
+│   ├── main.py                   # FastAPI application entry point
+│   ├── config.py                 # Configuration management
+│   ├── database.py               # Database connection and session
+│   ├── models/                   # SQLAlchemy ORM models
+│   │   ├── user.py               # User and authentication
+│   │   ├── run.py                # NeuroForge execution runs
+│   │   ├── vibeforge_models.py   # VibeForge projects/sessions
+│   │   └── audit.py              # Audit logging
+│   ├── schemas/                  # Pydantic validation schemas
+│   │   ├── run_schemas.py
+│   │   ├── vibeforge_schemas.py
+│   │   └── user_schemas.py
+│   ├── routers/                  # API route handlers
+│   │   ├── runs.py               # /api/v1/runs endpoints
+│   │   ├── vibeforge.py          # /api/vibeforge endpoints
+│   │   ├── auth.py               # /api/v1/auth endpoints
+│   │   └── search.py             # /api/v1/search endpoints
+│   ├── services/                 # Business logic layer
+│   │   ├── run_service.py
+│   │   ├── vibeforge_service.py
+│   │   └── search_service.py
+│   └── utils/                    # Utility functions
+│       ├── security.py           # Encryption, hashing
+│       ├── embeddings.py         # Vector generation
+│       └── metrics.py            # Prometheus metrics
+├── alembic/                      # Database migrations
+│   ├── versions/                 # Migration files
+│   └── env.py                    # Alembic configuration
+├── tests/                        # Test suite (296 tests)
+│   ├── unit/                     # Unit tests
+│   ├── test_integration/         # Integration tests
+│   │   ├── test_api_endpoints.py
+│   │   ├── test_e2e_workflows.py
+│   │   └── test_infrastructure_health.py
+│   ├── test_security/            # Security tests
+│   │   └── test_vulnerability_scanning.py
+│   └── load/                     # Load testing
+│       ├── test_k6_load.py
+│       └── k6_test.js            # k6 load test script
+├── docs/                         # Documentation
+│   ├── guides/                   # How-to guides
+│   │   ├── COMPREHENSIVE_DOCUMENTATION.md
+│   │   ├── API_REFERENCE.md
+│   │   ├── DEPLOYMENT_GUIDE.md
+│   │   ├── OPERATIONS_RUNBOOK.md
+│   │   ├── TROUBLESHOOTING_GUIDE.md
+│   │   └── LOAD_TESTING_GUIDE.md
+│   └── setup/                    # Setup guides
+│       └── SETUP.md
+├── k8s/                          # Kubernetes manifests
+│   ├── helm-chart/               # Helm charts
+│   └── manifests/                # Raw K8s YAML
+├── scripts/                      # Operational scripts
+│   ├── deploy-single-node.sh
+│   ├── deploy-multi-node.sh
+│   ├── db_check.py
+│   └── rotate-audit-logs.sh
+├── ops/                          # Operations configs
+│   ├── prometheus/               # Prometheus configuration
+│   └── grafana/                  # Grafana dashboards
+├── static/                       # Static files
+├── templates/                    # Email/report templates
+├── logs/                         # Application logs
+├── venv/                         # Python virtual environment
+├── .env                          # Environment variables (not in git)
+├── .env.example                  # Example environment file
+├── requirements.txt              # Python dependencies
+├── alembic.ini                   # Alembic configuration
+├── docker-compose.yml            # Docker development setup
+├── docker-compose.prod.yml       # Docker production setup
+├── Dockerfile                    # Container image
+├── pytest.ini                    # Pytest configuration
+├── mypy.ini                      # Type checking config
+├── README.md                     # This file
+├── ARCHITECTURE.md               # Architecture documentation
+├── SECURITY.md                   # Security policy
+├── LICENSE.md                    # Commercial license
+└── LEGAL.md                      # Legal protections
+```
+
+### Key Files to Know
+
+- **`app/main.py`** - Application entry point, router registration
+- **`app/config.py`** - All configuration variables
+- **`app/database.py`** - Database connection management
+- **`alembic/versions/`** - Database schema migrations
+- **`requirements.txt`** - All Python dependencies
+- **`.env`** - Environment-specific configuration (create from `.env.example`)
+
+---
+
+## 📚 Documentation
+
+All guides, references, and runbooks are organized consistently:
+
+| Guide                                                                              | Purpose                                            | Lines |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- | ----- |
+| **[COMPREHENSIVE_DOCUMENTATION.md](./docs/guides/COMPREHENSIVE_DOCUMENTATION.md)** | Complete system overview, all phases, architecture | 1,158 |
+| **[API_REFERENCE.md](./docs/guides/API_REFERENCE.md)**                             | All 24 endpoints with examples, error codes        | 884   |
+| **[DEPLOYMENT_GUIDE.md](./docs/guides/DEPLOYMENT_GUIDE.md)**                       | Step-by-step deployment procedures                 | 729   |
+| **[OPERATIONS_RUNBOOK.md](./docs/guides/OPERATIONS_RUNBOOK.md)**                   | Daily ops, monitoring, incident response           | 686   |
+| **[TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)**             | Diagnostics and solutions for common issues        | 752   |
+| **[LOAD_TESTING_GUIDE.md](./docs/guides/LOAD_TESTING_GUIDE.md)**                   | Performance testing procedures                     | -     |
+| **[SETUP.md](./docs/setup/SETUP.md)**                                              | Development environment setup                      | 340   |
+| **[SECURITY.md](./SECURITY.md)**                                                   | Security architecture and audit procedures         | 117   |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)**                                           | System design, components, scaling                 | 165   |
+| **[LICENSE.md](./LICENSE.md)**                                                     | Commercial license terms                           | 93    |
+| **[LEGAL.md](./LEGAL.md)**                                                         | IP rights and legal protections                    | 113   |
+
+**Master index:** [../docs/README.md](../docs/README.md) - Complete organized documentation hub
+
+**Ecosystem Documentation:**
+- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Get all services running
+- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment
+- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet
+- **[Latest Status](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11, 2025 updates
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### Port Already in Use (8001)
+
+**Problem:** `Address already in use` error
+
+**Solution:**
+
+```bash
+# Find process using port 8001
+lsof -i :8001
+
+# Kill the process
+kill -9 <PID>
+
+# Or use a different port
+uvicorn app.main:app --port 8002
+```
+
+#### PostgreSQL Connection Failed
+
+**Problem:** `Connection to database failed`
+
+**Solutions:**
+
+1. Check PostgreSQL is running:
+
+   ```bash
+   sudo systemctl status postgresql
+   sudo systemctl start postgresql  # If not running
+   ```
+
+2. Verify DATABASE_URL in `.env`:
+
+   ```bash
+   # Correct format:
+   DATABASE_URL=postgresql://username:password@localhost:5432/dataforge
+   ```
+
+3. Test connection manually:
+
+   ```bash
+   psql -h localhost -U username -d dataforge
+   ```
+
+4. Check pgvector extension:
+   ```bash
+   sudo -u postgres psql -d dataforge -c "CREATE EXTENSION IF NOT EXISTS vector;"
+   ```
+
+#### Redis Connection Refused
+
+**Problem:** `Error connecting to Redis`
+
+**Solutions:**
+
+1. Start Redis:
+
+   ```bash
+   sudo systemctl start redis
+   # Or manually:
+   redis-server
+   ```
+
+2. Test connection:
+
+   ```bash
+   redis-cli ping
+   # Should return: PONG
+   ```
+
+3. Check REDIS_URL in `.env`:
+   ```bash
+   REDIS_URL=redis://localhost:6379/0
+   ```
+
+#### Migration Errors
+
+**Problem:** `alembic upgrade head` fails
+
+**Solutions:**
+
+1. Check current migration state:
+
+   ```bash
+   alembic current
+   ```
+
+2. Reset to base (⚠️ destroys data):
+
+   ```bash
+   alembic downgrade base
+   alembic upgrade head
+   ```
+
+3. Generate new migration if schema changed:
+   ```bash
+   alembic revision --autogenerate -m "description"
+   alembic upgrade head
+   ```
+
+#### Slow API Responses
+
+**Problem:** API latency > 100ms
+
+**Solutions:**
+
+1. Enable PostgreSQL slow query logging:
+
+   ```sql
+   ALTER SYSTEM SET log_min_duration_statement = 100;
+   SELECT pg_reload_conf();
+   ```
+
+2. Check Redis memory:
+
+   ```bash
+   redis-cli INFO memory
+   ```
+
+3. Review Prometheus metrics:
+
+   ```bash
+   curl http://localhost:8001/metrics | grep latency
+   ```
+
+4. Check database connection pool:
+   ```python
+   # In config, increase pool size:
+   SQLALCHEMY_POOL_SIZE = 20
+   SQLALCHEMY_MAX_OVERFLOW = 40
+   ```
+
+#### Authentication Errors
+
+**Problem:** 401 Unauthorized responses
+
+**Solutions:**
+
+1. Get fresh token:
+
+   ```bash
+   curl -X POST http://localhost:8001/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"username": "user", "password": "pass"}'
+   ```
+
+2. Check token expiration:
+
+   ```bash
+   # Tokens expire after ACCESS_TOKEN_EXPIRE_MINUTES (default: 1440 = 24 hours)
+   ```
+
+3. Verify SECRET_KEY is set in `.env`
+
+#### Import Errors
+
+**Problem:** `ModuleNotFoundError` or import errors
+
+**Solutions:**
+
+1. Reinstall dependencies:
+
+   ```bash
+   pip install --upgrade -r requirements.txt
+   ```
+
+2. Check virtual environment is activated:
+
+   ```bash
+   which python
+   # Should show: /path/to/DataForge/venv/bin/python
+   ```
+
+3. Install in development mode:
+   ```bash
+   pip install -e .
+   ```
+
+#### NeuroForge Can't Connect to DataForge
+
+**Problem:** NeuroForge shows "DataForge connection failed"
+
+**Solutions:**
+
+1. Verify DataForge is running on port 8001:
+
+   ```bash
+   curl http://localhost:8001/health
+   ```
+
+2. Check NeuroForge `.env`:
+
+   ```bash
+   DATAFORGE_BASE_URL=http://localhost:8001
+   ```
+
+3. Check firewall rules:
+   ```bash
+   sudo ufw status
+   sudo ufw allow 8001/tcp
+   ```
+
+### Testing & Debugging
+
+```bash
+# Run all tests with verbose output
+pytest tests/ -v -s
+
+# Run specific test file
+pytest tests/test_integration/test_api_endpoints.py -v
+
+# Run with coverage report
+pytest tests/ --cov=app --cov-report=html
+open htmlcov/index.html
+
+# Enable debug logging
+LOG_LEVEL=DEBUG python -m uvicorn app.main:app
+
+# Check database state
+python scripts/db_check.py
+
+# View recent logs
+tail -f logs/dataforge.log
+```
+
+**Detailed troubleshooting:** [docs/guides/TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)
 
 ---
 
 ## 🔒 Security & Compliance
 
-### Enterprise Security Features
+DataForge is built with enterprise security as a first-class requirement:
 
-**Authentication & Authorization:**
+### Authentication & Authorization
 
 - OAuth2 / OIDC integration for enterprise identity
 - Multi-factor authentication (TOTP + backup codes)
 - Device tracking and session management
-- Role-based access control (RBAC)
-- Resource-level permission enforcement
+- Role-based access control (RBAC) with resource-level checks
+- Automatic token expiration and revocation
 
-**Data Protection:**
+### Data Protection
 
 - AES-256 encryption at rest (field-level)
 - TLS 1.3 for all in-transit communication
-- Automatic key rotation
+- Automatic key rotation without downtime
 - Certificate pinning for external APIs
 - Secure secret storage (HashiCorp Vault / AWS KMS compatible)
 
-**Audit & Compliance:**
+### Audit & Logging
 
 - Immutable, cryptographically-signed event logs
 - HMAC-SHA256 signatures on all audit records
@@ -607,124 +1282,153 @@ Forge/
 - Real-time anomaly detection (6 detector types)
 - Compliance reports (GDPR, CCPA, HIPAA, SOC2, PCI-DSS)
 
-**Infrastructure Security:**
+### Infrastructure Security
 
 - Zero-trust architecture with network segmentation
 - Rate limiting on all public endpoints
 - Fail2Ban integration for brute-force protection
 - Automated vulnerability scanning
-- Supply chain integrity (pinned dependencies)
+- Supply chain integrity (pinned dependencies, no SaaS)
 
-**See Also:**
+**Full security details:** [SECURITY.md](./SECURITY.md)
 
-- 🔐 [DataForge/SECURITY.md](./DataForge/SECURITY.md) – Complete security documentation
-- ⚖️ [DataForge/LICENSE.md](./DataForge/LICENSE.md) – Commercial licensing terms
-- 📋 [DataForge/LEGAL.md](./DataForge/LEGAL.md) – IP protections and legal framework
+---
+
+## 🙌 Support
+
+### For Enterprise Customers
+
+- **Technical Support:** charlesboswell@boswelldigitalsolutions.com
+- **Licensing & Sales:** Same email
+- **Security Issues:** Report via email with [SECURITY] prefix
+- **Documentation Updates:** Submit via GitHub issues (private repo)
+
+### Community
+
+- Internal development only
+- External contributions require written permission from Boswell Digital Solutions LLC
+- Feature requests welcome via email
+
+### Resources
+
+- 📖 **Full Documentation** – [docs/guides/](./docs/guides/)
+- 🐛 **Known Issues** – See [TROUBLESHOOTING_GUIDE.md](./docs/guides/TROUBLESHOOTING_GUIDE.md)
+- 📊 **Architecture Overview** – [ARCHITECTURE.md](./ARCHITECTURE.md)
+- 🔐 **Security Policy** – [SECURITY.md](./SECURITY.md)
+- 🌐 **Ecosystem Docs** – [../docs/README.md](../docs/README.md)
+- 🚀 **Quick Start All Services** – [../QUICK_START_GUIDE.md](../QUICK_START_GUIDE.md)
 
 ---
 
 ## 📋 License & Copyright
 
-### Commercial Products (DataForge, NeuroForge, ForgeAgents, AuthorForge, TradeForge, Leopold, Livy)
+**DataForge** is a commercial product owned by **Boswell Digital Solutions LLC**.
 
-**📄 License (Commercial)**
+- ✅ Licensed for internal use and private infrastructure deployment
+- ✅ Licensed for integration with other Forge Ecosystem products
+- ❌ Not licensed for redistribution, resale, or public access
+- ❌ Not licensed for reverse engineering or derivative products
 
-These products are commercial, closed-source applications owned and licensed by **Boswell Digital Solutions LLC (BDS)**.
+See [LICENSE.md](./LICENSE.md) for complete license terms.
 
-**You may not:**
-
-- Redistribute, resell, sublicense, or publish the source code
-- Modify, reverse engineer, decompile, or derive competing products
-- Host as a service or provide multi-tenant access
-- Train AI models on the code, datasets, workflows, or documentation
-- Bundle this software into third-party products
-
-**All rights reserved © 2025 Boswell Digital Solutions LLC.**  
-Commercial licensing inquiries: charlesboswell@boswelldigitalsolutions.com
-
-### VibeForge (Freeware Entry Product)
-
-**📄 License (Freeware With Restrictions)**
-
-VibeForge is released as **freeware** by Boswell Digital Solutions LLC.
-
-**You may:**
-
-- Download and use the official unmodified binaries for free
-- Redistribute the exact binaries
-- Use the software for personal, academic, or commercial development
-
-**You may not:**
-
-- Modify, decompile, reverse engineer, or extract code
-- Redistribute modified versions
-- Bundle VibeForge into SaaS or commercial tools
-- Use its design or workflow to create competing products
-- Train AI models on VibeForge's UI, workflows, or logic
-
-**Note:** All backend orchestration (NeuroForge) and data engines (DataForge) remain commercial.
-
-**© 2025 Boswell Digital Solutions LLC — All Rights Reserved.**
-
-### Intellectual Property
-
-All code, documentation, schemas, diagrams, algorithms, and business logic across the entire Forge Ecosystem are protected intellectual property of Boswell Digital Solutions LLC. See [DataForge/LEGAL.md](./DataForge/LEGAL.md) for comprehensive IP protections.
+See [LEGAL.md](./LEGAL.md) for intellectual property protections.
 
 ---
 
-## 📞 Support & Contact
+## 🎯 Final Notes
 
-### Enterprise Support
+**DataForge** is the backbone of the Forge Ecosystem. This repository contains:
 
-- **Technical Support:** charlesboswell@boswelldigitalsolutions.com
-- **Licensing & Sales:** Same email
-- **Security Issues:** Report with [SECURITY] prefix in subject
-- **Documentation Issues:** Submit via GitHub (private repo)
+✅ **Complete architecture** with 5-layer design
+✅ **Full deployment guides** for single-node, multi-node, and Kubernetes
+✅ **Comprehensive documentation** (7,242+ lines)
+✅ **Fully-passing test suite** (296/296 tests, 100% pass rate)
+✅ **Enterprise security** with OAuth2, MFA, encryption, audit logs
+✅ **High availability** with 99.99% SLA for multi-node deployments
+✅ **Production-ready** with observability, monitoring, and alerting
 
-### Resources
-
-- 📖 **DataForge Documentation** – [./DataForge/README.md](./DataForge/README.md)
-- 🗺️ **Full Documentation Index** – [CONSOLIDATED_DOCUMENTATION_INDEX.md](./CONSOLIDATED_DOCUMENTATION_INDEX.md)
-- 🐛 **Known Issues & Solutions** – [DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md](./DataForge/docs/guides/TROUBLESHOOTING_GUIDE.md)
-- 📊 **Architecture Overview** – [DataForge/ARCHITECTURE.md](./DataForge/ARCHITECTURE.md)
-- 🔒 **Security Policy** – [DataForge/SECURITY.md](./DataForge/SECURITY.md)
-
----
-
-## 🎯 Summary
-
-**The Forge Ecosystem** is a professional development platform comprising eight specialized AI products with unified backend architecture. The platform features VibeForge as a freeware entry product, supported by commercial backend services (DataForge + NeuroForge), autonomous orchestration (ForgeAgents), and professional domain tools (AuthorForge, TradeForge, Leopold, Livy), plus the standalone Cortex BDS (Brain-Driven Search) desktop application with AI-powered semantic file discovery.
-
-### Key Achievements
-
-✅ **8 Specialized Products** – Unified architecture with commercial backend
-✅ **VibeForge (Freeware)** – Free entry product launching January 2026
-✅ **DataForge Engine** – Advanced Alpha with 18/18 core phases complete
-✅ **NeuroForge Orchestration** – Advanced Alpha with multi-provider LLM routing
-✅ **ForgeAgents (NEW)** – Production-ready autonomous agent orchestration (Phase 7: 100%)
-✅ **Enterprise Security** – OAuth2, JWT, field-level encryption, audit logs, anomaly detection
-✅ **Full Compliance** – GDPR, CCPA, HIPAA frameworks with automation
-✅ **Complete Documentation** – 12,300+ lines across 20+ guides
-✅ **Production Observability** – Prometheus, OpenTelemetry, Grafana monitoring
-
-### Development Stage
-
-| Product        | Stage          | Notes                              |
-| -------------- | -------------- | ---------------------------------- |
-| DataForge      | Advanced Alpha | Maturing core engine               |
-| NeuroForge     | Advanced Alpha | Production-grade orchestration     |
-| Rake           | Production     | v1.0 complete                      |
-| ForgeAgents    | Advanced Alpha | v0.1.0, Phase 7 complete, production-ready |
-| VibeForge      | Beta           | January 2026 freeware launch       |
-| Cortex BDS     | Beta           | Phase 2: 50% (Phase 0 ✅, Phase 1 ✅) |
-| AuthorForge    | Alpha          | Active development                 |
-| TradeForge     | Planned        | —                                  |
-| Leopold/Livy   | Planned        | —                                  |
+**Status:** ✅ **Production Ready**  
+**Maintained by:** Boswell Digital Solutions LLC  
+**Version:** 5.2 (18/18 phases complete)
 
 ---
 
-**Maintained by:** Boswell Digital Solutions LLC
-**Ecosystem Version:** 5.3
-**Last Updated:** December 19, 2025
+## 🚦 Quick Links
 
-**For questions, licensing, or support, contact:** charlesboswell@boswelldigitalsolutions.com
+- 🌐 **API Server**: http://localhost:8001
+- 🔧 **API Docs**: http://localhost:8001/docs
+- 📊 **Metrics**: http://localhost:8001/metrics
+- 📖 **Architecture**: [ARCHITECTURE.md](./ARCHITECTURE.md)
+- 📚 **Full Documentation**: [docs/guides/](./docs/guides/)
+- 🔒 **Security Policy**: [SECURITY.md](./SECURITY.md)
+- ⚖️ **License**: [LICENSE.md](./LICENSE.md)
+
+---
+
+## 📋 Development Workflow
+
+### Daily Development
+
+```bash
+# Start DataForge
+cd DataForge
+source venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+
+# In another terminal: Run tests
+pytest tests/ -v
+
+# In another terminal: Monitor logs
+tail -f logs/dataforge.log
+```
+
+### Making Changes
+
+```bash
+# 1. Create new branch
+git checkout -b feature/my-feature
+
+# 2. Make changes to code
+
+# 3. Create migration (if models changed)
+alembic revision --autogenerate -m "Add new field"
+alembic upgrade head
+
+# 4. Run tests
+pytest tests/ -v
+
+# 5. Check code quality
+black app/ tests/
+flake8 app/ tests/
+mypy app/
+
+# 6. Commit and push
+git add .
+git commit -m "feat: description"
+git push origin feature/my-feature
+```
+
+### Testing Strategy
+
+```bash
+# Unit tests (fast, no external dependencies)
+pytest tests/unit/ -v
+
+# Integration tests (require database)
+pytest tests/test_integration/ -v
+
+# Security tests
+pytest tests/test_security/ -v
+
+# Load tests (k6 required)
+k6 run tests/load/k6_test.js --vus 50 --duration 5m
+
+# Coverage report
+pytest tests/ --cov=app --cov-report=html
+```
+
+---
+
+**Last Updated:** December 21, 2025
+**System Status:** ✅ HEALTHY (100% Operational - All 4 Forge services running)
+**Next Review:** Q1 2026
