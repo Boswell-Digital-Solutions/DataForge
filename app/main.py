@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from app.database import engine, Base
 from app.api import search_router, admin_router, auth_router, projects_router, runs_router, vibeforge_router, learning_router, teams_router
+from app.api.routes.events_router import router as events_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.config import (
     validate_config,
@@ -151,6 +152,7 @@ app.include_router(runs_router.router)  # VibeForge runs & analytics
 app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer
 app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4.1)
+app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
 
 # ============================================
 # Health Check & Info Endpoints

@@ -13,6 +13,7 @@ from .team_models import (
     Team, TeamInvite, TeamProject, TeamLearningAggregate, TeamInsight,
     team_members
 )
+from .buildguard_models import BuildGuardEvent, BuildGuardProfileStats
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -47,6 +48,10 @@ from .team_schemas import (
     TeamLearningAggregateBase, TeamLearningAggregateCreate, TeamLearningAggregateResponse,
     TeamInsightBase, TeamInsightCreate, TeamInsightUpdate, TeamInsightResponse,
     TeamAnalyticsRequest, TeamAnalyticsResponse
+)
+from .buildguard_schemas import (
+    BuildGuardMetricsEventCreate, BuildGuardEventResponse,
+    BuildGuardProfileStatsResponse, BuildGuardDashboardStats, EventsListResponse
 )
 
 __all__ = [
@@ -94,5 +99,9 @@ __all__ = [
     "TeamProjectBase", "TeamProjectCreate", "TeamProjectUpdate", "TeamProjectResponse",
     "TeamLearningAggregateBase", "TeamLearningAggregateCreate", "TeamLearningAggregateResponse",
     "TeamInsightBase", "TeamInsightCreate", "TeamInsightUpdate", "TeamInsightResponse",
-    "TeamAnalyticsRequest", "TeamAnalyticsResponse"
+    "TeamAnalyticsRequest", "TeamAnalyticsResponse",
+    # BuildGuard Models & Schemas (GRR Phase D)
+    "BuildGuardEvent", "BuildGuardProfileStats",
+    "BuildGuardMetricsEventCreate", "BuildGuardEventResponse",
+    "BuildGuardProfileStatsResponse", "BuildGuardDashboardStats", "EventsListResponse"
 ]
