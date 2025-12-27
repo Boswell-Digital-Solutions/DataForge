@@ -1,157 +1,87 @@
-# Security Policy
+# DataForge Security Enforcement
 
-**DataForge — Service Enforcement Rules**
-
-**Status:** Enforced
-**Role:** Backend Service
-**Authority:** Forge Command (for rotation tokens)
-**Last Updated:** 2025-12-27
+DataForge is a **protected service** within the Forge Ecosystem. It enforces authentication, authorization, and key lifecycle rules defined by Forge Command.
 
 ---
 
-## Security Model
+## Authentication Model
 
-DataForge is a **backend service** that enforces authentication on all API requests. It accepts credentials but does not manage their lifecycle—rotation is coordinated by Forge Command.
+### Accepted Authentication Methods
 
----
+DataForge accepts requests authenticated by:
 
-## Authentication Enforcement
+1. **Active API Keys**
+   - Stored hashed in the service database
+   - Issued and rotated by Forge Command
+   - Validated on every request
 
-### Authorization Header Required
+2. **Emergency Operations Key**
+   - Provided via `X-Emergency-Key` header
+   - Intended for disaster recovery only
+   - All usage is audit-logged
 
-All API endpoints (except `/health`) require:
-
-```
-Authorization: Bearer <API_KEY>
-```
-
-Requests without valid credentials receive `401 Unauthorized`.
-
-### Key Validation
-
-DataForge validates keys against:
-1. **Active key** — Current production key
-2. **Overlap key** — Previous key during 7-day rotation window
-
-Both are valid simultaneously during rotation overlap periods.
+No other authentication methods are permitted.
 
 ---
 
-## Rotation Authority Model
+## Key Lifecycle Rules
 
-DataForge recognizes three authorization paths:
+### Rotation
+- API keys rotate every 30 days
+- Old keys remain valid for 7 days post-rotation
+- Revocation is delayed to prevent outages
 
-| Header/Token | Purpose | Scope |
-|--------------|---------|-------|
-| `Authorization: Bearer <key>` | Normal API access | All endpoints |
-| `X-Rotation-Admin-Token` | Key rotation operations | `/admin/rotate` |
-| `X-Emergency-Ops-Key` | Emergency bypass | All (audit-logged) |
-
-### Rotation Endpoint
-
-```
-POST /admin/rotate
-X-Rotation-Admin-Token: <token>
-
-{
-  "new_key": "df_...",
-  "overlap_days": 7
-}
-```
-
-- Only Forge Command should call this endpoint
-- Rotation requests outside kitchen hours (22:00–10:00) proceed normally
-- Rotation during kitchen hours requires `X-Emergency-Ops-Key`
+### Kitchen Hours
+- Automated rotations are blocked between 10:00–22:00 local time
+- Manual rotation requires explicit authorization
+- Emergency key bypasses time restrictions
 
 ---
 
-## Kitchen Hours Protection
+## Authorization Boundaries
 
-DataForge enforces **kitchen hours blocking** on automated rotation:
+DataForge enforces:
+- Route-level permission checks
+- Separation between runtime access and administrative access
+- Dedicated `ROTATION_ADMIN_TOKEN` for key issuance endpoints
 
-| Time | Rotation Allowed |
-|------|------------------|
-| 22:00 – 10:00 | Yes (off-peak) |
-| 10:00 – 22:00 | Blocked (kitchen hours) |
-
-Emergency override:
-```
-X-Emergency-Ops-Key: <key>
-```
-
-All emergency overrides are audit-logged with timestamp and reason.
+The rotation token **cannot** be used for normal API operations.
 
 ---
 
-## Audit Requirements
+## Storage & Handling
 
-DataForge logs all security-relevant events:
-
-| Event | Logged Data |
-|-------|-------------|
-| Authentication failure | Timestamp, IP, endpoint |
-| Key rotation | Timestamp, initiator, overlap period |
-| Emergency override | Timestamp, reason, operator |
-| Rate limit hit | Timestamp, IP, endpoint |
-
-Logs are written to structured JSON format for analysis.
+- API keys are never stored in plaintext
+- Hashing uses approved cryptographic primitives
+- Key prefixes may be logged for diagnostics
+- Full keys must never appear in logs or error traces
 
 ---
 
-## Environment Variables
+## Failure & Recovery
 
-DataForge requires these secrets in its environment:
+### If Authentication Fails
+- Return explicit 401/403 responses
+- Do not leak internal state
+- Do not auto-regenerate keys
 
-| Variable | Purpose |
-|----------|---------|
-| `DATAFORGE_API_KEY` | Active API key |
-| `DATAFORGE_OVERLAP_KEY` | Previous key (during rotation) |
-| `ROTATION_ADMIN_TOKEN` | Authorizes rotation requests |
-| `EMERGENCY_OPS_KEY` | Break-glass override |
-
-These are set by deployment infrastructure, not stored in code.
-
----
-
-## Forbidden Patterns
-
-DataForge code **must never**:
-
-- Hardcode API keys in source
-- Log credential values
-- Accept unauthenticated requests (except `/health`)
-- Skip key validation for "internal" requests
-- Expose rotation tokens in API responses
+### Disaster Recovery
+- Emergency key restores access
+- Forge Command re-establishes normal credentials
+- All recovery actions are auditable
 
 ---
 
-## Rate Limiting
+## Audit Guarantees
 
-| Endpoint | Limit |
-|----------|-------|
-| `/api/v1/search` | 100/min |
-| `/api/v1/documents` | 50/min |
-| `/admin/*` | 10/min |
-
-Exceeded limits return `429 Too Many Requests`.
+DataForge guarantees:
+- Deterministic authentication behavior
+- Verifiable key provenance
+- Tamper-evident logs for security events
 
 ---
 
-## Reporting Security Issues
+## Absolute Rule
 
-If you discover a security vulnerability:
-
-1. **Do not** open a public issue
-2. Email: security@boswelldigital.com
-3. Include reproduction steps and impact assessment
-
----
-
-## Related Documents
-
-- [Forge Command SECURITY.md](../Forge_Command/SECURITY.md) — Credential authority policy
-- [Systems Manual](../docs/FORGE_SYSTEMS_MANUAL.md) — Architecture reference
-
----
-
-**Boswell Digital Solutions LLC**
+> **DataForge never trusts client applications.
+> It only trusts cryptographic proof and Forge Command authority.**
