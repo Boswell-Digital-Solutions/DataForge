@@ -598,8 +598,10 @@ GET /redoc             # ReDoc
 {
   "service_name": "dataforge",
   "version": "1.0.0",
-  "build_sha": "abc123def",
-  "deployed_at": "2024-01-15T10:00:00Z"
+  "build_sha": "abc123def456789012345678901234567890abcd",
+  "deployed_at": "2024-01-15T10:00:00Z",
+  "schema_version": "1.0.0",
+  "python_version": "3.11.6"
 }
 ```
 
