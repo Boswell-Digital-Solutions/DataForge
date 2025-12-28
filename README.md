@@ -565,9 +565,42 @@ curl -H "Authorization: Bearer eyJhbGc..." \
 # System health check
 GET /health
 
+# Readiness check with dependency validation (FPVS Phase 1)
+GET /ready
+# Headers: X-Correlation-ID (optional)
+# Returns: ready | degraded | unavailable
+
+# Service version and build metadata (FPVS Phase 1)
+GET /version
+
 # API documentation
 GET /docs              # Swagger UI
 GET /redoc             # ReDoc
+```
+
+**GET /ready Response:**
+```json
+{
+  "status": "ready",
+  "timestamp": "2024-01-15T10:30:45Z",
+  "version": "1.0.0",
+  "correlation_id": "abc-123-def",
+  "dependencies": {
+    "database": {"status": "ok", "latency_ms": 5},
+    "pgvector": {"status": "ok", "latency_ms": 3},
+    "redis": {"status": "ok", "latency_ms": 2}
+  }
+}
+```
+
+**GET /version Response:**
+```json
+{
+  "service_name": "dataforge",
+  "version": "1.0.0",
+  "build_sha": "abc123def",
+  "deployed_at": "2024-01-15T10:00:00Z"
+}
 ```
 
 #### Authentication (4 endpoints)
