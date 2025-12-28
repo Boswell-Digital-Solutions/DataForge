@@ -18,6 +18,9 @@ from app.database import engine, Base
 from app.api import search_router, admin_router, auth_router, projects_router, runs_router, vibeforge_router, learning_router, teams_router
 from app.api.routes.events_router import router as events_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
+from app.api.admin_keys_router import router as admin_keys_router, auth_info_router  # ForgeCommand Key Rotation
+from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
+from app.middleware.correlation import CorrelationIDMiddleware
 from app.config import (
     validate_config,
     get_embedding_provider,
@@ -122,6 +125,10 @@ app = FastAPI(
 main_logger.info("Adding security headers middleware...")
 configure_security_headers(app)
 
+# Add correlation ID middleware (FPVS Phase 1)
+main_logger.info("Adding correlation ID middleware...")
+app.add_middleware(CorrelationIDMiddleware)
+
 # Configure CORS
 main_logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
 app.add_middleware(
@@ -142,6 +149,7 @@ if os.path.exists("templates"):
     templates = Jinja2Templates(directory="templates")
 
 # Register routers
+app.include_router(fpvs_router, tags=["FPVS"])  # FPVS Phase 1: /health, /ready, /version
 app.include_router(search_router.router)
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)
@@ -153,6 +161,8 @@ app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer
 app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4.1)
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
+app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
+app.include_router(auth_info_router)  # /auth/whoami and /health
 
 # ============================================
 # Health Check & Info Endpoints
