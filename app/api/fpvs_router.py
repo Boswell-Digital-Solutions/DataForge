@@ -5,6 +5,7 @@ Standardized health, readiness, and version endpoints per FPVS spec.
 """
 
 import os
+import sys
 import asyncio
 from datetime import datetime
 from typing import Optional
@@ -15,6 +16,9 @@ router = APIRouter(tags=["fpvs"])
 
 # Service version (should match main.py)
 SERVICE_VERSION = "1.0.0"
+
+# FPVS Schema Version - tracks the schema contract version
+FPVS_SCHEMA_VERSION = "1.0.0"
 
 
 # =============================================================================
@@ -51,6 +55,8 @@ class VersionResponse(BaseModel):
     version: str = Field(..., description="Semantic version")
     build_sha: str = Field(..., description="Git commit SHA")
     deployed_at: str = Field(..., description="Deployment timestamp")
+    schema_version: str = Field(..., description="FPVS schema contract version")
+    python_version: str = Field(..., description="Python runtime version")
 
 
 # =============================================================================
@@ -247,4 +253,6 @@ async def version_info() -> VersionResponse:
         version=SERVICE_VERSION,
         build_sha=os.getenv("RENDER_GIT_COMMIT", "unknown"),
         deployed_at=os.getenv("RENDER_DEPLOY_TIME", "unknown"),
+        schema_version=FPVS_SCHEMA_VERSION,
+        python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     )
