@@ -9,6 +9,9 @@
 <h3 align="center">Core Data & Knowledge Engine</h3>
 <h4 align="center">Unified intelligence layer for the Forge Ecosystem</h4>
 
+## Documentation Standard
+This README follows the Forge ecosystem documentation standard: Overview, Status, Usage, Development, Operations, Governance, References. Service-specific details are below.
+
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
@@ -28,6 +31,9 @@
 > See [LICENSE.md](./LICENSE.md) and [LEGAL.md](./LEGAL.md) for complete terms.
 
 ---
+
+> **Ecosystem context**  
+> Service topology, ports, and cross-service status are centralized in `../docs/ECOSYSTEM_CANONICAL.md`.
 
 ## 📘 Table of Contents
 
@@ -90,32 +96,7 @@ Built with enterprise security, high availability, and compliance as first-class
 
 ## 🌐 Ecosystem Integration
 
-**DataForge is part of the complete Forge Ecosystem (as of December 19, 2025):**
-
-| Service | Port | Status | Purpose |
-|---------|------|--------|---------|
-| **DataForge** | 8001 | ✅ HEALTHY | Vector search & embeddings (this service) |
-| **NeuroForge** | 8000 | ✅ HEALTHY | Multi-model AI routing (5 models) |
-| **ForgeAgents** | 8787 | ✅ HEALTHY | AI agents & EcosystemAgent (35 tools) |
-| **Rake** | 8002 | ✅ HEALTHY | Data ingestion pipeline |
-| **Forge Command** | 1420 | ✅ HEALTHY | Mission control dashboard |
-| **VibeForge_BDS** | - | ✅ HEALTHY | AI prompt engineering workbench (Tauri) |
-| **Cortex BDS** | - | ✅ HEALTHY | AI-powered semantic file search |
-| **PostgreSQL** | 5432 | ✅ HEALTHY | Shared telemetry database |
-| **Redis** | 6379 | ✅ HEALTHY | Distributed cache & sessions |
-
-**System Grade:** A (100% functional) - All services operational
-
-**Note:** Forge Command now routes all ecosystem operations through ForgeAgents EcosystemAgent (`POST /api/v1/tasks/ecosystem`) instead of connecting to services directly.
-
-### Quick Links to Ecosystem Documentation
-
-- **[Quick Start Guide](../QUICK_START_GUIDE.md)** - Complete API reference & get all services running
-- **[Next Steps & Roadmap](../NEXT_STEPS.md)** - Production deployment guide
-- **[Quick Reference](../QUICK_REFERENCE.md)** - Command cheatsheet for all services
-- **[Ecosystem Architecture](../docs/architecture/FORGE_UNIFIED_ARCHITECTURE.md)** - Complete system design
-- **[Latest Session Report](../docs/sessions/SESSION_DEC_11_2025_COMPLETE.md)** - Dec 11 bug fixes (100% operational)
-- **[Organized Documentation](../docs/README.md)** - Complete documentation index
+Ecosystem-level topology, ports, and shared status live in `../docs/ECOSYSTEM_CANONICAL.md`. This README focuses on DataForge-specific capabilities, APIs, and operational details.
 
 ---
 

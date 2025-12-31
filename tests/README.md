@@ -1,5 +1,8 @@
 # DataForge Test Suite
 
+## Documentation Standard
+This README follows the Forge ecosystem documentation standard: Overview, Status, Usage, Development, Operations, Governance, References. Service-specific details are below.
+
 Comprehensive test suite for DataForge knowledge base management system.
 
 ## Overview
@@ -245,4 +248,3 @@ docker-compose exec dataforge pytest
 - [Pytest Documentation](https://docs.pytest.org/)
 - [FastAPI Testing](https://fastapi.tiangolo.com/tutorial/testing/)
 - [SQLAlchemy Testing](https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#joining-a-session-into-an-external-transaction-such-as-for-test-suites)
-

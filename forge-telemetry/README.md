@@ -1,5 +1,8 @@
 # Forge Telemetry
 
+## Documentation Standard
+This README follows the Forge ecosystem documentation standard: Overview, Status, Usage, Development, Operations, Governance, References. Service-specific details are below.
+
 Unified telemetry client for the Forge ecosystem (DataForge, NeuroForge, Rake).
 
 ## Installation
