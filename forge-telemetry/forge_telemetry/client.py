@@ -2,15 +2,20 @@
 Telemetry client for emitting events to the shared events table.
 """
 
+import logging
 import os
-from typing import Any, Dict, Optional
+import socket
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, Session
 
 from .models import TelemetryEvent, ServiceType, SeverityLevel
+
+logger = logging.getLogger(__name__)
 
 
 class TelemetryClient:
@@ -35,14 +40,23 @@ class TelemetryClient:
         self.telemetry_required = telemetry_required if telemetry_required is not None else os.getenv("TELEMETRY_REQUIRED", "false").lower() in {
             "1", "true", "yes"
         }
-        self.db_url = self._resolve_database_url(database_url)
+        self.db_url, host, port = self._resolve_database_url(database_url)
         self.database_url = self.db_url
         self.enabled = bool(self.db_url)
         self.engine: Optional[Any] = None
         self.SessionLocal: Optional[sessionmaker] = None
 
+        if host:
+            logger.info("Telemetry DB target host=%s port=%s", host, port or 5432)
+
         if self.enabled:
-            self.engine = create_engine(self.db_url)
+            try:
+                self.engine = create_engine(self.db_url)
+                with self.engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
+            except (socket.gaierror, OperationalError, TimeoutError, OSError) as exc:
+                self._handle_connection_error(exc)
+                return
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         elif self.telemetry_required:
             raise ValueError(
@@ -185,42 +199,86 @@ class TelemetryClient:
         finally:
             db.close()
 
-    def _resolve_database_url(self, provided_url: Optional[str]) -> Optional[str]:
+    def _resolve_database_url(
+        self, provided_url: Optional[str]
+    ) -> Tuple[Optional[str], Optional[str], Optional[int]]:
         if provided_url:
-            return provided_url
+            return provided_url, *self._extract_host_port(provided_url)
         env_url = os.getenv("DATABASE_URL")
         if env_url:
-            return env_url
+            return env_url, *self._extract_host_port(env_url)
         return self._build_url_from_components()
 
-    def _build_url_from_components(self) -> Optional[str]:
+    def _handle_connection_error(self, exc: Exception) -> None:
+        if self.telemetry_required:
+            raise ValueError(
+                "Telemetry is required but the database connection could not be established."
+            ) from exc
+
+        logger.warning("Telemetry disabled because the database connection failed: %s", exc)
+        self.enabled = False
+        self.db_url = None
+        self.engine = None
+        self.SessionLocal = None
+
+    def _build_url_from_components(
+        self,
+    ) -> Tuple[Optional[str], Optional[str], Optional[int]]:
         base_url = os.getenv("DATABASE_BASE_URL")
         user = os.getenv("DATABASE_USER")
         password = os.getenv("DATABASE_PASSWORD")
         name = os.getenv("DATABASE_NAME")
         if not (base_url and user and password and name):
-            return None
+            return None, None, None
         sslmode = os.getenv("DATABASE_SSLMODE", "require")
-        return self._compose_url(base_url, user, password, name, sslmode)
+        host, port = self._extract_host_port(base_url)
+        if not host:
+            return None, None, None
+        return (
+            self._compose_url(host, port, user, password, name, sslmode),
+            host,
+            port,
+        )
 
     def _compose_url(
         self,
-        base_url: str,
+        host: str,
+        port: Optional[int],
         user: str,
         password: str,
         name: str,
         sslmode: str,
     ) -> str:
-        parsed = urlparse(base_url)
-        scheme = parsed.scheme or "postgresql"
-        hostname = parsed.hostname or parsed.path or ""
-        port = f":{parsed.port}" if parsed.port else ""
-        netloc = f"{user}:{password}@{hostname}{port}"
+        scheme = "postgresql"
+        port_value = port or 5432
+        port_fragment = f":{port_value}"
+        netloc = f"{user}:{password}@{host}{port_fragment}"
         path = f"/{name}"
-        query_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
-        query_params.setdefault("sslmode", sslmode)
+        query_params = {"sslmode": sslmode}
         query = urlencode(query_params)
-        return urlunparse((scheme, netloc, path, parsed.params, query, parsed.fragment))
+        return urlunparse((scheme, netloc, path, "", query, ""))
+
+    def _extract_host_port(self, raw_url: str) -> Tuple[Optional[str], Optional[int]]:
+        parsed = urlparse(raw_url)
+        host = parsed.hostname
+        port = parsed.port
+        if not host:
+            candidate = parsed.path or parsed.netloc or raw_url
+            candidate = candidate.split("/", 1)[0]
+            if "@" in candidate:
+                candidate = candidate.split("@")[-1]
+            if ":" in candidate:
+                host_part, port_part = candidate.split(":", 1)
+                host = host_part
+                try:
+                    port = int(port_part)
+                except ValueError:
+                    port = None
+            else:
+                host = candidate
+        if host:
+            host = host.strip()
+        return host or None, port
 
 
 # Convenience function for quick event emission
