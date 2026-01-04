@@ -52,20 +52,21 @@ def upgrade() -> None:
     # Make search_vector NOT NULL after populating existing rows
     op.alter_column('chunks', 'search_vector', nullable=False)
 
-    # Create GIN index for fast full-text search
+    # Create index for filtering by document_id
     op.create_index(
-        'idx_chunks_search_vector',
-        'chunks',
-        ['search_vector'],
-        postgresql_using='gin'
+        "idx_chunks_document_id",
+        "chunks",
+        ["document_id"],
+        unique=False,
     )
 
-    # Create composite index for filtered searches (common pattern: filter by document, search content)
+    # Create GIN index for fast full-text search
     op.create_index(
-        'idx_chunks_document_search',
-        'chunks',
-        ['document_id', 'search_vector'],
-        postgresql_using='gin'
+        "idx_chunks_search_vector",
+        "chunks",
+        ["search_vector"],
+        unique=False,
+        postgresql_using="gin",
     )
 
 
@@ -73,8 +74,8 @@ def downgrade() -> None:
     """Remove full-text search support from chunks table."""
 
     # Drop indexes
-    op.drop_index('idx_chunks_document_search', table_name='chunks')
     op.drop_index('idx_chunks_search_vector', table_name='chunks')
+    op.drop_index('idx_chunks_document_id', table_name='chunks')
 
     # Drop trigger
     op.execute('DROP TRIGGER IF EXISTS chunks_search_vector_trigger ON chunks')

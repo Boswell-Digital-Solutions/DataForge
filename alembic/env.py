@@ -25,7 +25,8 @@ from app.models import models  # noqa: F401 - Import needed for metadata
 config = _context.config
 
 # Set the database URL from environment variable
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge"))
+db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
+config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -3,9 +3,9 @@ Telemetry client for emitting events to the shared events table.
 """
 
 import os
-from datetime import datetime
 from typing import Any, Dict, Optional
-from uuid import UUID, uuid4
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from uuid import UUID
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
@@ -19,28 +19,36 @@ class TelemetryClient:
 
     Usage:
         telemetry = TelemetryClient(database_url)
-        await telemetry.emit({
-            "service": "dataforge",
-            "event_type": "query",
-            "correlation_id": correlation_id,
-            "metadata": {"query": "search term"},
-            "metrics": {"duration_ms": 123}
-        })
+        await telemetry.emit(... )
+
+    Supports DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER / DATABASE_PASSWORD / DATABASE_NAME
+    and honors the TELEMETRY_REQUIRED flag.
     """
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: Optional[str] = None, *, telemetry_required: Optional[bool] = None):
         """
         Initialize telemetry client.
 
         Args:
-            database_url: PostgreSQL connection URL. If not provided, uses DATABASE_URL env var.
+            database_url: PostgreSQL connection URL. If not provided, reads DATABASE_URL env var.
         """
-        self.database_url = database_url or os.getenv("DATABASE_URL")
-        if not self.database_url:
-            raise ValueError("DATABASE_URL must be provided or set in environment")
+        self.telemetry_required = telemetry_required if telemetry_required is not None else os.getenv("TELEMETRY_REQUIRED", "false").lower() in {
+            "1", "true", "yes"
+        }
+        self.db_url = self._resolve_database_url(database_url)
+        self.database_url = self.db_url
+        self.enabled = bool(self.db_url)
+        self.engine: Optional[Any] = None
+        self.SessionLocal: Optional[sessionmaker] = None
 
-        self.engine = create_engine(self.database_url)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        if self.enabled:
+            self.engine = create_engine(self.db_url)
+            self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        elif self.telemetry_required:
+            raise ValueError(
+                "Telemetry is required but no database configuration was found. "
+                "Set DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER/DATABASE_PASSWORD/DATABASE_NAME."
+            )
 
     def emit(
         self,
@@ -114,16 +122,15 @@ class TelemetryClient:
 
     def _write_event(self, event: TelemetryEvent) -> UUID:
         """Write event to database."""
-        import json
-        from datetime import datetime
+        if not self.enabled or self.SessionLocal is None:
+            return event.event_id
 
+        import json
         db: Session = self.SessionLocal()
         try:
-            # Detect if we're using SQLite or PostgreSQL
             is_sqlite = "sqlite" in self.database_url.lower()
 
             if is_sqlite:
-                # SQLite: use TEXT for UUIDs and JSON, use CURRENT_TIMESTAMP
                 query = text("""
                     INSERT INTO events (
                         event_id, timestamp, service, event_type, severity,
@@ -146,7 +153,6 @@ class TelemetryClient:
                     "metrics": json.dumps(event.metrics) if event.metrics else None,
                 })
             else:
-                # PostgreSQL: use UUID and JSONB types, use NOW()
                 query = text("""
                     INSERT INTO events (
                         event_id, timestamp, service, event_type, severity,
@@ -178,6 +184,43 @@ class TelemetryClient:
             return event.event_id
         finally:
             db.close()
+
+    def _resolve_database_url(self, provided_url: Optional[str]) -> Optional[str]:
+        if provided_url:
+            return provided_url
+        env_url = os.getenv("DATABASE_URL")
+        if env_url:
+            return env_url
+        return self._build_url_from_components()
+
+    def _build_url_from_components(self) -> Optional[str]:
+        base_url = os.getenv("DATABASE_BASE_URL")
+        user = os.getenv("DATABASE_USER")
+        password = os.getenv("DATABASE_PASSWORD")
+        name = os.getenv("DATABASE_NAME")
+        if not (base_url and user and password and name):
+            return None
+        sslmode = os.getenv("DATABASE_SSLMODE", "require")
+        return self._compose_url(base_url, user, password, name, sslmode)
+
+    def _compose_url(
+        self,
+        base_url: str,
+        user: str,
+        password: str,
+        name: str,
+        sslmode: str,
+    ) -> str:
+        parsed = urlparse(base_url)
+        scheme = parsed.scheme or "postgresql"
+        hostname = parsed.hostname or parsed.path or ""
+        port = f":{parsed.port}" if parsed.port else ""
+        netloc = f"{user}:{password}@{hostname}{port}"
+        path = f"/{name}"
+        query_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query_params.setdefault("sslmode", sslmode)
+        query = urlencode(query_params)
+        return urlunparse((scheme, netloc, path, parsed.params, query, parsed.fragment))
 
 
 # Convenience function for quick event emission

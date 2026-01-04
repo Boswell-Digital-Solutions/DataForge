@@ -30,26 +30,46 @@ def upgrade() -> None:
     # ============================================================
     # EVENTS TABLE (base telemetry table)
     # ============================================================
-    op.create_table(
-        'events',
-        sa.Column('event_id', sa.UUID(), nullable=False),
-        sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('service', sa.String(length=50), nullable=False),
-        sa.Column('event_type', sa.String(length=100), nullable=False),
-        sa.Column('severity', sa.String(length=20), nullable=False),
-        sa.Column('correlation_id', sa.UUID(), nullable=True),
-        sa.Column('metadata', sa.JSON(), nullable=True),
-        sa.Column('metrics', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('NOW()'), nullable=False),
-        sa.PrimaryKeyConstraint('event_id')
-    )
+    bind = op.get_bind()
+    exists = bind.execute(sa.text("""
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'events'
+        LIMIT 1
+    """)).scalar()
+
+    if not exists:
+        op.create_table(
+            'events',
+            sa.Column('event_id', sa.UUID(), nullable=False),
+            sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('service', sa.String(length=50), nullable=False),
+            sa.Column('event_type', sa.String(length=100), nullable=False),
+            sa.Column('severity', sa.String(length=20), nullable=False),
+            sa.Column('correlation_id', sa.UUID(), nullable=True),
+            sa.Column('metadata', sa.JSON(), nullable=True),
+            sa.Column('metrics', sa.JSON(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('NOW()'), nullable=False),
+            sa.PrimaryKeyConstraint('event_id')
+        )
 
     # Create indexes for common query patterns
-    op.create_index('idx_events_service', 'events', ['service'])
-    op.create_index('idx_events_event_type', 'events', ['event_type'])
-    op.create_index('idx_events_correlation_id', 'events', ['correlation_id'])
-    op.create_index('idx_events_timestamp', 'events', ['timestamp'])
-    op.create_index('idx_events_service_timestamp', 'events', ['service', 'timestamp'])
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_service ON events (service)
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_event_type ON events (event_type)
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_correlation_id ON events (correlation_id)
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events (timestamp)
+    """)
+    op.execute("""
+        CREATE INDEX IF NOT EXISTS idx_events_service_timestamp ON events (service, timestamp)
+    """)
 
     # ============================================================
     # TELEMETRY_EVENTS VIEW (alias for ForgeCommand compatibility)
@@ -240,9 +260,9 @@ def downgrade() -> None:
 
     op.execute("DROP VIEW IF EXISTS telemetry_events")
 
-    op.drop_index('idx_events_service_timestamp', table_name='events')
-    op.drop_index('idx_events_timestamp', table_name='events')
-    op.drop_index('idx_events_correlation_id', table_name='events')
-    op.drop_index('idx_events_event_type', table_name='events')
-    op.drop_index('idx_events_service', table_name='events')
+    op.execute("DROP INDEX IF EXISTS idx_events_service_timestamp")
+    op.execute("DROP INDEX IF EXISTS idx_events_timestamp")
+    op.execute("DROP INDEX IF EXISTS idx_events_correlation_id")
+    op.execute("DROP INDEX IF EXISTS idx_events_event_type")
+    op.execute("DROP INDEX IF EXISTS idx_events_service")
     op.drop_table('events')
