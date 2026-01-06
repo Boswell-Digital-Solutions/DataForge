@@ -245,6 +245,87 @@ async def render_health_check():
     return result
 
 
+@app.get("/ready", tags=["info"])
+async def readiness_check():
+    """
+    Readiness check endpoint for ecosystem verification.
+
+    Returns structured dependency health following the Forge verification contract.
+    Used by Forge Command to verify service readiness with dependency details.
+    """
+    import time
+    from sqlalchemy import text
+    from app.database import SessionLocal
+
+    dependencies = []
+    overall_status = "ok"
+
+    # Check PostgreSQL (critical dependency)
+    postgres_dep = {
+        "name": "postgres",
+        "status": "ok",
+        "critical": True,
+        "latency_ms": 0,
+        "message": None,
+        "error_class": None
+    }
+    try:
+        start = time.perf_counter()
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        postgres_dep["latency_ms"] = int((time.perf_counter() - start) * 1000)
+    except Exception as e:
+        postgres_dep["status"] = "down"
+        postgres_dep["message"] = str(e)
+        postgres_dep["error_class"] = "tcp_failed" if "connect" in str(e).lower() else "unknown"
+        overall_status = "down"  # Critical dependency failed
+        logger.error(f"Readiness check - PostgreSQL failed: {e}")
+    dependencies.append(postgres_dep)
+
+    # Check Redis (non-critical dependency)
+    redis_dep = {
+        "name": "redis",
+        "status": "ok",
+        "critical": False,
+        "latency_ms": 0,
+        "message": None,
+        "error_class": None
+    }
+    try:
+        from app.utils.redis_utils import get_redis_client
+        start = time.perf_counter()
+        redis = await get_redis_client()
+        if redis:
+            await redis.ping()
+            redis_dep["latency_ms"] = int((time.perf_counter() - start) * 1000)
+        else:
+            redis_dep["status"] = "down"
+            redis_dep["message"] = "Redis not configured"
+            redis_dep["error_class"] = "dependency_failed"
+            if overall_status == "ok":
+                overall_status = "degraded"
+    except Exception as e:
+        redis_dep["status"] = "down"
+        redis_dep["message"] = str(e)
+        redis_dep["error_class"] = "tcp_failed" if "connect" in str(e).lower() else "timeout" if "timeout" in str(e).lower() else "unknown"
+        if overall_status == "ok":
+            overall_status = "degraded"
+        logger.warning(f"Readiness check - Redis failed: {e}")
+    dependencies.append(redis_dep)
+
+    from fastapi.responses import JSONResponse
+    status_code = 200 if overall_status == "ok" else 503 if overall_status == "down" else 200
+
+    return JSONResponse(
+        content={
+            "status": overall_status,
+            "dependencies": dependencies
+        },
+        status_code=status_code
+    )
+
+
 # ============================================
 # Admin UI
 # ============================================
