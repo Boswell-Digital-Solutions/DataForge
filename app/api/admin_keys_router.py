@@ -23,6 +23,11 @@ from app.auth import (
     ROTATION_ADMIN_TOKEN,
     EMERGENCY_OPS_KEY,
 )
+from app.auth.token_rotation import (
+    rotate_admin_token,
+    get_rotation_status,
+    get_rotation_history,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -148,3 +153,77 @@ async def health():
             "emergency_ops_key_configured": bool(EMERGENCY_OPS_KEY),
         },
     }
+
+
+# ============================================================================
+# Token Rotation Endpoints
+# ============================================================================
+
+rotation_router = APIRouter(prefix="/admin/token", tags=["Admin - Token Rotation"])
+
+
+class RotateTokenRequest(BaseModel):
+    """Request to rotate the admin token."""
+    rotated_by: str = Field(default="forge_command", description="Identifier of rotation initiator")
+
+
+class RotateTokenResponse(BaseModel):
+    """Response containing new token after rotation."""
+    new_token: str
+    token_prefix: str
+    created_at: str
+    expires_at: str
+    grace_period_hours: int
+    message: str = "Token rotated. Update Forge_Command with the new token."
+
+
+@rotation_router.post("/rotate", response_model=RotateTokenResponse)
+async def rotate_token(
+    request: RotateTokenRequest,
+    x_admin_token: Annotated[str, Header(alias="X-Admin-Token")],
+):
+    """Rotate the admin token.
+
+    Requires the current valid admin token for authentication.
+    The old token remains valid for a grace period (default 1 hour).
+
+    This endpoint is called by Forge_Command's automatic rotation scheduler.
+    """
+    try:
+        new_token, info = rotate_admin_token(x_admin_token, request.rotated_by)
+
+        logger.info(f"Token rotated by {request.rotated_by}")
+
+        return RotateTokenResponse(
+            new_token=new_token,
+            token_prefix=info["token_prefix"],
+            created_at=info["created_at"],
+            expires_at=info["expires_at"],
+            grace_period_hours=info["grace_period_hours"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        logger.error(f"Token rotation failed: {e}")
+        raise HTTPException(status_code=500, detail="Token rotation failed")
+
+
+@rotation_router.get("/status")
+async def token_rotation_status(auth: Annotated[AuthContext, Depends(require_admin)]):
+    """Get current token rotation status.
+
+    Returns information about the current token and rotation schedule.
+    """
+    return get_rotation_status()
+
+
+@rotation_router.get("/history")
+async def token_rotation_history(
+    auth: Annotated[AuthContext, Depends(require_admin)],
+    limit: int = 10,
+):
+    """Get token rotation history.
+
+    Returns recent rotation events for audit purposes.
+    """
+    return {"rotations": get_rotation_history(limit)}
