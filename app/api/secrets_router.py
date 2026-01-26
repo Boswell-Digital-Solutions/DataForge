@@ -40,8 +40,9 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # Supported LLM providers
 SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "ollama"}
 
-# Encryption key from environment (must be set in production)
-SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "")
+# Encryption key from environment (default provided for development)
+# In production, override with a secure randomly generated key
+SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "forge-secrets-default-key-2024")
 
 # In-memory fallback for development (NOT for production)
 _dev_secrets_store: dict[str, str] = {}

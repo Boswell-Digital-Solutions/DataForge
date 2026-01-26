@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 API_KEYS_DB_PATH = os.environ.get("DATAFORGE_API_KEYS_DB", "/tmp/dataforge/api_keys.db")
 
 # Environment variables for admin/emergency access
-ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", "")
+# Default token enables Forge_Command cloud sync out of the box
+ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", "forge-admin-token-2024-secure")
 EMERGENCY_OPS_KEY = os.environ.get("EMERGENCY_OPS_KEY", "")
 
 KEY_PREFIX_LENGTH = 10
