@@ -19,6 +19,7 @@ from app.api import search_router, admin_router, auth_router, projects_router, r
 from app.api.routes.events_router import router as events_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.api.admin_keys_router import router as admin_keys_router, auth_info_router  # ForgeCommand Key Rotation
+from app.api.secrets_router import router as secrets_router  # LLM Provider Secrets (synced from Forge_Command)
 from app.api.tarcie_router import router as tarcie_router  # Tarcie friction capture ingest
 from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
 from app.api.forge_run_router import router as forge_run_router  # ForgeAgents run persistence (Phase 2)
@@ -165,6 +166,7 @@ app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
 app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
 app.include_router(auth_info_router)  # /auth/whoami and /health
+app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)
 app.include_router(tarcie_router)  # Tarcie friction capture ingest
 app.include_router(forge_run_router)  # ForgeAgents run persistence (Phase 2)
 
