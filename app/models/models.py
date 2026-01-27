@@ -180,3 +180,28 @@ class RunEvidence(Base):
 
     # Relationships
     index = relationship("ExecutionIndex", back_populates="evidence")
+
+
+class AgentRegistry(Base):
+    """ForgeAgents agent registry - persists agent definitions.
+
+    Stores agent configurations so they survive ForgeAgents restarts.
+    DataForge is the source of truth; ForgeAgents loads from here on startup.
+    """
+    __tablename__ = "agent_registry"
+
+    # Primary identifier (UUID as string)
+    id = Column(String(36), primary_key=True)
+
+    # Indexed fields for querying
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    agent_type = Column(String(20), nullable=False, index=True)  # researcher, analyst, writer, etc.
+    status = Column(String(20), nullable=False, default="idle", index=True)  # idle, executing, etc.
+    user_id = Column(String(36), nullable=True, index=True)
+
+    # Full agent definition as JSONB (includes config, memory_config, policy_config, stats)
+    agent_data = Column(JSONB, nullable=False)
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
