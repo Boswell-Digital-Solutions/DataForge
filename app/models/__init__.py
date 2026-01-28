@@ -14,6 +14,10 @@ from .team_models import (
     team_members
 )
 from .buildguard_models import BuildGuardEvent, BuildGuardProfileStats
+from .bugcheck_models import (
+    BugCheckRunModel, BugCheckFindingModel, BugCheckEnrichmentModel,
+    BugCheckLifecycleEventModel, BugCheckProgressModel
+)
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -103,5 +107,8 @@ __all__ = [
     # BuildGuard Models & Schemas (GRR Phase D)
     "BuildGuardEvent", "BuildGuardProfileStats",
     "BuildGuardMetricsEventCreate", "BuildGuardEventResponse",
-    "BuildGuardProfileStatsResponse", "BuildGuardDashboardStats", "EventsListResponse"
+    "BuildGuardProfileStatsResponse", "BuildGuardDashboardStats", "EventsListResponse",
+    # BugCheck Models
+    "BugCheckRunModel", "BugCheckFindingModel", "BugCheckEnrichmentModel",
+    "BugCheckLifecycleEventModel", "BugCheckProgressModel",
 ]
