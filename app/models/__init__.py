@@ -18,6 +18,18 @@ from .bugcheck_models import (
     BugCheckRunModel, BugCheckFindingModel, BugCheckEnrichmentModel,
     BugCheckLifecycleEventModel, BugCheckProgressModel
 )
+from .smithy_portfolio_models import (
+    SmithyPortfolioProject, SmithyEvaluationSnapshot, SmithyEvidenceItem
+)
+from .smithy_planning_models import (
+    SmithyPlanningSession, SmithyPlanningDeliverable, SmithyPlanningStep,
+    SessionStatus as PlanningSessionStatus, PAORTStage
+)
+from .smithy_planning_schemas import (
+    PlanningSession, PlanningSessionSummary, PlanningSessionCreate, PlanningSessionUpdate,
+    PlanningDeliverable, PlanningDeliverableCreate, PlanningStep, PlanningStepCreate,
+    OperationalMemorySummary
+)
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -111,4 +123,12 @@ __all__ = [
     # BugCheck Models
     "BugCheckRunModel", "BugCheckFindingModel", "BugCheckEnrichmentModel",
     "BugCheckLifecycleEventModel", "BugCheckProgressModel",
+    # Smithy Portfolio Models
+    "SmithyPortfolioProject", "SmithyEvaluationSnapshot", "SmithyEvidenceItem",
+    # Smithy Planning Models & Schemas
+    "SmithyPlanningSession", "SmithyPlanningDeliverable", "SmithyPlanningStep",
+    "PlanningSessionStatus", "PAORTStage",
+    "PlanningSession", "PlanningSessionSummary", "PlanningSessionCreate", "PlanningSessionUpdate",
+    "PlanningDeliverable", "PlanningDeliverableCreate", "PlanningStep", "PlanningStepCreate",
+    "OperationalMemorySummary",
 ]

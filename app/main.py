@@ -25,6 +25,8 @@ from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
 from app.api.forge_run_router import router as forge_run_router  # ForgeAgents run persistence (Phase 2)
 from app.api.agents_registry_router import router as agents_registry_router  # ForgeAgents agent persistence
 from app.api.bugcheck_router import router as bugcheck_router  # BugCheck Agent persistence
+from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
+from app.api.smithy_planning_router import router as smithy_planning_router  # Smithy Planning Sessions
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.config import (
     validate_config,
@@ -174,6 +176,8 @@ app.include_router(tarcie_router)  # Tarcie friction capture ingest
 app.include_router(forge_run_router)  # ForgeAgents run persistence (Phase 2)
 app.include_router(agents_registry_router)  # ForgeAgents agent registry persistence
 app.include_router(bugcheck_router)  # BugCheck Agent persistence (runs, findings, enrichments)
+app.include_router(smithy_portfolio_router)  # Smithy Portfolio & Competency module
+app.include_router(smithy_planning_router)  # Smithy Planning Sessions persistence
 
 # ============================================
 # Health Check & Info Endpoints
