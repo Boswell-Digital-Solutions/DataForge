@@ -1,0 +1,35 @@
+{
+  "service_id": "dataforge",
+  "version": "1.0.0",
+  "contract_version": "1.0",
+  "description": "DataForge — Single source of truth for all durable state in the Forge ecosystem",
+  "dependencies": [],
+  "endpoints_exposed": [
+    { "path": "/health", "methods": ["GET"], "auth_required": false, "description": "Health check" },
+    { "path": "/ready", "methods": ["GET"], "auth_required": false, "description": "Readiness check with dependency status" },
+    { "path": "/api/v1/bugcheck/runs", "methods": ["POST", "GET"], "auth_required": true, "description": "BugCheck run records" },
+    { "path": "/api/v1/bugcheck/runs/{run_id}", "methods": ["GET", "PATCH"], "auth_required": true, "description": "Individual run record" },
+    { "path": "/api/v1/bugcheck/findings", "methods": ["POST", "GET"], "auth_required": true, "description": "BugCheck findings" },
+    { "path": "/api/v1/knowledge/missions", "methods": ["POST", "GET"], "auth_required": true, "description": "Knowledge missions" },
+    { "path": "/api/v1/evidence", "methods": ["POST", "GET"], "auth_required": true, "description": "Evidence bundles" },
+    { "path": "/api/v1/ledger/sync", "methods": ["POST"], "auth_required": true, "description": "Ledger sync endpoint for SMITH" }
+  ],
+  "auth_requirements": {
+    "default_policy": "deny",
+    "token_types": ["run_token", "user_token", "api_key", "service_token"],
+    "public_endpoints": ["/health", "/ready"]
+  },
+  "degraded_modes": [
+    {
+      "name": "READ_ONLY",
+      "trigger": "Storage backend write failures",
+      "affected_capabilities": ["write_runs", "write_findings", "write_evidence"],
+      "severity": "critical"
+    }
+  ],
+  "health": {
+    "health_endpoint": "/health",
+    "ready_endpoint": "/ready",
+    "degraded_endpoint": "/degraded"
+  }
+}
