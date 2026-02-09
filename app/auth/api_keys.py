@@ -32,8 +32,7 @@ API_KEYS_DB_PATH = os.environ.get("DATAFORGE_API_KEYS_DB", os.path.join(_default
 
 # Environment variables for admin/emergency access
 # Admin token - required in production, dev default for local development only
-_default_admin_token = "" if os.environ.get("ENVIRONMENT") == "production" else "forge-admin-token-2024-dev"
-ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", _default_admin_token)
+ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", "")
 EMERGENCY_OPS_KEY = os.environ.get("EMERGENCY_OPS_KEY", "")
 
 KEY_PREFIX_LENGTH = 10

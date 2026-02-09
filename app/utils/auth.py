@@ -13,7 +13,14 @@ from app.models import models, schemas
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        raise RuntimeError(
+            "SECRET_KEY must be set in production. "
+            "Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+        )
+    SECRET_KEY = "dataforge-dev-jwt-secret-NOT-FOR-PRODUCTION"
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
