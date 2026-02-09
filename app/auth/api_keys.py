@@ -11,6 +11,7 @@ Database-backed API key authentication supporting:
 Per ForgeCommand Key Rotation Master Plan v3.0
 """
 
+import json
 import os
 import secrets
 import sqlite3
@@ -25,12 +26,14 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Database path
-API_KEYS_DB_PATH = os.environ.get("DATAFORGE_API_KEYS_DB", "/tmp/dataforge/api_keys.db")
+# Database path - default to persistent, secure location (not /tmp)
+_default_db_dir = os.path.join(os.environ.get("HOME", "/var/lib/dataforge"), ".dataforge")
+API_KEYS_DB_PATH = os.environ.get("DATAFORGE_API_KEYS_DB", os.path.join(_default_db_dir, "api_keys.db"))
 
 # Environment variables for admin/emergency access
-# Default token enables Forge_Command cloud sync out of the box
-ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", "forge-admin-token-2024-secure")
+# Admin token - required in production, dev default for local development only
+_default_admin_token = "" if os.environ.get("ENVIRONMENT") == "production" else "forge-admin-token-2024-dev"
+ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", _default_admin_token)
 EMERGENCY_OPS_KEY = os.environ.get("EMERGENCY_OPS_KEY", "")
 
 KEY_PREFIX_LENGTH = 10
@@ -95,7 +98,15 @@ def get_db():
 
 
 def hash_api_key(key: str) -> str:
-    salt = os.environ.get("API_KEY_SALT", "dataforge-api-key-salt")
+    salt = os.environ.get("API_KEY_SALT", "")
+    if not salt:
+        environment = os.environ.get("ENVIRONMENT", "development")
+        if environment == "production":
+            raise RuntimeError(
+                "API_KEY_SALT must be set in production. "
+                "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+            )
+        salt = "dataforge-dev-salt-NOT-FOR-PRODUCTION"
     return hashlib.sha256(f"{salt}:{key}".encode()).hexdigest()
 
 
@@ -116,7 +127,7 @@ def create_api_key(metadata: Optional[dict] = None, expires_at: Optional[datetim
         cursor.execute("""
             INSERT INTO api_keys (id, key_prefix, key_hash, created_at, expires_at, metadata)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (key_id, key_prefix, key_hash, now, expires_str, str(metadata or {})))
+        """, (key_id, key_prefix, key_hash, now, expires_str, json.dumps(metadata or {})))
         conn.commit()
 
     logger.info(f"DataForge API key created: {key_id}")
@@ -149,7 +160,7 @@ def validate_api_key(key: str) -> Optional[ApiKeyInfo]:
                     expires_at=row["expires_at"],
                     revoked_at=row["revoked_at"],
                     last_used_at=now,
-                    metadata=eval(row["metadata"]) if row["metadata"] else {}
+                    metadata=json.loads(row["metadata"]) if row["metadata"] else {}
                 )
     return None
 
@@ -181,7 +192,7 @@ def list_api_keys() -> list[ApiKeyInfo]:
                 expires_at=row["expires_at"],
                 revoked_at=row["revoked_at"],
                 last_used_at=row["last_used_at"],
-                metadata=eval(row["metadata"]) if row["metadata"] else {}
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {}
             )
             for row in cursor.fetchall()
         ]
@@ -203,7 +214,7 @@ def get_api_key_info(key_id: str) -> Optional[ApiKeyInfo]:
                 expires_at=row["expires_at"],
                 revoked_at=row["revoked_at"],
                 last_used_at=row["last_used_at"],
-                metadata=eval(row["metadata"]) if row["metadata"] else {}
+                metadata=json.loads(row["metadata"]) if row["metadata"] else {}
             )
     return None
 

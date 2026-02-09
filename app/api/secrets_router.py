@@ -40,9 +40,13 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # Supported LLM providers
 SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "ollama"}
 
-# Encryption key from environment (default provided for development)
-# In production, override with a secure randomly generated key
-SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "forge-secrets-default-key-2024")
+# Encryption key from environment - required in production
+_env = os.environ.get("ENVIRONMENT", "development")
+SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "")
+if not SECRETS_ENCRYPTION_KEY and _env != "production":
+    SECRETS_ENCRYPTION_KEY = "forge-secrets-dev-key-NOT-FOR-PRODUCTION"
+elif not SECRETS_ENCRYPTION_KEY and _env == "production":
+    logger.error("SECRETS_ENCRYPTION_KEY must be set in production!")
 
 # In-memory fallback for development (NOT for production)
 _dev_secrets_store: dict[str, str] = {}
@@ -88,7 +92,9 @@ def _decrypt_secret(encrypted: str) -> str:
 import sqlite3
 from pathlib import Path
 
-SECRETS_DB_PATH = os.environ.get("DATAFORGE_SECRETS_DB", "/tmp/dataforge/secrets.db")
+# Secrets DB - default to persistent, secure location (not /tmp)
+_default_secrets_dir = os.path.join(os.environ.get("HOME", "/var/lib/dataforge"), ".dataforge")
+SECRETS_DB_PATH = os.environ.get("DATAFORGE_SECRETS_DB", os.path.join(_default_secrets_dir, "secrets.db"))
 
 
 def _ensure_db():

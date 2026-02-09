@@ -21,8 +21,9 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-# Token storage path
-TOKEN_DB_PATH = os.environ.get("DATAFORGE_TOKEN_DB", "/tmp/dataforge/tokens.db")
+# Token storage path - default to persistent, secure location (not /tmp)
+_default_db_dir = os.path.join(os.environ.get("HOME", "/var/lib/dataforge"), ".dataforge")
+TOKEN_DB_PATH = os.environ.get("DATAFORGE_TOKEN_DB", os.path.join(_default_db_dir, "tokens.db"))
 
 # Rotation settings
 ROTATION_INTERVAL_HOURS = int(os.environ.get("TOKEN_ROTATION_HOURS", "72"))
@@ -90,7 +91,12 @@ def get_token_db():
 def _hash_token(token: str) -> str:
     """Hash a token for storage."""
     import hashlib
-    salt = os.environ.get("TOKEN_SALT", "dataforge-token-salt")
+    salt = os.environ.get("TOKEN_SALT", "")
+    if not salt:
+        environment = os.environ.get("ENVIRONMENT", "development")
+        if environment == "production":
+            raise RuntimeError("TOKEN_SALT must be set in production")
+        salt = "dataforge-dev-token-salt-NOT-FOR-PRODUCTION"
     return hashlib.sha256(f"{salt}:{token}".encode()).hexdigest()
 
 
@@ -126,7 +132,7 @@ def get_current_admin_token() -> Optional[str]:
         logger.debug(f"No DB token, using env: {e}")
 
     # Fall back to environment variable
-    return os.environ.get("ROTATION_ADMIN_TOKEN", "forge-admin-token-2024-secure")
+    return os.environ.get("ROTATION_ADMIN_TOKEN", "")
 
 
 def validate_admin_token(token: str) -> bool:
@@ -141,7 +147,7 @@ def validate_admin_token(token: str) -> bool:
         return False
 
     # Check environment variable first (for backward compatibility)
-    env_token = os.environ.get("ROTATION_ADMIN_TOKEN", "forge-admin-token-2024-secure")
+    env_token = os.environ.get("ROTATION_ADMIN_TOKEN", "")
     if secrets.compare_digest(token, env_token):
         return True
 

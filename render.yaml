@@ -39,7 +39,15 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: "*"
+        sync: false  # Set specific origins in Render dashboard, never use "*"
+      - key: API_KEY_SALT
+        generateValue: true  # Required for API key hashing
+      - key: TOKEN_SALT
+        generateValue: true  # Required for token hashing
+      - key: SECRETS_ENCRYPTION_KEY
+        generateValue: true  # Required for LLM secrets encryption
+      - key: ROTATION_ADMIN_TOKEN
+        generateValue: true  # Required for admin operations
       - key: LOG_LEVEL
         value: INFO
       - key: EMBEDDING_PROVIDER
