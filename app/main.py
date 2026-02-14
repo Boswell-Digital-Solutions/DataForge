@@ -59,7 +59,7 @@ main_logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """
     Lifespan context manager for application startup and shutdown.
-    Creates database tables on startup.
+    Validates runtime config and initializes required extensions.
     """
     # Startup: Validate configuration
     main_logger.info("🚀 Starting DataForge...")
@@ -101,25 +101,9 @@ async def lifespan(app: FastAPI):
         )
         sys.exit(1)
 
-    # Run Alembic migrations (replaces metadata.create_all)
-    main_logger.info("📊 Running database migrations...")
-    try:
-        from pathlib import Path
-        from alembic.config import Config as AlembicConfig
-        from alembic import command as alembic_command
-
-        alembic_ini = str(Path(__file__).resolve().parent.parent / "alembic.ini")
-        alembic_cfg = AlembicConfig(alembic_ini)
-        alembic_command.upgrade(alembic_cfg, "head")
-        main_logger.info("✅ Database migrations applied")
-    except Exception as e:
-        main_logger.error(f"❌ Failed to run database migrations: {e}")
-        log_security_event(
-            main_logger,
-            "DATABASE_INIT_FAILURE",
-            f"Failed to run database migrations: {e}"
-        )
-        sys.exit(1)
+    # Database migrations run in Render build phase for free-tier deploys.
+    # Keep app startup focused on serving traffic quickly.
+    main_logger.info("📊 Database migrations are managed outside app startup")
 
     yield
 
