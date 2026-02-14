@@ -57,6 +57,7 @@ class VersionResponse(BaseModel):
     deployed_at: str = Field(..., description="Deployment timestamp")
     schema_version: str = Field(..., description="FPVS schema contract version")
     python_version: str = Field(..., description="Python runtime version")
+    alembic_revision: Optional[str] = Field(None, description="Current Alembic migration revision")
 
 
 # =============================================================================
@@ -248,6 +249,20 @@ async def version_info() -> VersionResponse:
     - RENDER_GIT_COMMIT: Git SHA of deployed commit
     - RENDER_DEPLOY_TIME: ISO 8601 timestamp of deployment
     """
+    alembic_rev = None
+    try:
+        from sqlalchemy import text
+        from app.database import SessionLocal
+        db = SessionLocal()
+        try:
+            row = db.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
+            if row:
+                alembic_rev = row[0]
+        finally:
+            db.close()
+    except Exception:
+        pass
+
     return VersionResponse(
         service_name="dataforge",
         version=SERVICE_VERSION,
@@ -255,4 +270,5 @@ async def version_info() -> VersionResponse:
         deployed_at=os.getenv("RENDER_DEPLOY_TIME", "unknown"),
         schema_version=FPVS_SCHEMA_VERSION,
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        alembic_revision=alembic_rev,
     )

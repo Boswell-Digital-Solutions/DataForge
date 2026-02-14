@@ -14,8 +14,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
-from app.database import engine, Base
+from app.database import engine
 from app.api import search_router, admin_router, auth_router, projects_router, runs_router, vibeforge_router, learning_router, teams_router
+from app.api.authorforge_v2_router import router as authorforge_v2_router
 from app.api.routes.events_router import router as events_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.api.admin_keys_router import router as admin_keys_router, auth_info_router, rotation_router  # ForgeCommand Key Rotation
@@ -27,6 +28,7 @@ from app.api.agents_registry_router import router as agents_registry_router  # F
 from app.api.bugcheck_router import router as bugcheck_router  # BugCheck Agent persistence
 from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
 from app.api.smithy_planning_router import router as smithy_planning_router  # Smithy Planning Sessions
+from app.api.neuroforge_router import router as neuroforge_router  # NeuroForge inference logging
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.config import (
     validate_config,
@@ -99,17 +101,23 @@ async def lifespan(app: FastAPI):
         )
         sys.exit(1)
 
-    # Create database tables
-    main_logger.info("📊 Creating database tables...")
+    # Run Alembic migrations (replaces metadata.create_all)
+    main_logger.info("📊 Running database migrations...")
     try:
-        Base.metadata.create_all(bind=engine)
-        main_logger.info("✅ Database tables created")
+        from pathlib import Path
+        from alembic.config import Config as AlembicConfig
+        from alembic import command as alembic_command
+
+        alembic_ini = str(Path(__file__).resolve().parent.parent / "alembic.ini")
+        alembic_cfg = AlembicConfig(alembic_ini)
+        alembic_command.upgrade(alembic_cfg, "head")
+        main_logger.info("✅ Database migrations applied")
     except Exception as e:
-        main_logger.error(f"❌ Failed to create database tables: {e}")
+        main_logger.error(f"❌ Failed to run database migrations: {e}")
         log_security_event(
             main_logger,
             "DATABASE_INIT_FAILURE",
-            f"Failed to create database tables: {e}"
+            f"Failed to run database migrations: {e}"
         )
         sys.exit(1)
 
@@ -178,6 +186,8 @@ app.include_router(agents_registry_router)  # ForgeAgents agent registry persist
 app.include_router(bugcheck_router)  # BugCheck Agent persistence (runs, findings, enrichments)
 app.include_router(smithy_portfolio_router)  # Smithy Portfolio & Competency module
 app.include_router(smithy_planning_router)  # Smithy Planning Sessions persistence
+app.include_router(authorforge_v2_router)  # AuthorForge V2: chapters, scenes, graph, maps, covers
+app.include_router(neuroforge_router)  # NeuroForge inference logging & transparency
 
 # ============================================
 # Health Check & Info Endpoints
@@ -219,9 +229,13 @@ async def health_check():
 
     # Check database connectivity
     db_status = "healthy"
+    schema_version = None
     try:
         db = SessionLocal()
         db.execute(text("SELECT 1"))
+        row = db.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
+        if row:
+            schema_version = row[0]
         db.close()
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
@@ -231,7 +245,8 @@ async def health_check():
         "status": "healthy" if db_status == "healthy" else "degraded",
         "service": "DataForge",
         "version": "1.0.0",
-        "database": db_status
+        "database": db_status,
+        "schema": schema_version
     }
 
 

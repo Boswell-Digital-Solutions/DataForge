@@ -18,7 +18,21 @@ load_dotenv()
 
 # Import our database and models
 from app.database import Base
-from app.models import models  # noqa: F401 - Import needed for metadata
+# Import ALL model modules to register them with Base.metadata
+from app.models import models  # noqa: F401 - core models
+from app.models import authorforge_models  # noqa: F401
+from app.models import authorforge_v2_models  # noqa: F401
+from app.models import vibeforge_models  # noqa: F401
+from app.models import runs_models  # noqa: F401
+from app.models import planning_models  # noqa: F401
+from app.models import team_models  # noqa: F401
+from app.models import diligence_models  # noqa: F401
+from app.models import bugcheck_models  # noqa: F401
+from app.models import buildguard_models  # noqa: F401
+from app.models import smithy_portfolio_models  # noqa: F401
+from app.models import smithy_planning_models  # noqa: F401
+from app.models import neuroforge_models  # noqa: F401
+from app.models import tarcie_models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -30,6 +30,42 @@ from .smithy_planning_schemas import (
     PlanningDeliverable, PlanningDeliverableCreate, PlanningStep, PlanningStepCreate,
     OperationalMemorySummary
 )
+from .authorforge_v2_models import (
+    SceneStatus, EntityKind, EdgeType, AlertTier, KnowledgeType, AssetSourceType, AssetType, PinType,
+    Chapter, Scene, LoreEntity, LoreEdge, Arc, Beat, StyleProfile, Asset, Faction,
+    ConsistencyAlert, Cover, MapNode, MapEdge, MapEdgeModifier, MapRegion, LorePin,
+    CharacterKnowledge, Journey
+)
+from .vibeforge_models import VibeForgeProject, ProjectSession, StackOutcome, ModelPerformance, LanguagePreference  # noqa: F401
+from .diligence_models import DiligenceProject, DiligenceReview, DiligenceFinding  # noqa: F401
+from .tarcie_models import TarcieEvent  # noqa: F401
+from .neuroforge_models import Inference
+from .neuroforge_schemas import (
+    InferenceCreate, InferenceResponse, InferenceListResponse, InferenceStats,
+    DomainBreakdown,
+)
+from .authorforge_v2_schemas import (
+    SceneStatusEnum, EntityKindEnum, EdgeTypeEnum, KnowledgeTypeEnum,
+    AssetSourceTypeEnum, AssetTypeEnum, PinTypeEnum,
+    ChapterCreate, ChapterUpdate, ChapterResponse, ChapterWithScenes,
+    SceneCreate, SceneUpdate, SceneResponse,
+    EntityCreate, EntityUpdate, EntityResponse,
+    EdgeCreate, EdgeResponse,
+    ArcCreate, ArcUpdate, ArcResponse, ArcWithBeats,
+    BeatCreate, BeatUpdate, BeatResponse,
+    StyleProfileCreate, StyleProfileUpdate, StyleProfileResponse,
+    AssetCreate, AssetResponse,
+    FactionCreate, FactionUpdate, FactionResponse,
+    ConsistencyAlertCreate, ConsistencyAlertUpdate, ConsistencyAlertResponse,
+    CoverCreate, CoverUpdate, CoverResponse,
+    MapNodeCreate, MapNodeUpdate, MapNodeResponse,
+    MapEdgeCreate, MapEdgeResponse,
+    MapEdgeModifierCreate, MapEdgeModifierResponse,
+    MapRegionCreate, MapRegionResponse,
+    LorePinCreate, LorePinUpdate, LorePinResponse,
+    CharacterKnowledgeCreate, CharacterKnowledgeResponse,
+    JourneyCreate, JourneyResponse,
+)
 from .schemas import (
     UserBase, UserCreate, User as UserSchema,
     DomainBase, DomainCreate, Domain as DomainSchema,
@@ -131,4 +167,34 @@ __all__ = [
     "PlanningSession", "PlanningSessionSummary", "PlanningSessionCreate", "PlanningSessionUpdate",
     "PlanningDeliverable", "PlanningDeliverableCreate", "PlanningStep", "PlanningStepCreate",
     "OperationalMemorySummary",
+    # AuthorForge V2 Models (Spec v3)
+    "SceneStatus", "EntityKind", "EdgeType", "AlertTier", "KnowledgeType", "AssetSourceType", "AssetType", "PinType",
+    "Chapter", "Scene", "LoreEntity", "LoreEdge", "Arc", "Beat", "StyleProfile", "Asset", "Faction",
+    "ConsistencyAlert", "Cover", "MapNode", "MapEdge", "MapEdgeModifier", "MapRegion", "LorePin",
+    "CharacterKnowledge", "Journey",
+    # AuthorForge V2 Schemas
+    "SceneStatusEnum", "EntityKindEnum", "EdgeTypeEnum", "KnowledgeTypeEnum",
+    "AssetSourceTypeEnum", "AssetTypeEnum", "PinTypeEnum",
+    "ChapterCreate", "ChapterUpdate", "ChapterResponse", "ChapterWithScenes",
+    "SceneCreate", "SceneUpdate", "SceneResponse",
+    "EntityCreate", "EntityUpdate", "EntityResponse",
+    "EdgeCreate", "EdgeResponse",
+    "ArcCreate", "ArcUpdate", "ArcResponse", "ArcWithBeats",
+    "BeatCreate", "BeatUpdate", "BeatResponse",
+    "StyleProfileCreate", "StyleProfileUpdate", "StyleProfileResponse",
+    "AssetCreate", "AssetResponse",
+    "FactionCreate", "FactionUpdate", "FactionResponse",
+    "ConsistencyAlertCreate", "ConsistencyAlertUpdate", "ConsistencyAlertResponse",
+    "CoverCreate", "CoverUpdate", "CoverResponse",
+    "MapNodeCreate", "MapNodeUpdate", "MapNodeResponse",
+    "MapEdgeCreate", "MapEdgeResponse",
+    "MapEdgeModifierCreate", "MapEdgeModifierResponse",
+    "MapRegionCreate", "MapRegionResponse",
+    "LorePinCreate", "LorePinUpdate", "LorePinResponse",
+    "CharacterKnowledgeCreate", "CharacterKnowledgeResponse",
+    "JourneyCreate", "JourneyResponse",
+    # NeuroForge Models & Schemas
+    "Inference",
+    "InferenceCreate", "InferenceResponse", "InferenceListResponse", "InferenceStats",
+    "DomainBreakdown",
 ]

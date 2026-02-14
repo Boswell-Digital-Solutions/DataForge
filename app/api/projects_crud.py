@@ -3,7 +3,7 @@ CRUD operations for AuthorForge projects and related entities.
 """
 
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, text
 from typing import List, Optional
 from datetime import datetime
 
@@ -21,6 +21,25 @@ from app.models.authorforge_schemas import (
 )
 
 
+def _load_genres(db: Session, project: Optional[Project]) -> Optional[Project]:
+    """Load genres from the association table onto the project object."""
+    if project is None:
+        return None
+    rows = db.execute(
+        text("SELECT genre FROM project_genres WHERE project_id = :pid"),
+        {"pid": project.id}
+    ).fetchall()
+    project.genres = [GenreEnum(r[0]) for r in rows]
+    return project
+
+
+def _load_genres_list(db: Session, projects: List[Project]) -> List[Project]:
+    """Load genres for a list of projects."""
+    for p in projects:
+        _load_genres(db, p)
+    return projects
+
+
 # ============================================
 # Projects
 # ============================================
@@ -30,14 +49,15 @@ def get_user_projects(db: Session, user_id: int, status: Optional[ProjectStatus]
     query = db.query(Project).filter(Project.user_id == user_id)
     if status:
         query = query.filter(Project.status == status)
-    return query.order_by(Project.last_edited_at.desc().nullsfirst(), Project.updated_at.desc()).all()
+    return _load_genres_list(db, query.order_by(Project.last_edited_at.desc().nullsfirst(), Project.updated_at.desc()).all())
 
 
 def get_project(db: Session, project_id: int, user_id: int) -> Optional[Project]:
     """Get a specific project by ID"""
-    return db.query(Project).filter(
+    project = db.query(Project).filter(
         and_(Project.id == project_id, Project.user_id == user_id)
     ).first()
+    return _load_genres(db, project)
 
 
 def create_project(db: Session, project: ProjectCreate, user_id: int) -> Project:
@@ -57,13 +77,13 @@ def create_project(db: Session, project: ProjectCreate, user_id: int) -> Project
     # Add genres
     for genre in project.genres:
         db.execute(
-            "INSERT INTO project_genres (project_id, genre) VALUES (:project_id, :genre)",
+            text("INSERT INTO project_genres (project_id, genre) VALUES (:project_id, :genre)"),
             {"project_id": db_project.id, "genre": genre.value}
         )
 
     db.commit()
     db.refresh(db_project)
-    return db_project
+    return _load_genres(db, db_project)
 
 
 def update_project(db: Session, project_id: int, user_id: int, project_update: ProjectUpdate) -> Optional[Project]:
@@ -79,13 +99,13 @@ def update_project(db: Session, project_id: int, user_id: int, project_update: P
         genres = update_data.pop("genres")
         # Remove existing genres
         db.execute(
-            "DELETE FROM project_genres WHERE project_id = :project_id",
+            text("DELETE FROM project_genres WHERE project_id = :project_id"),
             {"project_id": project_id}
         )
         # Add new genres
         for genre in genres:
             db.execute(
-                "INSERT INTO project_genres (project_id, genre) VALUES (:project_id, :genre)",
+                text("INSERT INTO project_genres (project_id, genre) VALUES (:project_id, :genre)"),
                 {"project_id": project_id, "genre": genre.value}
             )
 
@@ -96,7 +116,7 @@ def update_project(db: Session, project_id: int, user_id: int, project_update: P
     db_project.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_project)
-    return db_project
+    return _load_genres(db, db_project)
 
 
 def delete_project(db: Session, project_id: int, user_id: int) -> bool:

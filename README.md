@@ -87,7 +87,12 @@ Built with enterprise security, high availability, and compliance as first-class
 | **Production Code**     | 28,257+ lines                 |
 | **Total Documentation** | 7,242+ lines                  |
 | **Current Version**     | 5.2                           |
-| **API Endpoints**       | 24 REST endpoints             |
+| **API Routers**         | 29 domain-specific routers    |
+| **API Endpoints**       | 80+ REST endpoints            |
+| **Database Models**     | 31+ ORM classes               |
+| **Services**            | 5 business logic services     |
+| **Utility Modules**     | 28 utilities                  |
+| **Test Files**          | 32 test files                 |
 | **Commercial License**  | ✅ [LICENSE.md](./LICENSE.md) |
 | **IP Protection**       | ✅ [LEGAL.md](./LEGAL.md)     |
 | **Uptime SLA**          | 99.99% (multi-node)           |
@@ -104,48 +109,65 @@ Ecosystem-level topology, ports, and shared status live in `../docs/ECOSYSTEM_CA
 
 DataForge acts as the **shared intelligence layer** for the Forge Suite of products:
 
-| Product         | Port | Role                                                                                          | Integration Status |
-| --------------- | ---- | --------------------------------------------------------------------------------------------- | ------------------ |
-| **NeuroForge**  | 8000 | Model routing, embeddings generation, context retrieval, inference tracking                   | ✅ Complete        |
-| **VibeForge**   | -    | Project creation wizard, code analysis, GitHub integration, stack analytics, language tracking | ✅ Complete        |
-| **AuthorForge** | -    | Writing knowledge, narrative structures, pacing, genre-level analysis                         | 🚧 Planned         |
-| **TradeForge**  | -    | Market signals, historical feeds, structured financial datasets                               | 🚧 Planned         |
-| **Leopold**     | -    | Ecological observations, biological datasets, environmental tracking                          | 🚧 Planned         |
-| **Livy**        | -    | Historical data, geospatial narratives, temporal analysis                                     | 🚧 Planned         |
+| Product          | Port | Role                                                                                          | Integration Status |
+| ---------------- | ---- | --------------------------------------------------------------------------------------------- | ------------------ |
+| **NeuroForge**   | 8000 | Model routing, embeddings generation, context retrieval, inference tracking & logging         | ✅ Complete        |
+| **VibeForge**    | -    | Project creation wizard, code analysis, GitHub integration, stack analytics, language tracking | ✅ Complete        |
+| **AuthorForge**  | -    | V2 book/chapter/scene management, knowledge graphs, story maps, cover artwork                | ✅ Complete        |
+| **ForgeAgents**  | -    | Agent run persistence, agent registry, execution evidence, BugCheck findings                 | ✅ Complete        |
+| **Forge:SMITH**  | -    | Planning sessions, portfolio projects, competency tracking                                   | ✅ Complete        |
+| **BuildGuard**   | -    | Quality gate events, GRR Phase D event persistence                                           | ✅ Complete        |
+| **Tarcie**       | -    | Friction capture observations, developer experience telemetry                                | ✅ Complete        |
+| **TradeForge**   | -    | Market signals, historical feeds, structured financial datasets                               | 🚧 Planned         |
+| **Leopold**      | -    | Ecological observations, biological datasets, environmental tracking                          | 🚧 Planned         |
+| **Livy**         | -    | Historical data, geospatial narratives, temporal analysis                                     | 🚧 Planned         |
 
 ### Integration Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Forge Products (Clients)                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  NeuroForge (Port 8000)     VibeForge Tauri App            │
-│  • LLM execution logs        • Project sessions             │
-│  • Context retrieval         • Stack outcomes               │
-│  • Model performance         • Language preferences         │
-│                                                              │
-└────────────────────────┬────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                       Forge Products (Clients)                       │
+├──────────────┬──────────────┬──────────────┬────────────────────────┤
+│ NeuroForge   │ VibeForge    │ AuthorForge  │ Forge:SMITH            │
+│ (Port 8000)  │ (Tauri App)  │ (V2)         │ (Tauri App)            │
+│ • Exec runs  │ • Projects   │ • Books      │ • Planning sessions    │
+│ • Inference  │ • Sessions   │ • Chapters   │ • Portfolio projects   │
+│ • Context    │ • Stacks     │ • Scenes     │ • BuildGuard events    │
+│ • Learning   │ • Analytics  │ • Graphs     │ • Competencies         │
+├──────────────┴──────────────┴──────────────┴────────────────────────┤
+│ ForgeAgents          │ BugCheck Agent       │ Tarcie                 │
+│ • Agent registry     │ • Run persistence    │ • Friction capture     │
+│ • Run evidence       │ • Findings/lifecycle │ • DX observations      │
+│ • Execution records  │ • AI enrichments     │ • Ingest telemetry     │
+└──────────────────────┴──────────────────────┴────────────────────────┘
                          │ HTTP REST API
-                         │ JWT Authentication
+                         │ JWT / API Key Authentication
                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  DataForge (Port 8001)                       │
-│                  Single Source of Truth                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Runs API    │  │VibeForge API │  │  Search API  │     │
-│  │ (NeuroForge) │  │  (Projects)  │  │   (Vector)   │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│          PostgreSQL + pgvector + Redis                       │
-│          Persistent Storage Layer                            │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                     DataForge (Port 8001)                            │
+│                     Single Source of Truth                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐      │
+│  │  Runs API  │ │VibeForge   │ │ Search API │ │ Learning   │      │
+│  │(NeuroForge)│ │  API       │ │  (Vector)  │ │   API      │      │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘      │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐      │
+│  │ BugCheck   │ │AuthorForge │ │  Smithy    │ │ForgeAgents │      │
+│  │   API      │ │  V2 API    │ │   API      │ │   API      │      │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘      │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐      │
+│  │  Events    │ │  Tarcie    │ │  Secrets   │ │ Diligence  │      │
+│  │(BuildGuard)│ │  (Ingest)  │ │   API      │ │   API      │      │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘      │
+│                                                                      │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│          PostgreSQL + pgvector + Redis + RabbitMQ                    │
+│          Persistent Storage Layer                                    │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Current Integrations
@@ -156,6 +178,8 @@ DataForge acts as the **shared intelligence layer** for the Forge Suite of produ
 - Stores prompt/chain/deployment data
 - Retrieves context from knowledge base
 - Tracks model performance metrics
+- Inference logging with transparency (`/api/neuroforge`)
+- Multi-AI planning learning with recommendations (`/api/v1/learning`)
 
 **VibeForge → DataForge:**
 
@@ -166,6 +190,41 @@ DataForge acts as the **shared intelligence layer** for the Forge Suite of produ
 - Monitors build/test/deploy results
 - Stores code analysis results and quality metrics
 - Caches GitHub repository metadata and file contents
+
+**AuthorForge V2 → DataForge:**
+
+- Book/chapter/scene CRUD (`/api/v1/authorforge`)
+- Knowledge graph storage and retrieval
+- Story map management
+- Cover artwork persistence
+
+**ForgeAgents → DataForge:**
+
+- Agent run persistence with execution evidence (`/api/forgeagents/runs`)
+- Agent capability registry (`/api/agents/registry`)
+
+**BugCheck Agent → DataForge:**
+
+- Run records and findings persistence (`/api/bugcheck`)
+- Finding lifecycle tracking (NEW → TRIAGED → FIX_PROPOSED → ... → CLOSED)
+- AI enrichment artifact storage
+- Lifecycle event auditing
+
+**Forge:SMITH → DataForge:**
+
+- Planning session CRUD (`/api/v1/smithy/planning`)
+- Portfolio project management (`/api/v1/smithy/portfolio`)
+- Competency tracking
+
+**BuildGuard → DataForge:**
+
+- Quality gate event persistence (`/api/events`)
+- GRR Phase D event tracking
+
+**Tarcie → DataForge:**
+
+- Friction capture observation ingest (`/api/tarcie/ingest`)
+- Developer experience telemetry
 
 ### Benefits of Shared Intelligence Layer
 
@@ -474,15 +533,27 @@ OPENTELEMETRY_ENABLED=false  # Set true for distributed tracing
 
 All **18 phases completed (100%)**:
 
-| Phase   | Focus Area              | Status      |
-| ------- | ----------------------- | ----------- |
-| **0**   | Automated Backups       | ✅ Complete |
-| **1**   | Operational Excellence  | ✅ Complete |
-| **2**   | Fault Tolerance         | ✅ Complete |
-| **3**   | High Availability       | ✅ Complete |
-| **4**   | Security Hardening      | ✅ Complete |
-| **5**   | Documentation & Testing | ✅ Complete |
-| **5.1** | Final Deployment Polish | ✅ Complete |
+| Phase   | Focus Area                          | Status      |
+| ------- | ----------------------------------- | ----------- |
+| **0**   | Automated Backups                   | ✅ Complete |
+| **1**   | Operational Excellence              | ✅ Complete |
+| **2**   | Fault Tolerance                     | ✅ Complete |
+| **3**   | High Availability                   | ✅ Complete |
+| **4**   | Security Hardening                  | ✅ Complete |
+| **5**   | Documentation & Testing             | ✅ Complete |
+| **5.1** | Final Deployment Polish             | ✅ Complete |
+| **6**   | NeuroForge Integration              | ✅ Complete |
+| **7**   | VibeForge Integration               | ✅ Complete |
+| **8**   | Multi-AI Planning Learning          | ✅ Complete |
+| **9**   | Team & Org Learning                 | ✅ Complete |
+| **10**  | Hybrid Search (Semantic + BM25)     | ✅ Complete |
+| **11**  | AuthorForge V2 Integration          | ✅ Complete |
+| **12**  | BugCheck Agent Persistence          | ✅ Complete |
+| **13**  | ForgeAgents Registry & Runs         | ✅ Complete |
+| **14**  | Smithy Planning & Portfolio         | ✅ Complete |
+| **15**  | BuildGuard Events & Tarcie Ingest   | ✅ Complete |
+| **16**  | NeuroForge Inference & Secrets      | ✅ Complete |
+| **17**  | FPVS, Diligence & Infrastructure    | ✅ Complete |
 
 ---
 
@@ -491,8 +562,8 @@ All **18 phases completed (100%)**:
 | Layer                       | Technology    | Version | Purpose                  |
 | --------------------------- | ------------- | ------- | ------------------------ |
 | **Language**                | Python        | 3.11+   | Core application         |
-| **Web Framework**           | FastAPI       | 0.104+  | API and routing          |
-| **ORM**                     | SQLAlchemy    | 2.0+    | Database abstraction     |
+| **Web Framework**           | FastAPI       | 0.109+  | API and routing          |
+| **ORM**                     | SQLAlchemy    | 2.0.36+ | Database abstraction     |
 | **Migration**               | Alembic       | 1.13+   | Schema management        |
 | **Primary Database**        | PostgreSQL    | 13+     | Main datastore           |
 | **Vector Search**           | pgvector      | 0.5+    | Embeddings storage       |
@@ -504,15 +575,16 @@ All **18 phases completed (100%)**:
 | **Dashboards**              | Grafana       | 10.2+   | Visualization            |
 | **Container Orchestration** | Kubernetes    | 1.28+   | Deployment (optional)    |
 | **Container Runtime**       | Docker        | 24+     | Containerization         |
+| **Validation**              | Pydantic      | 2.10+   | Schema validation        |
 | **Testing Framework**       | pytest        | 7.4+    | Unit & integration tests |
-| **Load Testing**            | k6            | 0.48+   | Performance benchmarks   |
+| **Load Testing**            | k6 / Locust   | Latest  | Performance benchmarks   |
 | **API Documentation**       | OpenAPI 3.0   | -       | Auto-generated docs      |
 
 ---
 
 ## 🔍 API Quick Reference
 
-DataForge exposes **24 REST endpoints** organized by domain. All endpoints (except `/health`) require JWT authentication.
+DataForge exposes **29 API routers** organized by domain, providing 80+ REST endpoints. All endpoints (except `/health`, `/ready`, `/version`) require JWT or API key authentication.
 
 ### Authentication
 
@@ -814,6 +886,160 @@ POST /api/v1/learning/estimation-feedback
 ]
 ```
 
+#### BugCheck Agent API (4+ endpoints)
+
+```bash
+# Create BugCheck run
+POST /api/bugcheck/runs
+{
+  "run_type": "service_run",
+  "targets": ["neuroforge"],
+  "mode": "standard",
+  "scope": "full_repo",
+  "commit_sha": "abc123..."
+}
+
+# Get run by ID
+GET /api/bugcheck/runs/{run_id}
+
+# Add finding to run
+POST /api/bugcheck/findings
+{
+  "run_id": "...",
+  "fingerprint": "...",
+  "severity": "S1",
+  "category": "security",
+  "title": "SQL injection vulnerability",
+  "description": "...",
+  "location": {"file": "app/api/search.py", "line": 42}
+}
+
+# Update finding lifecycle
+PATCH /api/bugcheck/findings/{finding_id}
+{
+  "lifecycle_state": "TRIAGED"
+}
+```
+
+#### AuthorForge V2 API (6+ endpoints)
+
+```bash
+# Create book
+POST /api/v1/authorforge/books
+{
+  "title": "My Novel",
+  "genre": "fiction",
+  "author_id": "user123"
+}
+
+# Get book
+GET /api/v1/authorforge/books/{book_id}
+
+# Chapter CRUD
+POST /api/v1/authorforge/chapters
+GET /api/v1/authorforge/chapters/{chapter_id}
+
+# Scene CRUD
+POST /api/v1/authorforge/scenes
+
+# Knowledge graph
+GET /api/v1/authorforge/graph/{book_id}
+
+# Story maps & covers
+GET /api/v1/authorforge/maps/{book_id}
+POST /api/v1/authorforge/covers
+```
+
+#### ForgeAgents API (4+ endpoints)
+
+```bash
+# Create agent run
+POST /api/forgeagents/runs
+{
+  "agent_type": "bugcheck",
+  "targets": ["neuroforge"],
+  "evidence": {...}
+}
+
+# Get run
+GET /api/forgeagents/runs/{run_id}
+
+# List runs
+GET /api/forgeagents/runs?agent_type=bugcheck
+
+# Agent registry
+POST /api/agents/registry
+GET /api/agents/registry
+GET /api/agents/registry/{agent_id}
+```
+
+#### Smithy API (Planning + Portfolio)
+
+```bash
+# Planning sessions
+POST /api/v1/smithy/planning/sessions
+GET /api/v1/smithy/planning/sessions/{session_id}
+GET /api/v1/smithy/planning/sessions
+PATCH /api/v1/smithy/planning/sessions/{session_id}
+
+# Portfolio projects
+POST /api/v1/smithy/portfolio/projects
+GET /api/v1/smithy/portfolio/projects/{project_id}
+GET /api/v1/smithy/portfolio/projects
+PATCH /api/v1/smithy/portfolio/projects/{project_id}
+```
+
+#### Additional API Domains
+
+```bash
+# NeuroForge inference logging
+POST /api/neuroforge/inferences
+GET /api/neuroforge/inferences/{inference_id}
+
+# Tarcie friction capture
+POST /api/tarcie/ingest
+
+# BuildGuard events (GRR Phase D)
+POST /api/events
+GET /api/events
+
+# LLM provider secrets sync
+POST /api/secrets
+GET /api/secrets
+
+# Due diligence tracking
+POST /api/diligence
+GET /api/diligence/dashboard
+GET /api/diligence/reports
+
+# API key management (ForgeCommand)
+POST /api/keys
+GET /api/keys
+DELETE /api/keys/{key_id}
+
+# Rate limiting management
+GET /api/rate-limit
+POST /api/rate-limit
+
+# Dead-letter queue
+GET /api/dlq
+POST /api/dlq/{job_id}/retry
+
+# Database replication & failover
+GET /api/replication/status
+POST /api/replication/failover
+
+# Cache replication
+GET /api/cache-replication/status
+
+# Distributed tracing
+GET /api/tracing/spans
+
+# API deployment tracking
+GET /api/deployments
+POST /api/deployments
+```
+
 ### Response Formats
 
 **Success Response (200):**
@@ -918,92 +1144,234 @@ cat results/k6-summary.json
 
 ```
 DataForge/
-├── app/                          # Application source code
-│   ├── main.py                   # FastAPI application entry point
-│   ├── config.py                 # Configuration management
-│   ├── database.py               # Database connection and session
-│   ├── models/                   # SQLAlchemy ORM models
-│   │   ├── user.py               # User and authentication
-│   │   ├── run.py                # NeuroForge execution runs
-│   │   ├── vibeforge_models.py   # VibeForge projects/sessions
-│   │   └── audit.py              # Audit logging
-│   ├── schemas/                  # Pydantic validation schemas
-│   │   ├── run_schemas.py
-│   │   ├── vibeforge_schemas.py
-│   │   └── user_schemas.py
-│   ├── routers/                  # API route handlers
-│   │   ├── runs.py               # /api/v1/runs endpoints
-│   │   ├── vibeforge.py          # /api/vibeforge endpoints
-│   │   ├── auth.py               # /api/v1/auth endpoints
-│   │   └── search.py             # /api/v1/search endpoints
-│   ├── services/                 # Business logic layer
-│   │   ├── run_service.py
-│   │   ├── vibeforge_service.py
-│   │   └── search_service.py
-│   └── utils/                    # Utility functions
-│       ├── security.py           # Encryption, hashing
-│       ├── embeddings.py         # Vector generation
-│       └── metrics.py            # Prometheus metrics
-├── alembic/                      # Database migrations
-│   ├── versions/                 # Migration files
-│   └── env.py                    # Alembic configuration
-├── tests/                        # Test suite (296 tests)
-│   ├── unit/                     # Unit tests
-│   ├── test_integration/         # Integration tests
+├── app/                              # Application source code (28,257+ lines)
+│   ├── main.py                       # FastAPI entry point, router registration
+│   ├── config.py                     # Configuration management
+│   ├── database.py                   # SQLAlchemy engine & session factory
+│   ├── security_config.py            # Security headers configuration
+│   ├── logging_config.py             # Structured JSON logging setup
+│   │
+│   ├── api/                          # 29 API routers (REST endpoints)
+│   │   ├── admin_router.py           # Admin domain management
+│   │   ├── admin_keys_router.py      # API key management (ForgeCommand)
+│   │   ├── auth_router.py            # Authentication endpoints
+│   │   ├── auth_secure_router.py     # Secure auth with MFA
+│   │   ├── auth_revocation_router.py # Token revocation
+│   │   ├── search_router.py          # Semantic/keyword/hybrid search
+│   │   ├── search.py                 # Search business logic
+│   │   ├── runs_router.py            # NeuroForge execution tracking
+│   │   ├── learning_router.py        # Multi-AI planning learning
+│   │   ├── projects_router.py        # Project CRUD
+│   │   ├── vibeforge_router.py       # VibeForge integration
+│   │   ├── teams_router.py           # Team/org learning
+│   │   ├── authorforge_v2_router.py  # AuthorForge V2 endpoints
+│   │   ├── bugcheck_router.py        # BugCheck Agent persistence
+│   │   ├── forge_run_router.py       # ForgeAgents run persistence
+│   │   ├── agents_registry_router.py # ForgeAgents agent registry
+│   │   ├── smithy_planning_router.py # Smithy planning sessions
+│   │   ├── smithy_portfolio_router.py# Smithy portfolio module
+│   │   ├── neuroforge_router.py      # NeuroForge inference logging
+│   │   ├── tarcie_router.py          # Tarcie friction capture ingest
+│   │   ├── secrets_router.py         # LLM provider secrets sync
+│   │   ├── diligence_router.py       # Due diligence API + UI
+│   │   ├── fpvs_router.py            # FPVS Phase 1 (health/ready/version)
+│   │   ├── events_router.py          # BuildGuard events (GRR Phase D)
+│   │   ├── rate_limit_router.py      # Rate limiting management
+│   │   ├── cache_replication_router.py # Cache replication control
+│   │   ├── replication_router.py     # Database replication & failover
+│   │   ├── dlq_router.py             # Dead-letter queue management
+│   │   ├── api_deployment_router.py  # API deployment tracking
+│   │   ├── tracing_router.py         # Distributed tracing
+│   │   └── crud.py                   # Generic CRUD utilities
+│   │
+│   ├── models/                       # 31+ SQLAlchemy ORM & Pydantic models
+│   │   ├── models.py                 # Core: User, Domain, Document, Chunk, Tag
+│   │   ├── schemas.py                # Base Pydantic schemas
+│   │   ├── runs_models.py            # NeuroForge execution runs
+│   │   ├── runs_schemas.py           # Runs validation schemas
+│   │   ├── vibeforge_models.py       # VibeForge projects/sessions
+│   │   ├── vibeforge_schemas.py      # VibeForge validation schemas
+│   │   ├── planning_models.py        # Multi-AI planning outcomes
+│   │   ├── planning_schemas.py       # Planning validation schemas
+│   │   ├── team_models.py            # Team & org learning
+│   │   ├── team_schemas.py           # Team validation schemas
+│   │   ├── bugcheck_models.py        # BugCheck findings/runs
+│   │   ├── bugcheck_schemas.py       # BugCheck validation schemas
+│   │   ├── authorforge_v2_models.py  # AuthorForge V2
+│   │   ├── authorforge_v2_schemas.py # AuthorForge V2 schemas
+│   │   ├── buildguard_models.py      # BuildGuard events
+│   │   ├── buildguard_schemas.py     # BuildGuard schemas
+│   │   ├── tarcie_models.py          # Tarcie friction capture
+│   │   ├── tarcie_schemas.py         # Tarcie validation schemas
+│   │   ├── neuroforge_models.py      # NeuroForge inference
+│   │   ├── neuroforge_schemas.py     # NeuroForge schemas
+│   │   ├── diligence_models.py       # Due diligence tracking
+│   │   ├── diligence_schemas.py      # Diligence validation schemas
+│   │   ├── smithy_planning_models.py # Smithy planning sessions
+│   │   ├── smithy_planning_schemas.py# Smithy planning schemas
+│   │   ├── smithy_portfolio_models.py# Smithy portfolio projects
+│   │   ├── smithy_portfolio_schemas.py# Smithy portfolio schemas
+│   │   ├── agent_registry_schemas.py # ForgeAgents registry schemas
+│   │   └── forge_run_schemas.py      # ForgeAgents run schemas
+│   │
+│   ├── services/                     # 5 business logic services
+│   │   ├── runs_service.py           # Run logging & analytics
+│   │   ├── vibeforge_service.py      # VibeForge business logic
+│   │   ├── tarcie_service.py         # Tarcie friction capture
+│   │   ├── teams_service.py          # Team learning service
+│   │   └── embeddings_integration.py # Embeddings generation
+│   │
+│   ├── utils/                        # 28 utility modules
+│   │   ├── auth.py                   # JWT & auth utilities
+│   │   ├── oauth2_oidc.py            # OAuth2/OIDC integration
+│   │   ├── mfa_handler.py            # Multi-factor authentication
+│   │   ├── secure_key_storage.py     # Secrets management (Vault/KMS)
+│   │   ├── data_encryption.py        # AES-256 field encryption
+│   │   ├── token_revocation.py       # Token blacklisting
+│   │   ├── embeddings.py             # Embedding generation
+│   │   ├── resilient_embeddings.py   # Fallback embeddings with caching
+│   │   ├── redis_utils.py            # Redis operations
+│   │   ├── circuit_breaker.py        # Graceful degradation
+│   │   ├── cache_failover.py         # Cache layer failover
+│   │   ├── cache_replication.py      # Cache replication logic
+│   │   ├── db_failover.py            # Database failover
+│   │   ├── db_replication.py         # Database replication
+│   │   ├── rate_limiter.py           # Rate limiting (dual impl)
+│   │   ├── rate_limit.py             # Token bucket algorithm
+│   │   ├── load_balancer.py          # Load balancing utilities
+│   │   ├── distributed_tracing.py    # OpenTelemetry integration
+│   │   ├── cross_region_tracing.py   # Multi-region tracing
+│   │   ├── metrics.py                # Prometheus metrics
+│   │   ├── audit_logging.py          # Immutable audit logs
+│   │   ├── anomaly_detection.py      # 6-type anomaly detection
+│   │   ├── compliance_reporting.py   # GDPR/CCPA/HIPAA/SOC2/PCI-DSS
+│   │   ├── diligence_parser.py       # Due diligence parsing
+│   │   ├── session_manager.py        # Session management
+│   │   ├── task_retry_policy.py      # Async task retry logic
+│   │   └── dead_letter_queue.py      # DLQ management
+│   │
+│   ├── middleware/                    # Middleware
+│   │   └── correlation.py            # Correlation ID tracking
+│   │
+│   ├── auth/                         # Authentication modules
+│   │   ├── api_keys.py               # API key management
+│   │   └── token_rotation.py         # 72-hour token rotation
+│   │
+│   ├── neuroforge/                   # NeuroForge-specific modules
+│   │   └── services/
+│   │       ├── context_builder.py    # Context assembly
+│   │       ├── inference_pipeline.py # Inference orchestration
+│   │       ├── post_processor.py     # Output post-processing
+│   │       └── dataforge_client.py   # DataForge API client
+│   │
+│   └── tasks/
+│       └── celery_integration.py     # Celery task queue setup
+│
+├── tests/                            # 32 test files (296 tests)
+│   ├── conftest.py                   # Pytest fixtures & config
+│   ├── conftest_security.py          # Security test fixtures
+│   ├── test_api/                     # API endpoint tests
+│   │   ├── test_admin_endpoints.py
+│   │   ├── test_auth_endpoints.py
+│   │   ├── test_health_endpoints.py
+│   │   ├── test_search_endpoints.py
+│   │   └── test_vibeforge_endpoints.py
+│   ├── test_integration/             # Integration tests
 │   │   ├── test_api_endpoints.py
+│   │   ├── test_crud_operations.py
 │   │   ├── test_e2e_workflows.py
 │   │   └── test_infrastructure_health.py
-│   ├── test_security/            # Security tests
+│   ├── test_unit/                    # Unit tests
+│   │   ├── test_auth.py
+│   │   ├── test_embeddings.py
+│   │   ├── test_models.py
+│   │   ├── test_rate_limit.py
+│   │   ├── test_vibeforge_schemas.py
+│   │   └── test_vibeforge_services.py
+│   ├── test_security/                # Security tests
 │   │   └── test_vulnerability_scanning.py
-│   └── load/                     # Load testing
-│       ├── test_k6_load.py
-│       └── k6_test.js            # k6 load test script
-├── docs/                         # Documentation
-│   ├── guides/                   # How-to guides
+│   ├── load/                         # Load testing
+│   │   ├── locustfile.py             # Locust load testing
+│   │   └── test_k6_load.py          # k6 load testing
+│   ├── test_circuit_breaker.py
+│   ├── test_dataforge_integration.py
+│   ├── test_db_replication.py
+│   ├── test_dlq_and_retry.py
+│   ├── test_performance_optimization.py
+│   ├── test_rate_limiter.py
+│   ├── test_sql_integration.py
+│   └── test_token_revocation.py
+│
+├── alembic/                          # Database migrations
+│   ├── versions/                     # Migration scripts
+│   └── env.py                        # Alembic configuration
+├── docs/                             # Documentation (7,242+ lines)
+│   ├── guides/                       # How-to guides
 │   │   ├── COMPREHENSIVE_DOCUMENTATION.md
 │   │   ├── API_REFERENCE.md
 │   │   ├── DEPLOYMENT_GUIDE.md
 │   │   ├── OPERATIONS_RUNBOOK.md
 │   │   ├── TROUBLESHOOTING_GUIDE.md
-│   │   └── LOAD_TESTING_GUIDE.md
-│   └── setup/                    # Setup guides
-│       └── SETUP.md
-├── k8s/                          # Kubernetes manifests
-│   ├── helm-chart/               # Helm charts
-│   └── manifests/                # Raw K8s YAML
-├── scripts/                      # Operational scripts
-│   ├── deploy-single-node.sh
-│   ├── deploy-multi-node.sh
-│   ├── db_check.py
-│   └── rotate-audit-logs.sh
-├── ops/                          # Operations configs
-│   ├── prometheus/               # Prometheus configuration
-│   └── grafana/                  # Grafana dashboards
-├── static/                       # Static files
-├── templates/                    # Email/report templates
-├── logs/                         # Application logs
-├── venv/                         # Python virtual environment
-├── .env                          # Environment variables (not in git)
-├── .env.example                  # Example environment file
-├── requirements.txt              # Python dependencies
-├── alembic.ini                   # Alembic configuration
-├── docker-compose.yml            # Docker development setup
-├── docker-compose.prod.yml       # Docker production setup
-├── Dockerfile                    # Container image
-├── pytest.ini                    # Pytest configuration
-├── mypy.ini                      # Type checking config
-├── README.md                     # This file
-├── ARCHITECTURE.md               # Architecture documentation
-├── SECURITY.md                   # Security policy
-├── LICENSE.md                    # Commercial license
-└── LEGAL.md                      # Legal protections
+│   │   ├── LOAD_TESTING_GUIDE.md
+│   │   ├── QUICK_START_GUIDE.md
+│   │   ├── SQL_INTEGRATION_GUIDE.md
+│   │   ├── DUE_DILIGENCE_INTEGRATION_GUIDE.md
+│   │   └── KUBERNETES_DEPLOYMENT.md
+│   ├── architecture/
+│   │   └── ARCHITECTURE.md
+│   ├── setup/
+│   │   └── SETUP.md
+│   ├── security/
+│   │   ├── SECURITY.md
+│   │   └── SECURITY_CHECKLIST.md
+│   └── references/                   # Technical references
+│       ├── PROJECT_STATUS.md
+│       ├── EXECUTIVE_SUMMARY.md
+│       └── MANIFEST.md
+├── k8s/                              # Kubernetes deployment
+│   ├── helm-chart/                   # Helm charts
+│   └── manifests/                    # Raw K8s YAML
+├── ops/                              # Operations configs
+│   ├── prometheus/                   # Prometheus configuration
+│   └── grafana/                      # Grafana dashboards
+├── scripts/                          # Operational scripts
+├── forge-telemetry/                  # Local telemetry module
+├── templates/                        # Email/report templates
+├── static/                           # Static assets
+├── logs/                             # Application logs
+│
+├── .env.example                      # Environment template
+├── .env.local                        # Local overrides
+├── .env.production                   # Production configuration
+├── requirements.txt                  # Python dependencies
+├── alembic.ini                       # Alembic configuration
+├── docker-compose.yml                # Docker dev setup
+├── docker-compose.prod.yml           # Docker prod setup
+├── Dockerfile                        # Container image
+├── Makefile                          # Build automation
+├── pytest.ini                        # Pytest configuration
+├── mypy.ini                          # Type checking config
+├── prometheus.yml                    # Prometheus scrape config
+├── prometheus-rules.yml              # Alerting rules
+├── render.yaml                       # Render deployment config
+├── service_contract.v1.json          # Service contract version
+├── README.md                         # This file
+├── ARCHITECTURE.md                   # Architecture documentation
+├── SECURITY.md                       # Security policy
+├── LICENSE.md                        # Commercial license
+├── LEGAL.md                          # Legal protections
+└── CHANGELOG.md                      # Version history
 ```
 
 ### Key Files to Know
 
-- **`app/main.py`** - Application entry point, router registration
+- **`app/main.py`** - Application entry point, all 29 router registrations
 - **`app/config.py`** - All configuration variables
-- **`app/database.py`** - Database connection management
+- **`app/database.py`** - SQLAlchemy engine & session factory
+- **`app/api/`** - All 29 API routers organized by domain
+- **`app/models/`** - 31+ ORM models and Pydantic schemas
+- **`app/services/`** - 5 business logic services
+- **`app/utils/`** - 28 utility modules (auth, encryption, resilience, observability)
 - **`alembic/versions/`** - Database schema migrations
 - **`requirements.txt`** - All Python dependencies
 - **`.env`** - Environment-specific configuration (create from `.env.example`)
@@ -1445,6 +1813,6 @@ pytest tests/ --cov=app --cov-report=html
 
 ---
 
-**Last Updated:** December 21, 2025
-**System Status:** ✅ HEALTHY (100% Operational - All 4 Forge services running)
-**Next Review:** Q1 2026
+**Last Updated:** February 13, 2026
+**System Status:** ✅ HEALTHY (100% Operational - All 10 Forge service integrations active)
+**Next Review:** Q2 2026
