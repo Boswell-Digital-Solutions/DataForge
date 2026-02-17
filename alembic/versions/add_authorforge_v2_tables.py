@@ -41,59 +41,59 @@ def upgrade() -> None:
 
     # Create ENUM types idempotently using DO blocks
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE scenestatus AS ENUM ('blank', 'draft', 'revision', 'final');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE entitykind AS ENUM ('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE edgetype AS ENUM ('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE knowledgetype AS ENUM ('visited', 'heard_of', 'rumored');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE assetsourcetype AS ENUM ('upload', 'ai_generated', 'url');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE assettype AS ENUM ('image', 'icon', 'texture', 'cover');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     conn.execute(sa.text("""
-        DO $$ BEGIN
+    DO $$ BEGIN
             CREATE TYPE pintype AS ENUM ('battle', 'event', 'landmark', 'note');
-        EXCEPTION WHEN duplicate_object THEN
+    EXCEPTION WHEN duplicate_object THEN
             NULL;
-        END $$;
+    END $$;
     """))
 
     # Now define the enum types for SQLAlchemy (create_type=False since we created them above)
@@ -115,10 +115,10 @@ def upgrade() -> None:
             sa.Column('notes', sa.Text()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- scenes ---
-        safe_create_table('scenes',
+    # --- scenes ---
+    safe_create_table('scenes',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('chapter_id', sa.Integer(), sa.ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('title', sa.String(500), nullable=False),
@@ -130,10 +130,10 @@ def upgrade() -> None:
             sa.Column('notes', sa.Text()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- lore_entities ---
-        safe_create_table('lore_entities',
+    # --- lore_entities ---
+    safe_create_table('lore_entities',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('kind', entity_kind, nullable=False, index=True),
@@ -143,20 +143,20 @@ def upgrade() -> None:
             sa.Column('attributes_json', sa.JSON(), server_default='{}'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- lore_edges ---
-        safe_create_table('lore_edges',
+    # --- lore_edges ---
+    safe_create_table('lore_edges',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('source_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('target_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('edge_type', edge_type, nullable=False, index=True),
             sa.Column('properties_json', sa.JSON(), server_default='{}'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- arcs ---
-        safe_create_table('arcs',
+    # --- arcs ---
+    safe_create_table('arcs',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -165,10 +165,10 @@ def upgrade() -> None:
             sa.Column('description', sa.Text()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- beats ---
-        safe_create_table('beats',
+    # --- beats ---
+    safe_create_table('beats',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('arc_id', sa.Integer(), sa.ForeignKey('arcs.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL'), index=True),
@@ -178,10 +178,10 @@ def upgrade() -> None:
             sa.Column('sort_order', sa.Integer(), nullable=False, server_default='0'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- style_profiles ---
-        safe_create_table('style_profiles',
+    # --- style_profiles ---
+    safe_create_table('style_profiles',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), index=True),
             sa.Column('scope', sa.String(50), nullable=False),
@@ -190,10 +190,10 @@ def upgrade() -> None:
             sa.Column('rules_json', sa.JSON(), server_default='{}'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- assets ---
-        safe_create_table('assets',
+    # --- assets ---
+    safe_create_table('assets',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='SET NULL'), index=True),
@@ -204,10 +204,10 @@ def upgrade() -> None:
             sa.Column('tags', sa.JSON(), server_default='[]'),
             sa.Column('metadata_json', sa.JSON(), server_default='{}'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- factions ---
-        safe_create_table('factions',
+    # --- factions ---
+    safe_create_table('factions',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -217,10 +217,10 @@ def upgrade() -> None:
             sa.Column('members_json', sa.JSON(), server_default='[]'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- consistency_alerts ---
-        safe_create_table('consistency_alerts',
+    # --- consistency_alerts ---
+    safe_create_table('consistency_alerts',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL')),
@@ -231,10 +231,10 @@ def upgrade() -> None:
             sa.Column('resolved', sa.Boolean(), server_default='false'),
             sa.Column('resolved_at', sa.DateTime(timezone=True)),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- covers ---
-        safe_create_table('covers',
+    # --- covers ---
+    safe_create_table('covers',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('platform', sa.String(50), nullable=False),
@@ -248,10 +248,10 @@ def upgrade() -> None:
             sa.Column('barcode_isbn', sa.String(13)),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- map_nodes ---
-        safe_create_table('map_nodes',
+    # --- map_nodes ---
+    safe_create_table('map_nodes',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -266,10 +266,10 @@ def upgrade() -> None:
             sa.Column('era_to', sa.Integer()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
             sa.Column('updated_at', sa.DateTime(timezone=True)),
-        )
+    )
 
-        # --- map_edges ---
-        safe_create_table('map_edges',
+    # --- map_edges ---
+    safe_create_table('map_edges',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('from_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('to_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
@@ -278,10 +278,10 @@ def upgrade() -> None:
             sa.Column('infra_bonus', sa.Float(), server_default='1.0'),
             sa.Column('bidirectional', sa.Boolean(), server_default='true'),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- map_edge_modifiers ---
-        safe_create_table('map_edge_modifiers',
+    # --- map_edge_modifiers ---
+    safe_create_table('map_edge_modifiers',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('edge_id', sa.Integer(), sa.ForeignKey('map_edges.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('active_from', sa.Integer()),
@@ -289,10 +289,10 @@ def upgrade() -> None:
             sa.Column('multiplier', sa.Float(), server_default='1.0'),
             sa.Column('reason', sa.Text()),
             sa.Column('priority', sa.Integer(), server_default='0'),
-        )
+    )
 
-        # --- map_regions ---
-        safe_create_table('map_regions',
+    # --- map_regions ---
+    safe_create_table('map_regions',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('biome', sa.String(50), nullable=False),
@@ -300,10 +300,10 @@ def upgrade() -> None:
             sa.Column('era_from', sa.Integer()),
             sa.Column('era_to', sa.Integer()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- lore_pins ---
-        safe_create_table('lore_pins',
+    # --- lore_pins ---
+    safe_create_table('lore_pins',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('x', sa.Float(), nullable=False),
@@ -314,19 +314,19 @@ def upgrade() -> None:
             sa.Column('pin_type', pin_type),
             sa.Column('era', sa.Integer()),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
-        # --- character_knowledge ---
-        safe_create_table('character_knowledge',
+    # --- character_knowledge ---
+    safe_create_table('character_knowledge',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('entity_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('node_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('knowledge_type', knowledge_type, nullable=False),
             sa.Column('acquired_scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL')),
-        )
+    )
 
-        # --- journeys ---
-        safe_create_table('journeys',
+    # --- journeys ---
+    safe_create_table('journeys',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('from_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False),
@@ -337,7 +337,7 @@ def upgrade() -> None:
             sa.Column('total_days', sa.Float()),
             sa.Column('proof_hash', sa.String(64)),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        )
+    )
 
 
 def downgrade() -> None:
