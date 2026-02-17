@@ -13,7 +13,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import event
 from sqlalchemy.exc import ProgrammingError
 
 
@@ -28,84 +27,86 @@ def upgrade() -> None:
     # Fix for AF-T0-003: Avoid "type already exists" error on non-fresh DBs
     conn = op.get_bind()
 
-    # Event handler to suppress DuplicateObject errors from SQLAlchemy's ENUM auto-creation
-    def handle_error(exception_context):
-        if isinstance(exception_context.original_exception, ProgrammingError):
-            if 'already exists' in str(exception_context.original_exception):
-                exception_context.is_disconnect = False
-                return None  # Suppress the error
-        return exception_context.original_exception
+    # Helper function to wrap table creation with error suppression
+    # SQLAlchemy's dialect auto-creates ENUM types during op.create_table()
+    # even when create_type=False, so we catch those errors here
+    def safe_create_table(*args, **kwargs):
+        try:
+            op.create_table(*args, **kwargs)
+        except ProgrammingError as e:
+            # Only suppress "already exists" errors for types
+            # Re-raise any other errors (e.g., missing FK targets)
+            if 'already exists' not in str(e).lower():
+                raise
 
-    event.listen(conn, "handle_error", handle_error)
+    # Create ENUM types idempotently using DO blocks
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE scenestatus AS ENUM ('blank', 'draft', 'revision', 'final');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-    try:
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE scenestatus AS ENUM ('blank', 'draft', 'revision', 'final');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE entitykind AS ENUM ('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE entitykind AS ENUM ('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE edgetype AS ENUM ('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE edgetype AS ENUM ('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE knowledgetype AS ENUM ('visited', 'heard_of', 'rumored');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE knowledgetype AS ENUM ('visited', 'heard_of', 'rumored');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assetsourcetype AS ENUM ('upload', 'ai_generated', 'url');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE assetsourcetype AS ENUM ('upload', 'ai_generated', 'url');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assettype AS ENUM ('image', 'icon', 'texture', 'cover');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE assettype AS ENUM ('image', 'icon', 'texture', 'cover');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE pintype AS ENUM ('battle', 'event', 'landmark', 'note');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-        conn.execute(sa.text("""
-            DO $$ BEGIN
-                CREATE TYPE pintype AS ENUM ('battle', 'event', 'landmark', 'note');
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-        """))
+    # Now define the enum types for SQLAlchemy (create_type=False since we created them above)
+    scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False)
+    entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False)
+    edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False)
+    knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False)
+    asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False)
+    asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False)
+    pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)
 
-        # Now define the enum types for SQLAlchemy (create_type=False since we created them above)
-        scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False)
-        entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False)
-        edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False)
-        knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False)
-        asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False)
-        asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False)
-        pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)
-
-        # --- chapters ---
-        op.create_table('chapters',
+    # --- chapters ---
+    safe_create_table('chapters',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('title', sa.String(500), nullable=False),
@@ -117,7 +118,7 @@ def upgrade() -> None:
         )
 
         # --- scenes ---
-        op.create_table('scenes',
+        safe_create_table('scenes',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('chapter_id', sa.Integer(), sa.ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('title', sa.String(500), nullable=False),
@@ -132,7 +133,7 @@ def upgrade() -> None:
         )
 
         # --- lore_entities ---
-        op.create_table('lore_entities',
+        safe_create_table('lore_entities',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('kind', entity_kind, nullable=False, index=True),
@@ -145,7 +146,7 @@ def upgrade() -> None:
         )
 
         # --- lore_edges ---
-        op.create_table('lore_edges',
+        safe_create_table('lore_edges',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('source_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('target_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
@@ -155,7 +156,7 @@ def upgrade() -> None:
         )
 
         # --- arcs ---
-        op.create_table('arcs',
+        safe_create_table('arcs',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -167,7 +168,7 @@ def upgrade() -> None:
         )
 
         # --- beats ---
-        op.create_table('beats',
+        safe_create_table('beats',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('arc_id', sa.Integer(), sa.ForeignKey('arcs.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL'), index=True),
@@ -180,7 +181,7 @@ def upgrade() -> None:
         )
 
         # --- style_profiles ---
-        op.create_table('style_profiles',
+        safe_create_table('style_profiles',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), index=True),
             sa.Column('scope', sa.String(50), nullable=False),
@@ -192,7 +193,7 @@ def upgrade() -> None:
         )
 
         # --- assets ---
-        op.create_table('assets',
+        safe_create_table('assets',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='SET NULL'), index=True),
@@ -206,7 +207,7 @@ def upgrade() -> None:
         )
 
         # --- factions ---
-        op.create_table('factions',
+        safe_create_table('factions',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -219,7 +220,7 @@ def upgrade() -> None:
         )
 
         # --- consistency_alerts ---
-        op.create_table('consistency_alerts',
+        safe_create_table('consistency_alerts',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL')),
@@ -233,7 +234,7 @@ def upgrade() -> None:
         )
 
         # --- covers ---
-        op.create_table('covers',
+        safe_create_table('covers',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('platform', sa.String(50), nullable=False),
@@ -250,7 +251,7 @@ def upgrade() -> None:
         )
 
         # --- map_nodes ---
-        op.create_table('map_nodes',
+        safe_create_table('map_nodes',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('name', sa.String(255), nullable=False),
@@ -268,7 +269,7 @@ def upgrade() -> None:
         )
 
         # --- map_edges ---
-        op.create_table('map_edges',
+        safe_create_table('map_edges',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('from_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('to_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
@@ -280,7 +281,7 @@ def upgrade() -> None:
         )
 
         # --- map_edge_modifiers ---
-        op.create_table('map_edge_modifiers',
+        safe_create_table('map_edge_modifiers',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('edge_id', sa.Integer(), sa.ForeignKey('map_edges.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('active_from', sa.Integer()),
@@ -291,7 +292,7 @@ def upgrade() -> None:
         )
 
         # --- map_regions ---
-        op.create_table('map_regions',
+        safe_create_table('map_regions',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('biome', sa.String(50), nullable=False),
@@ -302,7 +303,7 @@ def upgrade() -> None:
         )
 
         # --- lore_pins ---
-        op.create_table('lore_pins',
+        safe_create_table('lore_pins',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('x', sa.Float(), nullable=False),
@@ -316,7 +317,7 @@ def upgrade() -> None:
         )
 
         # --- character_knowledge ---
-        op.create_table('character_knowledge',
+        safe_create_table('character_knowledge',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('entity_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('node_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
@@ -325,7 +326,7 @@ def upgrade() -> None:
         )
 
         # --- journeys ---
-        op.create_table('journeys',
+        safe_create_table('journeys',
             sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
             sa.Column('from_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False),
@@ -337,9 +338,6 @@ def upgrade() -> None:
             sa.Column('proof_hash', sa.String(64)),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         )
-    finally:
-        # Remove the error handler
-        event.remove(conn, "handle_error", handle_error)
 
 
 def downgrade() -> None:
