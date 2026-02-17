@@ -13,7 +13,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import ProgrammingError, InternalError
 
 
 revision: str = 'af_v2_001'
@@ -27,16 +27,22 @@ def upgrade() -> None:
     # Fix for AF-T0-003: Avoid "type already exists" error on non-fresh DBs
     conn = op.get_bind()
 
-    # Helper function to wrap table creation with error suppression
+    # Helper function to wrap table creation with SAVEPOINT for transaction isolation
     # SQLAlchemy's dialect auto-creates ENUM types during op.create_table()
-    # even when create_type=False, so we catch those errors here
+    # If the type already exists, PostgreSQL aborts the transaction
+    # Using SAVEPOINT allows us to rollback just that operation and continue
     def safe_create_table(*args, **kwargs):
+        # Create a savepoint (nested transaction)
+        savepoint = conn.begin_nested()
         try:
             op.create_table(*args, **kwargs)
-        except ProgrammingError as e:
+            savepoint.commit()
+        except (ProgrammingError, InternalError) as e:
+            savepoint.rollback()
             # Only suppress "already exists" errors for types
             # Re-raise any other errors (e.g., missing FK targets)
-            if 'already exists' not in str(e).lower():
+            error_msg = str(e).lower()
+            if 'already exists' not in error_msg or 'type' not in error_msg:
                 raise
 
     # Create ENUM types idempotently using DO blocks
