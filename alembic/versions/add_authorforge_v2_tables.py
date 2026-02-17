@@ -23,13 +23,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # --- Enum types ---
-    scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus')
-    entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind')
-    edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype')
-    knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype')
-    asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype')
-    asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype')
-    pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype')
+    scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False)
+    entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False)
+    edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False)
+    knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False)
+    asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False)
+    asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False)
+    pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)
 
     scene_status.create(op.get_bind(), checkfirst=True)
     entity_kind.create(op.get_bind(), checkfirst=True)
@@ -58,7 +58,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(500), nullable=False),
         sa.Column('goal', sa.Text()),
         sa.Column('content_html', sa.Text(), server_default=''),
-        sa.Column('status', sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False), server_default='blank'),
+        sa.Column('status', scene_status, server_default='blank'),
         sa.Column('word_count', sa.Integer(), server_default='0'),
         sa.Column('sort_order', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('notes', sa.Text()),
@@ -70,7 +70,7 @@ def upgrade() -> None:
     op.create_table('lore_entities',
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, index=True),
-        sa.Column('kind', sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False), nullable=False, index=True),
+        sa.Column('kind', entity_kind, nullable=False, index=True),
         sa.Column('name', sa.String(255), nullable=False),
         sa.Column('slug', sa.String(255), index=True),
         sa.Column('summary', sa.Text()),
@@ -84,7 +84,7 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('source_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
         sa.Column('target_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
-        sa.Column('edge_type', sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False), nullable=False, index=True),
+        sa.Column('edge_type', edge_type, nullable=False, index=True),
         sa.Column('properties_json', sa.JSON(), server_default='{}'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
@@ -131,9 +131,9 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('user_id', sa.Integer(), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True),
         sa.Column('project_id', sa.Integer(), sa.ForeignKey('projects.id', ondelete='SET NULL'), index=True),
-        sa.Column('source_type', sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False), nullable=False),
+        sa.Column('source_type', asset_source_type, nullable=False),
         sa.Column('cdn_url', sa.Text()),
-        sa.Column('asset_type', sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False), nullable=False),
+        sa.Column('asset_type', asset_type, nullable=False),
         sa.Column('filename', sa.String(500)),
         sa.Column('tags', sa.JSON(), server_default='[]'),
         sa.Column('metadata_json', sa.JSON(), server_default='{}'),
@@ -245,7 +245,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(255), nullable=False),
         sa.Column('description', sa.Text()),
         sa.Column('scene_ref', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL')),
-        sa.Column('pin_type', sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)),
+        sa.Column('pin_type', pin_type),
         sa.Column('era', sa.Integer()),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
@@ -255,7 +255,7 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('entity_id', sa.Integer(), sa.ForeignKey('lore_entities.id', ondelete='CASCADE'), nullable=False, index=True),
         sa.Column('node_id', sa.Integer(), sa.ForeignKey('map_nodes.id', ondelete='CASCADE'), nullable=False, index=True),
-        sa.Column('knowledge_type', sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False), nullable=False),
+        sa.Column('knowledge_type', knowledge_type, nullable=False),
         sa.Column('acquired_scene_id', sa.Integer(), sa.ForeignKey('scenes.id', ondelete='SET NULL')),
     )
 
