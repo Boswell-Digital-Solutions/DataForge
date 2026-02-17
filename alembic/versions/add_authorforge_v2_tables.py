@@ -27,39 +27,73 @@ def upgrade() -> None:
     # Fix for AF-T0-003: Avoid "type already exists" error on non-fresh DBs
     conn = op.get_bind()
 
-    # Helper function to create ENUMs with error suppression
-    # We create each ENUM in its own savepoint so if it already exists,
-    # we can rollback just that creation and continue
-    def safe_create_enum(enum_obj):
-        savepoint = conn.begin_nested()
-        try:
-            enum_obj.create(bind=conn, checkfirst=False)
-            savepoint.commit()
-        except (ProgrammingError, InternalError) as e:
-            savepoint.rollback()
-            # Only suppress "already exists" errors
-            error_msg = str(e).lower()
-            if 'already exists' not in error_msg:
-                raise
+    # Create all ENUM types using op.execute with IF NOT EXISTS
+    # This is the most reliable way to create idempotent ENUMs in PostgreSQL
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE scenestatus AS ENUM ('blank', 'draft', 'revision', 'final');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-    # Create all ENUM types first (before any table creation)
-    # This prevents SQLAlchemy from trying to auto-create them during table creation
-    scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False)
-    entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False)
-    edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False)
-    knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False)
-    asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False)
-    asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False)
-    pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE entitykind AS ENUM ('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
 
-    # Create each ENUM type with savepoint isolation
-    safe_create_enum(scene_status)
-    safe_create_enum(entity_kind)
-    safe_create_enum(edge_type)
-    safe_create_enum(knowledge_type)
-    safe_create_enum(asset_source_type)
-    safe_create_enum(asset_type)
-    safe_create_enum(pin_type)
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE edgetype AS ENUM ('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE knowledgetype AS ENUM ('visited', 'heard_of', 'rumored');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assetsourcetype AS ENUM ('upload', 'ai_generated', 'url');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assettype AS ENUM ('image', 'icon', 'texture', 'cover');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE pintype AS ENUM ('battle', 'event', 'landmark', 'note');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    # Define ENUM objects for SQLAlchemy with create_type=False AND metadata
+    # The metadata parameter prevents auto-creation during table creation
+    scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False, metadata=sa.MetaData())
+    entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False, metadata=sa.MetaData())
+    edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False, metadata=sa.MetaData())
+    knowledge_type = sa.Enum('visited', 'heard_of', 'rumored', name='knowledgetype', create_type=False, metadata=sa.MetaData())
+    asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False, metadata=sa.MetaData())
+    asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False, metadata=sa.MetaData())
+    pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False, metadata=sa.MetaData())
 
     # --- chapters ---
     op.create_table('chapters',
