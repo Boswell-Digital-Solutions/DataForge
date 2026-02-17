@@ -22,7 +22,67 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # --- Enum types ---
+    # --- Enum types (use raw SQL with IF NOT EXISTS for idempotency) ---
+    # Fix for AF-T0-003: Avoid "type already exists" error on non-fresh DBs
+    conn = op.get_bind()
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE scenestatus AS ENUM ('blank', 'draft', 'revision', 'final');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE entitykind AS ENUM ('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE edgetype AS ENUM ('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE knowledgetype AS ENUM ('visited', 'heard_of', 'rumored');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assetsourcetype AS ENUM ('upload', 'ai_generated', 'url');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE assettype AS ENUM ('image', 'icon', 'texture', 'cover');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    conn.execute(sa.text("""
+        DO $$ BEGIN
+            CREATE TYPE pintype AS ENUM ('battle', 'event', 'landmark', 'note');
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+    """))
+
+    # Now define the enum types for SQLAlchemy (create_type=False since we created them above)
     scene_status = sa.Enum('blank', 'draft', 'revision', 'final', name='scenestatus', create_type=False)
     entity_kind = sa.Enum('character', 'location', 'artifact', 'magic_rule', 'event', 'faction', 'creature', 'theme', name='entitykind', create_type=False)
     edge_type = sa.Enum('member_of', 'contradicts', 'governs', 'influences', 'located_in', 'relates_to', name='edgetype', create_type=False)
@@ -30,14 +90,6 @@ def upgrade() -> None:
     asset_source_type = sa.Enum('upload', 'ai_generated', 'url', name='assetsourcetype', create_type=False)
     asset_type = sa.Enum('image', 'icon', 'texture', 'cover', name='assettype', create_type=False)
     pin_type = sa.Enum('battle', 'event', 'landmark', 'note', name='pintype', create_type=False)
-
-    scene_status.create(op.get_bind(), checkfirst=True)
-    entity_kind.create(op.get_bind(), checkfirst=True)
-    edge_type.create(op.get_bind(), checkfirst=True)
-    knowledge_type.create(op.get_bind(), checkfirst=True)
-    asset_source_type.create(op.get_bind(), checkfirst=True)
-    asset_type.create(op.get_bind(), checkfirst=True)
-    pin_type.create(op.get_bind(), checkfirst=True)
 
     # --- chapters ---
     op.create_table('chapters',
