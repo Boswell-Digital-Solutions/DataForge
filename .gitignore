@@ -67,3 +67,6 @@ reports/
 tmp/
 temp/
 *.tmp
+
+# BDS Documentation Protocol
+context-bundle.md

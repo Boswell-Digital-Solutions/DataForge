@@ -1,0 +1,227 @@
+# §6 — API Layer
+
+DataForge exposes 29 API routers covering 80+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
+
+## Authentication Requirements
+
+| Auth Type | Used For |
+|-----------|---------|
+| JWT Bearer token | User-facing endpoints, admin operations |
+| API Key header | Service-to-service calls (NeuroForge, BugCheck, etc.) |
+| run_token | BugCheck finding writes, enrichment writes |
+| user_token | BugCheck lifecycle transitions (triage, approve, dismiss) |
+| No auth | `/health`, `/`, `/metrics` |
+
+## Router Index
+
+### Infrastructure & Health
+
+| Router | Prefix | Key Endpoints |
+|--------|--------|--------------|
+| Root | `/` | `GET /` — service info and version |
+| Health | `/health` | `GET /health` — liveness probe; checks DB + Redis connectivity |
+| Metrics | `/metrics` | `GET /metrics` — Prometheus metrics endpoint |
+
+---
+
+### Authentication & Authorization
+
+#### `/auth` — Primary Auth Router
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/login` | JWT login (username + password) |
+| `POST` | `/auth/logout` | Invalidate session |
+| `GET` | `/auth/oauth/{provider}` | Initiate OAuth2 code flow (google, github, microsoft) |
+| `GET` | `/auth/oauth/{provider}/callback` | OAuth2 callback + token exchange |
+| `POST` | `/auth/refresh` | Refresh access token |
+
+#### `/auth/mfa` — Multi-Factor Authentication
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/mfa/setup` | Initialize TOTP (returns QR code seed) |
+| `POST` | `/auth/mfa/verify` | Verify TOTP code during login |
+| `GET` | `/auth/mfa/backup-codes` | Issue 10 backup codes |
+| `POST` | `/auth/mfa/backup-codes/use` | Consume a backup code |
+
+#### `/api/v1/auth-secure` — Encrypted Auth
+Encrypted variants of auth endpoints for high-security contexts. Request and response bodies use field-level encryption.
+
+#### `/admin/api-keys` — Service API Key Management
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/admin/api-keys` | Create new service API key |
+| `GET` | `/admin/api-keys` | List all active keys |
+| `DELETE` | `/admin/api-keys/{key_id}` | Revoke a key |
+
+#### `/admin/token` — Token Operations
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/admin/token` | Issue admin token |
+| `POST` | `/admin/token/rotate` | Rotate signing key + invalidate old tokens |
+
+---
+
+### Core Data Access
+
+#### `POST /api/search` — Hybrid Search
+Primary search endpoint. Accepts query text, optional domain filter, limit, and similarity threshold. Returns ranked chunks with document metadata.
+
+**Request:**
+```json
+{
+  "query": "string",
+  "domain_id": "uuid | null",
+  "limit": 5,
+  "similarity_threshold": 0.7
+}
+```
+
+**Response:** Array of `SearchResult` objects with chunk text, document metadata, similarity score, and BM25 rank.
+
+#### `GET /api/search/stats` — Search Statistics
+Returns aggregate search usage: total queries, average latency, top domains, cache hit rates.
+
+#### `/admin/documents` — Document Management
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/admin/documents` | Create document + trigger auto-chunk + embed |
+| `GET` | `/admin/documents` | List documents (paginated, filterable by domain/tag) |
+| `GET` | `/admin/documents/{id}` | Get document with chunk count |
+| `PATCH` | `/admin/documents/{id}` | Update document + re-chunk if content changed |
+| `DELETE` | `/admin/documents/{id}` | Delete document + cascade delete chunks |
+
+#### `/admin/domains` — Domain Management
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/admin/domains` | Create domain |
+| `GET` | `/admin/domains` | List all domains |
+| `GET` | `/admin/domains/{id}` | Get domain with document count |
+| `PATCH` | `/admin/domains/{id}` | Update domain metadata |
+| `DELETE` | `/admin/domains/{id}` | Delete domain (fails if documents exist) |
+
+#### `/admin/tags` — Tag Management
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/admin/tags` | List all tags |
+| `POST` | `/admin/tags` | Create tag |
+
+---
+
+### Service Integration Routers
+
+#### `/api/neuroforge` — NeuroForge Integration
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/neuroforge/runs` | Log LLM run |
+| `GET` | `/api/neuroforge/runs/{run_id}` | Get run record |
+| `POST` | `/api/neuroforge/runs/{run_id}/results` | Log model results |
+| `POST` | `/api/neuroforge/inferences` | Log inference record |
+| `GET` | `/api/neuroforge/performance` | Query model performance metrics |
+| `GET` | `/api/neuroforge/context` | Retrieve relevant context for a query |
+
+#### `/api/vibeforge` — VibeForge Integration
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/vibeforge/projects` | Create project |
+| `POST` | `/api/vibeforge/sessions` | Create session |
+| `GET` | `/api/vibeforge/sessions/{session_id}` | Get session |
+| `POST` | `/api/vibeforge/stack-outcomes` | Record stack analysis outcome |
+| `POST` | `/api/vibeforge/code-analysis` | Store code analysis result |
+
+#### `/api/projects` — AuthorForge V2
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/projects` | Create book project |
+| `GET` | `/api/projects/{project_id}` | Get project with chapter list |
+| `POST` | `/api/projects/{project_id}/chapters` | Create chapter |
+| `POST` | `/api/projects/{project_id}/chapters/{chapter_id}/scenes` | Create scene |
+| `POST` | `/api/projects/{project_id}/manuscripts` | Compile manuscript |
+| `POST` | `/api/projects/{project_id}/characters` | Create character |
+| `POST` | `/api/projects/{project_id}/arcs` | Create story arc |
+| `POST` | `/api/projects/{project_id}/locations` | Create location |
+| `GET` | `/api/projects/{project_id}/knowledge-graph` | Get knowledge graph |
+
+#### `/api/bugcheck` — BugCheck Agent Integration
+Full details in §8. Key endpoints:
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/bugcheck/runs` | admin token | Create run record (ForgeCommand only) |
+| `POST` | `/api/bugcheck/runs/{run_id}/findings` | run_token | Ingest finding |
+| `GET` | `/api/bugcheck/runs/{run_id}/findings` | JWT | List findings for run |
+| `POST` | `/api/bugcheck/runs/{run_id}/progress` | run_token | Post progress event |
+| `POST` | `/api/bugcheck/findings/{finding_id}/lifecycle` | user_token | Transition lifecycle state |
+| `POST` | `/api/bugcheck/findings/{finding_id}/enrichments` | run_token | Store enrichment artifact |
+| `POST` | `/api/bugcheck/runs/{run_id}/finalize` | admin token | Finalize run (ForgeCommand only) |
+
+#### `/api/agents-registry` — Agent Registry
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/agents-registry` | Register agent definition |
+| `GET` | `/api/agents-registry` | List all registered agents |
+| `GET` | `/api/agents-registry/{agent_id}` | Get agent config |
+| `PATCH` | `/api/agents-registry/{agent_id}` | Update agent config |
+
+#### `/forge-runs` — Execution Index
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/forge-runs` | Create execution index record |
+| `GET` | `/forge-runs/{run_id}` | Get run status (fast, denormalized) |
+| `PATCH` | `/forge-runs/{run_id}` | Update status/outcome |
+| `POST` | `/forge-runs/{run_id}/evidence` | Store full evidence blob (JSONB) |
+| `GET` | `/forge-runs/{run_id}/evidence` | Retrieve evidence blob |
+
+#### `/api/v1/smithy/planning` — SMITH Planning
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/smithy/planning/sessions` | Create planning session |
+| `GET` | `/api/v1/smithy/planning/sessions/{id}` | Get session |
+| `PATCH` | `/api/v1/smithy/planning/sessions/{id}` | Update session |
+
+#### `/api/v1/smithy/portfolio` — Portfolio Tracking
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/smithy/portfolio/projects` | Create portfolio project |
+| `GET` | `/api/v1/smithy/portfolio/projects` | List projects |
+| `POST` | `/api/v1/smithy/portfolio/evaluations` | Store evaluation snapshot |
+
+#### `/api/v1/learning` — Learning Metrics
+Stores model performance metrics and surfaces improvement recommendations for NeuroForge.
+
+#### `/api/teams` — Team Management
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/teams` | Create team |
+| `GET` | `/api/teams/{team_id}` | Get team |
+| `POST` | `/api/teams/{team_id}/members` | Invite member |
+| `PATCH` | `/api/teams/{team_id}/members/{user_id}` | Update member role |
+| `DELETE` | `/api/teams/{team_id}/members/{user_id}` | Remove member |
+| `GET` | `/api/teams/{team_id}/insights` | Get team insights aggregate |
+
+#### `/api/events` — Immutable Audit Log
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/events` | Append event (HMAC-signed) |
+| `GET` | `/api/events` | Query events (filterable, read-only) |
+
+Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 signature on each event enables tamper detection.
+
+---
+
+### Infrastructure Routers
+
+| Router | Prefix | Purpose |
+|--------|--------|---------|
+| Tracing | `/api/tracing` | OpenTelemetry span ingestion |
+| Deployment | `/api-deployment` | Load balancer, instance health, graceful drain |
+| Cache | `/cache` | Redis cache sync operations |
+| Cache Replication | `/cache-replication` | Cache failover management |
+| Secrets | `/secrets` | LLM API key vault (synced from ForgeCommand) |
+| Diligence | `/api/diligence` | Security/compliance assessment |
+| Rate Limiting | `/rate-limit` | Distributed rate limit management |
+| FPVS | `/fpvs` | FPVS Phase 1 endpoints |
+| Tarcie | `/tarcie` | DX friction event capture |
+| DLQ | `/dlq` | Dead letter queue inspection + replay |
+
+#### `/admin-ui` — Admin Interface
+`GET /admin-ui` serves the Jinja2-rendered admin HTML template. Provides a browser-based interface for document management, search testing, and domain administration. No JavaScript framework required.
