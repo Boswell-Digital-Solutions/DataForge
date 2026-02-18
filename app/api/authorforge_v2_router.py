@@ -43,6 +43,10 @@ from app.models.authorforge_v2_schemas import (
     LorePinCreate, LorePinUpdate, LorePinResponse,
     CharacterKnowledgeCreate, CharacterKnowledgeResponse,
     JourneyCreate, JourneyResponse,
+    # Cartographer settings / viewports / exports
+    MapSettingsUpdate, MapSettingsResponse,
+    MapViewportCreate, MapViewportUpdate, MapViewportResponse,
+    MapExportCreate, MapExportResponse,
 )
 from app.api import authorforge_v2_crud as crud
 from app.utils.auth import get_current_user
@@ -877,3 +881,117 @@ def delete_journey(
 ):
     if not crud.delete_journey(db, journey_id, current_user.id):
         raise HTTPException(status_code=404, detail="Journey not found")
+
+
+# ============================================
+# Cartographer's Forge — Map Settings
+# ============================================
+
+@router.get("/{project_id}/map/settings", response_model=MapSettingsResponse)
+def get_map_settings(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    s = crud.get_map_settings(db, project_id, current_user.id)
+    if s is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return s
+
+
+@router.put("/{project_id}/map/settings", response_model=MapSettingsResponse)
+def upsert_map_settings(
+    project_id: int,
+    data: MapSettingsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    s = crud.upsert_map_settings(db, project_id, current_user.id, data)
+    if s is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return s
+
+
+# ============================================
+# Cartographer's Forge — Map Viewports
+# ============================================
+
+@router.get("/{project_id}/map/viewports", response_model=List[MapViewportResponse])
+def list_map_viewports(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return crud.list_map_viewports(db, project_id, current_user.id)
+
+
+@router.post("/{project_id}/map/viewports", response_model=MapViewportResponse, status_code=status.HTTP_201_CREATED)
+def create_map_viewport(
+    project_id: int,
+    data: MapViewportCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    v = crud.create_map_viewport(db, project_id, current_user.id, data)
+    if v is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return v
+
+
+@router.patch("/map/viewports/{viewport_id}", response_model=MapViewportResponse)
+def update_map_viewport(
+    viewport_id: str,
+    data: MapViewportUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    v = crud.update_map_viewport(db, viewport_id, current_user.id, data)
+    if v is None:
+        raise HTTPException(status_code=404, detail="Viewport not found")
+    return v
+
+
+@router.delete("/map/viewports/{viewport_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_map_viewport(
+    viewport_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not crud.delete_map_viewport(db, viewport_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Viewport not found")
+
+
+# ============================================
+# Cartographer's Forge — Map Exports
+# ============================================
+
+@router.get("/{project_id}/map/exports", response_model=List[MapExportResponse])
+def list_map_exports(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return crud.list_map_exports(db, project_id, current_user.id)
+
+
+@router.post("/{project_id}/map/exports", response_model=MapExportResponse, status_code=status.HTTP_201_CREATED)
+def create_map_export(
+    project_id: int,
+    data: MapExportCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    e = crud.create_map_export(db, project_id, current_user.id, data)
+    if e is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return e
+
+
+@router.delete("/map/exports/{export_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_map_export(
+    export_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not crud.delete_map_export(db, export_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Export record not found")

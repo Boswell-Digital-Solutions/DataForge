@@ -481,3 +481,67 @@ class CollabToken(Base):
     revoked_at = Column(DateTime(timezone=True))
 
     room = relationship("CollabRoom", back_populates="tokens")
+
+
+# ============================================
+# Cartographer's Forge — Settings / Viewports / Exports
+# (A2: migrated from AuthorForge API local migrations 004, 005, 006)
+# ============================================
+
+class MapSettings(Base):
+    """Per-project Cartographer's Forge canvas settings."""
+    __tablename__ = "map_settings"
+
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    canvas_width = Column(Integer, nullable=False, server_default="640")
+    canvas_height = Column(Integer, nullable=False, server_default="400")
+    scale_km_per_unit = Column(Float, nullable=False, server_default="2.5")
+    grid_enabled = Column(Boolean, nullable=False, server_default="false")
+    grid_size = Column(Integer, nullable=False, server_default="20")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MapViewport(Base):
+    """Saved viewport preset for map export."""
+    __tablename__ = "map_viewports"
+
+    id = Column(String(36), primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False, server_default="Full Map")
+    crop_x = Column(Float, nullable=False, server_default="0")
+    crop_y = Column(Float, nullable=False, server_default="0")
+    crop_w = Column(Float, nullable=False, server_default="640")
+    crop_h = Column(Float, nullable=False, server_default="400")
+    output_width = Column(Integer, nullable=False, server_default="1920")
+    output_height = Column(Integer, nullable=False, server_default="1200")
+    dpi = Column(Integer, nullable=False, server_default="150")
+    show_labels = Column(Boolean, nullable=False, server_default="true")
+    show_roads = Column(Boolean, nullable=False, server_default="true")
+    show_pins = Column(Boolean, nullable=False, server_default="true")
+    show_grid = Column(Boolean, nullable=False, server_default="false")
+    show_compass = Column(Boolean, nullable=False, server_default="true")
+    is_default = Column(Boolean, nullable=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exports = relationship("MapExport", back_populates="viewport", cascade="all, delete-orphan")
+
+
+class MapExport(Base):
+    """Map export job history record."""
+    __tablename__ = "map_exports"
+
+    id = Column(String(36), primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    viewport_id = Column(String(36), ForeignKey("map_viewports.id", ondelete="SET NULL"), nullable=True, index=True)
+    name = Column(String(255), nullable=False, server_default="Untitled Export")
+    format = Column(String(10), nullable=False, server_default="png")
+    dpi = Column(Integer, nullable=False, server_default="150")
+    width_px = Column(Integer)
+    height_px = Column(Integer)
+    file_size = Column(Integer)
+    svg_hash = Column(String(64))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    viewport = relationship("MapViewport", back_populates="exports")

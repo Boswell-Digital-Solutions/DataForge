@@ -16,6 +16,7 @@ from app.models.authorforge_v2_models import (
     ConsistencyAlert, Cover,
     MapNode, MapEdge, MapEdgeModifier, MapRegion,
     LorePin, CharacterKnowledge, Journey,
+    MapSettings, MapViewport, MapExport,
 )
 from app.models.authorforge_v2_schemas import (
     ChapterCreate, ChapterUpdate,
@@ -36,6 +37,7 @@ from app.models.authorforge_v2_schemas import (
     LorePinCreate, LorePinUpdate,
     CharacterKnowledgeCreate,
     JourneyCreate,
+    MapSettingsUpdate, MapViewportCreate, MapViewportUpdate, MapExportCreate,
 )
 
 
@@ -904,5 +906,123 @@ def delete_journey(db: Session, journey_id: int, user_id: int) -> bool:
     if not j or not _verify_project(db, j.project_id, user_id):
         return False
     db.delete(j)
+    db.commit()
+    return True
+
+
+# ============================================
+# Cartographer's Forge — Settings / Viewports / Exports
+# ============================================
+
+_MAP_SETTINGS_DEFAULTS = dict(
+    canvas_width=640,
+    canvas_height=400,
+    scale_km_per_unit=2.5,
+    grid_enabled=False,
+    grid_size=20,
+)
+
+
+def get_map_settings(db: Session, project_id: int, user_id: int) -> MapSettings:
+    """Return map settings for a project, creating defaults if none exist."""
+    if not _verify_project(db, project_id, user_id):
+        return None  # type: ignore[return-value]
+    s = db.query(MapSettings).filter(MapSettings.project_id == project_id).first()
+    if not s:
+        s = MapSettings(project_id=project_id, **_MAP_SETTINGS_DEFAULTS)
+        db.add(s)
+        db.commit()
+        db.refresh(s)
+    return s
+
+
+def upsert_map_settings(db: Session, project_id: int, user_id: int, data: MapSettingsUpdate) -> Optional[MapSettings]:
+    if not _verify_project(db, project_id, user_id):
+        return None
+    s = db.query(MapSettings).filter(MapSettings.project_id == project_id).first()
+    if not s:
+        fields = {**_MAP_SETTINGS_DEFAULTS, **data.model_dump(exclude_unset=True)}
+        s = MapSettings(project_id=project_id, **fields)
+        db.add(s)
+    else:
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(s, field, value)
+        s.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(s)
+    return s
+
+
+def list_map_viewports(db: Session, project_id: int, user_id: int) -> List[MapViewport]:
+    if not _verify_project(db, project_id, user_id):
+        return []
+    return (
+        db.query(MapViewport)
+        .filter(MapViewport.project_id == project_id)
+        .order_by(MapViewport.is_default.desc(), MapViewport.created_at.asc())
+        .all()
+    )
+
+
+def create_map_viewport(db: Session, project_id: int, user_id: int, data: MapViewportCreate) -> Optional[MapViewport]:
+    if not _verify_project(db, project_id, user_id):
+        return None
+    import uuid
+    v = MapViewport(id=str(uuid.uuid4()), project_id=project_id, **data.model_dump())
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+    return v
+
+
+def update_map_viewport(db: Session, viewport_id: str, user_id: int, data: MapViewportUpdate) -> Optional[MapViewport]:
+    v = db.query(MapViewport).filter(MapViewport.id == viewport_id).first()
+    if not v or not _verify_project(db, v.project_id, user_id):
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(v, field, value)
+    v.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(v)
+    return v
+
+
+def delete_map_viewport(db: Session, viewport_id: str, user_id: int) -> bool:
+    v = db.query(MapViewport).filter(MapViewport.id == viewport_id).first()
+    if not v or not _verify_project(db, v.project_id, user_id):
+        return False
+    db.delete(v)
+    db.commit()
+    return True
+
+
+def list_map_exports(db: Session, project_id: int, user_id: int) -> List[MapExport]:
+    if not _verify_project(db, project_id, user_id):
+        return []
+    return (
+        db.query(MapExport)
+        .filter(MapExport.project_id == project_id)
+        .order_by(MapExport.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+
+def create_map_export(db: Session, project_id: int, user_id: int, data: MapExportCreate) -> Optional[MapExport]:
+    if not _verify_project(db, project_id, user_id):
+        return None
+    import uuid
+    e = MapExport(id=str(uuid.uuid4()), project_id=project_id, **data.model_dump())
+    db.add(e)
+    db.commit()
+    db.refresh(e)
+    return e
+
+
+def delete_map_export(db: Session, export_id: str, user_id: int) -> bool:
+    e = db.query(MapExport).filter(MapExport.id == export_id).first()
+    if not e or not _verify_project(db, e.project_id, user_id):
+        return False
+    db.delete(e)
     db.commit()
     return True

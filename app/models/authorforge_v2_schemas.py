@@ -646,6 +646,113 @@ class JourneyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============================================
+# Cartographer's Forge — Settings / Viewports / Exports
+# ============================================
+
+class MapSettingsUpdate(BaseModel):
+    canvas_width: Optional[int] = None
+    canvas_height: Optional[int] = None
+    scale_km_per_unit: Optional[float] = None
+    grid_enabled: Optional[bool] = None
+    grid_size: Optional[int] = None
+
+
+class MapSettingsResponse(BaseModel):
+    project_id: int
+    canvas_width: int
+    canvas_height: int
+    scale_km_per_unit: float
+    grid_enabled: bool
+    grid_size: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MapViewportCreate(BaseModel):
+    name: str = "Full Map"
+    crop_x: float = 0
+    crop_y: float = 0
+    crop_w: float = 640
+    crop_h: float = 400
+    output_width: int = 1920
+    output_height: int = 1200
+    dpi: int = 150
+    show_labels: bool = True
+    show_roads: bool = True
+    show_pins: bool = True
+    show_grid: bool = False
+    show_compass: bool = True
+    is_default: bool = False
+
+
+class MapViewportUpdate(BaseModel):
+    name: Optional[str] = None
+    crop_x: Optional[float] = None
+    crop_y: Optional[float] = None
+    crop_w: Optional[float] = None
+    crop_h: Optional[float] = None
+    output_width: Optional[int] = None
+    output_height: Optional[int] = None
+    dpi: Optional[int] = None
+    show_labels: Optional[bool] = None
+    show_roads: Optional[bool] = None
+    show_pins: Optional[bool] = None
+    show_grid: Optional[bool] = None
+    show_compass: Optional[bool] = None
+    is_default: Optional[bool] = None
+
+
+class MapViewportResponse(BaseModel):
+    id: str
+    project_id: int
+    name: str
+    crop_x: float
+    crop_y: float
+    crop_w: float
+    crop_h: float
+    output_width: int
+    output_height: int
+    dpi: int
+    show_labels: bool
+    show_roads: bool
+    show_pins: bool
+    show_grid: bool
+    show_compass: bool
+    is_default: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MapExportCreate(BaseModel):
+    viewport_id: Optional[str] = None
+    name: str = "Untitled Export"
+    format: str = "png"
+    dpi: int = 150
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    file_size: Optional[int] = None
+    svg_hash: Optional[str] = None
+
+
+class MapExportResponse(BaseModel):
+    id: str
+    project_id: int
+    viewport_id: Optional[str] = None
+    name: str
+    format: str
+    dpi: int
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    file_size: Optional[int] = None
+    svg_hash: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # Forward reference resolution
 ChapterWithScenes.model_rebuild()
 ArcWithBeats.model_rebuild()
