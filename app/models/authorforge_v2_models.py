@@ -439,10 +439,19 @@ class Journey(Base):
 
 # ============================================
 # Collaboration Tables (Y.js sync)
+# A2 EXCEPTION: These tables are owned by Fastify API (pg-migrate-forge
+# migrations 002 + 004), NOT by DataForge endpoints. Models are retained
+# here solely for Alembic schema awareness — removing them would cause
+# autogenerate to emit DROP TABLE statements. No DataForge router
+# references these models. See AuthorForge doc/system/18 for rationale:
+# JWT signing (COLLAB_SECRET), binary BYTEA snapshots, sync server latency.
 # ============================================
 
 class CollabRoom(Base):
-    """Collaboration room for real-time Y.js editing sessions."""
+    """Collaboration room for real-time Y.js editing sessions.
+
+    A2 exception: owned by Fastify API, not DataForge. Model kept for Alembic awareness only.
+    """
     __tablename__ = "collab_rooms"
 
     id = Column(String, primary_key=True)
@@ -458,7 +467,10 @@ class CollabRoom(Base):
 
 
 class CollabSnapshot(Base):
-    """Binary Y.js document snapshot for persistence."""
+    """Binary Y.js document snapshot for persistence.
+
+    A2 exception: owned by Fastify API. Model kept for Alembic awareness only.
+    """
     __tablename__ = "collab_snapshots"
 
     room_id = Column(String, ForeignKey("collab_rooms.id", ondelete="CASCADE"), primary_key=True)
@@ -469,7 +481,10 @@ class CollabSnapshot(Base):
 
 
 class CollabToken(Base):
-    """Share link token for room access with role-based permissions."""
+    """Share link token for room access with role-based permissions.
+
+    A2 exception: owned by Fastify API. Model kept for Alembic awareness only.
+    """
     __tablename__ = "collab_tokens"
 
     id = Column(Integer, primary_key=True, index=True)

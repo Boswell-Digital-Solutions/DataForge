@@ -4,9 +4,16 @@ Revision ID: collab_001
 Revises: d14fdfe1b4d0
 Create Date: 2026-02-12
 
-Adds collab_rooms, collab_snapshots, and collab_tokens tables
-for Y.js real-time collaborative editing support.
-Previously created by Fastify API inline DDL; now owned by DataForge Alembic.
+A2 EXCEPTION: Despite this Alembic migration, the collab tables are
+canonically owned by the Fastify API (pg-migrate-forge migrations 002 + 004).
+This migration exists for schema awareness only — on a fresh DB where
+Fastify migrations run first, these tables already exist when Alembic
+reaches this revision. Rationale for Fastify-local ownership:
+  1. JWT signing — COLLAB_SECRET held by Fastify; sync server token
+     validation at WS upgrade must be low-latency.
+  2. Binary snapshots — collab_snapshots stores raw Y.js BYTEA blobs,
+     unsuitable for DataForge's JSON REST API.
+  3. Ephemeral scope — collab rooms are session-scoped, not long-term data.
 """
 from typing import Sequence, Union
 
