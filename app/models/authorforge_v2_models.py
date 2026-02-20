@@ -40,6 +40,7 @@ class EntityKind(str, enum.Enum):
     FACTION = "faction"
     CREATURE = "creature"
     THEME = "theme"
+    SOURCE = "source"
 
 
 class EdgeType(str, enum.Enum):

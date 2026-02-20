@@ -30,6 +30,7 @@ class EntityKindEnum(str, Enum):
     FACTION = "faction"
     CREATURE = "creature"
     THEME = "theme"
+    SOURCE = "source"
 
 
 class EdgeTypeEnum(str, Enum):
