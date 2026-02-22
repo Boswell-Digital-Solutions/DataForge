@@ -17,6 +17,7 @@ from app.models.authorforge_v2_models import (
     MapNode, MapEdge, MapEdgeModifier, MapRegion,
     LorePin, CharacterKnowledge, Journey,
     MapSettings, MapViewport, MapExport,
+    AssetCollection, CollectionAsset,
 )
 from app.models.authorforge_v2_schemas import (
     ChapterCreate, ChapterUpdate,
@@ -26,7 +27,7 @@ from app.models.authorforge_v2_schemas import (
     ArcCreate, ArcUpdate,
     BeatCreate, BeatUpdate,
     StyleProfileCreate, StyleProfileUpdate,
-    AssetCreate,
+    AssetCreate, AssetUpdate,
     FactionCreate, FactionUpdate,
     ConsistencyAlertCreate, ConsistencyAlertUpdate,
     CoverCreate, CoverUpdate,
@@ -38,6 +39,7 @@ from app.models.authorforge_v2_schemas import (
     CharacterKnowledgeCreate,
     JourneyCreate,
     MapSettingsUpdate, MapViewportCreate, MapViewportUpdate, MapExportCreate,
+    AssetCollectionCreate, AssetCollectionUpdate,
 )
 
 
@@ -464,6 +466,162 @@ def delete_asset(db: Session, asset_id: int, user_id: int) -> bool:
     if not asset:
         return False
     db.delete(asset)
+    db.commit()
+    return True
+
+
+def get_asset(db: Session, asset_id: int, user_id: int) -> Optional[Asset]:
+    return db.query(Asset).filter(
+        and_(Asset.id == asset_id, Asset.user_id == user_id)
+    ).first()
+
+
+def update_asset(db: Session, asset_id: int, user_id: int, data: AssetUpdate) -> Optional[Asset]:
+    asset = get_asset(db, asset_id, user_id)
+    if not asset:
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(asset, field, value)
+    asset.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(asset)
+    return asset
+
+
+def get_asset_usage(db: Session, asset_id: int, user_id: int) -> dict:
+    """Find covers that reference this asset in their layers_json."""
+    asset = get_asset(db, asset_id, user_id)
+    if not asset:
+        return {"covers": [], "total_uses": 0}
+
+    # Search covers where any layer references this asset_id
+    covers = []
+    all_covers = db.query(Cover).filter(
+        Cover.project_id == asset.project_id
+    ).all()
+    for cover in all_covers:
+        if not cover.layers_json:
+            continue
+        for layer in cover.layers_json:
+            if isinstance(layer, dict) and str(layer.get("asset_id", "")) == str(asset_id):
+                covers.append({"id": cover.id, "project_id": cover.project_id})
+                break
+
+    return {"covers": covers, "total_uses": len(covers)}
+
+
+# ============================================
+# Asset Collections
+# ============================================
+
+def list_asset_collections(
+    db: Session, project_id: int, user_id: int
+) -> List[dict]:
+    if not _verify_project(db, project_id, user_id):
+        return []
+    collections = db.query(AssetCollection).filter(
+        AssetCollection.project_id == project_id
+    ).order_by(AssetCollection.sort_order, AssetCollection.name).all()
+
+    result = []
+    for c in collections:
+        count = db.query(sql_func.count(CollectionAsset.id)).filter(
+            CollectionAsset.collection_id == c.id
+        ).scalar() or 0
+        result.append({
+            "id": c.id,
+            "project_id": c.project_id,
+            "name": c.name,
+            "description": c.description,
+            "sort_order": c.sort_order or 0,
+            "asset_count": count,
+            "created_at": c.created_at,
+            "updated_at": c.updated_at,
+        })
+    return result
+
+
+def create_asset_collection(
+    db: Session, project_id: int, user_id: int, data: AssetCollectionCreate
+) -> Optional[AssetCollection]:
+    if not _verify_project(db, project_id, user_id):
+        return None
+    coll = AssetCollection(project_id=project_id, **data.model_dump())
+    db.add(coll)
+    db.commit()
+    db.refresh(coll)
+    return coll
+
+
+def update_asset_collection(
+    db: Session, collection_id: int, user_id: int, data: AssetCollectionUpdate
+) -> Optional[AssetCollection]:
+    coll = db.query(AssetCollection).filter(AssetCollection.id == collection_id).first()
+    if not coll or not _verify_project(db, coll.project_id, user_id):
+        return None
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(coll, field, value)
+    coll.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(coll)
+    return coll
+
+
+def delete_asset_collection(db: Session, collection_id: int, user_id: int) -> bool:
+    coll = db.query(AssetCollection).filter(AssetCollection.id == collection_id).first()
+    if not coll or not _verify_project(db, coll.project_id, user_id):
+        return False
+    db.delete(coll)
+    db.commit()
+    return True
+
+
+def list_collection_assets(
+    db: Session, collection_id: int, user_id: int
+) -> List[Asset]:
+    coll = db.query(AssetCollection).filter(AssetCollection.id == collection_id).first()
+    if not coll or not _verify_project(db, coll.project_id, user_id):
+        return []
+    junction_rows = db.query(CollectionAsset).filter(
+        CollectionAsset.collection_id == collection_id
+    ).order_by(CollectionAsset.sort_order).all()
+    asset_ids = [r.asset_id for r in junction_rows]
+    if not asset_ids:
+        return []
+    return db.query(Asset).filter(Asset.id.in_(asset_ids)).all()
+
+
+def add_asset_to_collection(
+    db: Session, collection_id: int, user_id: int, asset_id: int
+) -> Optional[CollectionAsset]:
+    coll = db.query(AssetCollection).filter(AssetCollection.id == collection_id).first()
+    if not coll or not _verify_project(db, coll.project_id, user_id):
+        return None
+    # Check asset exists and belongs to user
+    asset = get_asset(db, asset_id, user_id)
+    if not asset:
+        return None
+    # Check for duplicate
+    existing = db.query(CollectionAsset).filter(
+        and_(CollectionAsset.collection_id == collection_id, CollectionAsset.asset_id == asset_id)
+    ).first()
+    if existing:
+        return existing
+    ca = CollectionAsset(collection_id=collection_id, asset_id=asset_id)
+    db.add(ca)
+    db.commit()
+    db.refresh(ca)
+    return ca
+
+
+def remove_asset_from_collection(db: Session, junction_id: int, user_id: int) -> bool:
+    ca = db.query(CollectionAsset).filter(CollectionAsset.id == junction_id).first()
+    if not ca:
+        return False
+    coll = db.query(AssetCollection).filter(AssetCollection.id == ca.collection_id).first()
+    if not coll or not _verify_project(db, coll.project_id, user_id):
+        return False
+    db.delete(ca)
     db.commit()
     return True
 

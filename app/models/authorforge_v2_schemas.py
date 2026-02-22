@@ -309,6 +309,13 @@ class AssetCreate(BaseModel):
     metadata_json: Dict[str, Any] = Field(default_factory=dict)
 
 
+class AssetUpdate(BaseModel):
+    filename: Optional[str] = Field(None, max_length=500)
+    asset_type: Optional[AssetTypeEnum] = None
+    tags: Optional[List[str]] = None
+    metadata_json: Optional[Dict[str, Any]] = None
+
+
 class AssetResponse(BaseModel):
     id: int
     user_id: int
@@ -320,8 +327,52 @@ class AssetResponse(BaseModel):
     tags: List[str] = []
     metadata_json: Dict[str, Any] = {}
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================
+# Asset Collection Schemas
+# ============================================
+
+class AssetCollectionCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+
+
+class AssetCollectionUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+class AssetCollectionResponse(BaseModel):
+    id: int
+    project_id: int
+    name: str
+    description: Optional[str] = None
+    sort_order: int = 0
+    asset_count: int = 0
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CollectionAssetResponse(BaseModel):
+    id: int
+    collection_id: int
+    asset_id: int
+    sort_order: int = 0
+    added_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AssetUsageResponse(BaseModel):
+    covers: List[Dict[str, Any]] = []
+    total_uses: int = 0
 
 
 # ============================================

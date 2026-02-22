@@ -28,7 +28,9 @@ from app.models.authorforge_v2_schemas import (
     # Style Profiles
     StyleProfileCreate, StyleProfileUpdate, StyleProfileResponse,
     # Assets
-    AssetCreate, AssetResponse,
+    AssetCreate, AssetUpdate, AssetResponse,
+    AssetCollectionCreate, AssetCollectionUpdate, AssetCollectionResponse,
+    CollectionAssetResponse, AssetUsageResponse,
     # Factions
     FactionCreate, FactionUpdate, FactionResponse,
     # Alerts
@@ -461,6 +463,126 @@ def delete_asset(
 ):
     if not crud.delete_asset(db, asset_id, current_user.id):
         raise HTTPException(status_code=404, detail="Asset not found")
+
+
+@router.get("/assets/{asset_id}", response_model=AssetResponse)
+def get_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    asset = crud.get_asset(db, asset_id, current_user.id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
+
+@router.patch("/assets/{asset_id}", response_model=AssetResponse)
+def update_asset(
+    asset_id: int,
+    data: AssetUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    asset = crud.update_asset(db, asset_id, current_user.id, data)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
+
+@router.get("/assets/{asset_id}/usage", response_model=AssetUsageResponse)
+def get_asset_usage(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return crud.get_asset_usage(db, asset_id, current_user.id)
+
+
+# ============================================
+# Asset Collections
+# ============================================
+
+@router.get("/{project_id}/collections", response_model=List[AssetCollectionResponse])
+def list_collections(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return crud.list_asset_collections(db, project_id, current_user.id)
+
+
+@router.post("/{project_id}/collections", response_model=AssetCollectionResponse, status_code=status.HTTP_201_CREATED)
+def create_collection(
+    project_id: int,
+    data: AssetCollectionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    coll = crud.create_asset_collection(db, project_id, current_user.id, data)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"id": coll.id, "project_id": coll.project_id, "name": coll.name,
+            "description": coll.description, "sort_order": coll.sort_order or 0,
+            "asset_count": 0, "created_at": coll.created_at, "updated_at": coll.updated_at}
+
+
+@router.patch("/collections/{collection_id}", response_model=AssetCollectionResponse)
+def update_collection(
+    collection_id: int,
+    data: AssetCollectionUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    coll = crud.update_asset_collection(db, collection_id, current_user.id, data)
+    if not coll:
+        raise HTTPException(status_code=404, detail="Collection not found")
+    return coll
+
+
+@router.delete("/collections/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_collection(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not crud.delete_asset_collection(db, collection_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+
+@router.get("/collections/{collection_id}/assets", response_model=List[AssetResponse])
+def list_collection_assets(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return crud.list_collection_assets(db, collection_id, current_user.id)
+
+
+@router.post("/collections/{collection_id}/assets", response_model=CollectionAssetResponse, status_code=status.HTTP_201_CREATED)
+def add_to_collection(
+    collection_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    asset_id = data.get("asset_id")
+    if not asset_id:
+        raise HTTPException(status_code=422, detail="asset_id is required")
+    ca = crud.add_asset_to_collection(db, collection_id, current_user.id, asset_id)
+    if not ca:
+        raise HTTPException(status_code=404, detail="Collection or asset not found")
+    return ca
+
+
+@router.delete("/collection-assets/{junction_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_from_collection(
+    junction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not crud.remove_asset_from_collection(db, junction_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Collection entry not found")
 
 
 # ============================================

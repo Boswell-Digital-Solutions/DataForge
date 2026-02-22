@@ -239,6 +239,31 @@ class Asset(Base):
     tags = Column(JSON, default=[])
     metadata_json = Column(JSON, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class AssetCollection(Base):
+    """Named collection of gallery assets."""
+    __tablename__ = "asset_collections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class CollectionAsset(Base):
+    """Junction table linking assets to collections."""
+    __tablename__ = "collection_assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    collection_id = Column(Integer, ForeignKey("asset_collections.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True)
+    sort_order = Column(Integer, default=0)
+    added_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 # ============================================
