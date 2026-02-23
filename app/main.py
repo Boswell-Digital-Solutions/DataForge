@@ -26,6 +26,7 @@ from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
 from app.api.forge_run_router import router as forge_run_router  # ForgeAgents run persistence (Phase 2)
 from app.api.agents_registry_router import router as agents_registry_router  # ForgeAgents agent persistence
 from app.api.bugcheck_router import router as bugcheck_router  # BugCheck Agent persistence
+from app.api.experience_router import router as experience_router  # Agentic Reasoning: Experience Store
 from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
 from app.api.smithy_planning_router import router as smithy_planning_router  # Smithy Planning Sessions
 from app.api.neuroforge_router import router as neuroforge_router  # NeuroForge inference logging
@@ -185,6 +186,7 @@ app.include_router(smithy_portfolio_router)  # Smithy Portfolio & Competency mod
 app.include_router(smithy_planning_router)  # Smithy Planning Sessions persistence
 app.include_router(authorforge_v2_router)  # AuthorForge V2: chapters, scenes, graph, maps, covers
 app.include_router(neuroforge_router)  # NeuroForge inference logging & transparency
+app.include_router(experience_router)  # Agentic Reasoning: Experience Store (search, index, get)
 
 # ============================================
 # Health Check & Info Endpoints

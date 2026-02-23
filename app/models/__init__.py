@@ -40,6 +40,15 @@ from .vibeforge_models import VibeForgeProject, ProjectSession, StackOutcome, Mo
 from .diligence_models import DiligenceProject, DiligenceReview, DiligenceFinding  # noqa: F401
 from .tarcie_models import TarcieEvent  # noqa: F401
 from .neuroforge_models import Inference
+from .agentic_reasoning_models import (
+    ExecutionExperienceModel, SkillNominationModel, GovernedBroadcastModel
+)
+from .agentic_reasoning_schemas import (
+    ExecutionOutcome, NominationStatus, KnowledgeType,
+    ExperienceCreate, ExperienceResponse, ExperienceSearchRequest, ExperienceSearchResult,
+    NominationCreate, NominationResponse, NominationStatusUpdate,
+    BroadcastCreate, BroadcastResponse,
+)
 from .neuroforge_schemas import (
     InferenceCreate, InferenceResponse, InferenceListResponse, InferenceStats,
     DomainBreakdown,
@@ -197,4 +206,11 @@ __all__ = [
     "Inference",
     "InferenceCreate", "InferenceResponse", "InferenceListResponse", "InferenceStats",
     "DomainBreakdown",
+    # Agentic Reasoning Models
+    "ExecutionExperienceModel", "SkillNominationModel", "GovernedBroadcastModel",
+    # Agentic Reasoning Schemas
+    "ExecutionOutcome", "NominationStatus", "KnowledgeType",
+    "ExperienceCreate", "ExperienceResponse", "ExperienceSearchRequest", "ExperienceSearchResult",
+    "NominationCreate", "NominationResponse", "NominationStatusUpdate",
+    "BroadcastCreate", "BroadcastResponse",
 ]
