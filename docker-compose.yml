@@ -30,7 +30,7 @@ services:
         condition: service_started
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dataforge}
+      DATAFORGE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dataforge}
 
       # Caching (optional)
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}

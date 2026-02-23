@@ -448,7 +448,7 @@ brainstorm_sessions     -- Brainstorming data
 
 ```python
 # ✅ Config loaded from environment with sensible defaults
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://...")
+DATABASE_URL = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://...")
 SECRET_KEY = os.getenv("SECRET_KEY")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 ```

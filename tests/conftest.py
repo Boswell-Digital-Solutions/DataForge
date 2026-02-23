@@ -168,6 +168,6 @@ def setup_test_env(monkeypatch):
     Set up test environment variables.
     """
     monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-testing-only")
-    monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
+    monkeypatch.setenv("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 

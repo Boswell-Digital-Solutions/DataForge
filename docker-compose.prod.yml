@@ -115,7 +115,7 @@ services:
     
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dataforge}
+      DATAFORGE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dataforge}
       
       # Redis
       REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0

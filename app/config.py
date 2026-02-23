@@ -47,7 +47,7 @@ RATE_LIMIT_ADMIN = "100/minute"  # 100 admin operations per minute
 # ============================================
 # Database Configuration
 # ============================================
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
+DATABASE_URL = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
 
 # ============================================
 # Redis Configuration (Caching)
@@ -128,7 +128,7 @@ def validate_config():
 
     # Check database URL
     if not DATABASE_URL:
-        errors.append("DATABASE_URL must be set")
+        errors.append("DATAFORGE_DATABASE_URL must be set")
     elif "localhost" in DATABASE_URL and "production" in os.getenv("ENVIRONMENT", "development").lower():
         warnings.append("WARNING: Using localhost database URL in production environment")
 

@@ -39,7 +39,7 @@ from app.models import tarcie_models  # noqa: F401
 config = _context.config
 
 # Set the database URL from environment variable
-db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
+db_url = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
 config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.

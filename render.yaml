@@ -33,7 +33,7 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - key: DATABASE_URL
+      - key: DATAFORGE_DATABASE_URL
         fromDatabase:
           name: dataforge-db
           property: connectionString

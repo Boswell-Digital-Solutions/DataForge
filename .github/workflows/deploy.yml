@@ -78,7 +78,7 @@ jobs:
         environment-variables: |
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           REDIS_URL=${{ secrets.REDIS_URL }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          DATAFORGE_DATABASE_URL=${{ secrets.DATAFORGE_DATABASE_URL }}
           VOYAGE_API_KEY=${{ secrets.VOYAGE_API_KEY }}
 
   # Template for Kubernetes deployment

@@ -26,7 +26,7 @@ class TelemetryClient:
         telemetry = TelemetryClient(database_url)
         await telemetry.emit(... )
 
-    Supports DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER / DATABASE_PASSWORD / DATABASE_NAME
+    Supports DATAFORGE_DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER / DATABASE_PASSWORD / DATABASE_NAME
     and honors the TELEMETRY_REQUIRED flag.
     """
 
@@ -35,7 +35,7 @@ class TelemetryClient:
         Initialize telemetry client.
 
         Args:
-            database_url: PostgreSQL connection URL. If not provided, reads DATABASE_URL env var.
+            database_url: PostgreSQL connection URL. If not provided, reads DATAFORGE_DATABASE_URL env var.
         """
         self.telemetry_required = telemetry_required if telemetry_required is not None else os.getenv("TELEMETRY_REQUIRED", "false").lower() in {
             "1", "true", "yes"
@@ -61,7 +61,7 @@ class TelemetryClient:
         elif self.telemetry_required:
             raise ValueError(
                 "Telemetry is required but no database configuration was found. "
-                "Set DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER/DATABASE_PASSWORD/DATABASE_NAME."
+                "Set DATAFORGE_DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER/DATABASE_PASSWORD/DATABASE_NAME."
             )
 
     def emit(
@@ -204,7 +204,7 @@ class TelemetryClient:
     ) -> Tuple[Optional[str], Optional[str], Optional[int]]:
         if provided_url:
             return provided_url, *self._extract_host_port(provided_url)
-        env_url = os.getenv("DATABASE_URL")
+        env_url = os.getenv("DATAFORGE_DATABASE_URL")
         if env_url:
             return env_url, *self._extract_host_port(env_url)
         return self._build_url_from_components()
