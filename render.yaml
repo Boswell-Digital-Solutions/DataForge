@@ -34,9 +34,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATAFORGE_DATABASE_URL
-        fromDatabase:
-          name: dataforge-db
-          property: connectionString
+        sync: false  # Set Supabase connection string in Render dashboard
       - key: OPENAI_API_KEY
         sync: false
       - key: VOYAGE_API_KEY
