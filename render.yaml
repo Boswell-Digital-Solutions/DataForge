@@ -1,12 +1,7 @@
 # DataForge - Knowledge/Data Layer Service
 # Render Blueprint for independent deployment
 # Deploy: render blueprint apply
-
-databases:
-  - name: dataforge-db
-    databaseName: dataforge
-    user: dataforge
-    plan: free
+# Database: Supabase (external) — set DATAFORGE_DATABASE_URL in Render dashboard
 
 services:
   - type: web
