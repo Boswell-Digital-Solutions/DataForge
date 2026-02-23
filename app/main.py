@@ -84,20 +84,33 @@ async def lifespan(app: FastAPI):
     else:
         main_logger.warning("⚠️  No embedding provider configured")
 
-    # Enable pgvector extension
+    # Enable pgvector extension (retry on transient connection failures)
     main_logger.info("📦 Enabling pgvector extension...")
-    try:
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-            conn.commit()
-        main_logger.info("✅ pgvector extension enabled")
-    except Exception as e:
-        main_logger.error(f"❌ Failed to enable pgvector extension: {e}")
+    import time as _time
+    _pgvector_ok = False
+    for _attempt in range(1, 4):
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                conn.commit()
+            main_logger.info("✅ pgvector extension enabled")
+            _pgvector_ok = True
+            break
+        except Exception as e:
+            main_logger.warning(
+                f"⚠️  pgvector init attempt {_attempt}/3 failed: {e}"
+            )
+            if _attempt < 3:
+                _delay = 5 * _attempt  # 5s, 10s
+                main_logger.info(f"   Retrying in {_delay}s...")
+                _time.sleep(_delay)
+    if not _pgvector_ok:
+        main_logger.error("❌ Failed to enable pgvector after 3 attempts")
         log_security_event(
             main_logger,
             "EXTENSION_INIT_FAILURE",
-            f"Failed to enable pgvector extension: {e}"
+            "Failed to enable pgvector extension after 3 retries"
         )
         sys.exit(1)
 
