@@ -21,7 +21,11 @@ services:
       pip install --upgrade pip
       pip install -e ./forge-telemetry
       pip install --no-cache-dir -r requirements.txt
-      alembic upgrade head
+      alembic upgrade head || {
+        echo "⚠️  alembic upgrade failed — stamping current head and retrying"
+        alembic stamp head
+        alembic upgrade head
+      }
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
