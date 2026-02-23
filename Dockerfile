@@ -21,11 +21,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for running application (security best practice)
 RUN groupadd -r dataforge && useradd -r -g dataforge dataforge
 
-# Copy requirements first for better caching
+# Copy requirements and local packages for dependency install
 COPY requirements.txt .
+COPY forge-telemetry/ ./forge-telemetry/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir -e ./forge-telemetry \
+    && pip install --no-cache-dir -r requirements.txt \
     && pip cache purge
 
 # Copy application code
