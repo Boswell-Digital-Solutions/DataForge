@@ -69,6 +69,8 @@ jobs:
       with:
         resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
         name: dataforge-app
+        dns-name-label: dataforge-app
+        location: eastus
         image: ${{ needs.build.outputs.image }}
         cpu: 2
         memory: 2

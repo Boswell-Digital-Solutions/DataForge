@@ -21,7 +21,7 @@ CHUNK_OVERLAP = 50
 # Note: Anthropic (Claude) doesn't provide embeddings API
 # Use Voyage AI (owned by Anthropic) for embeddings
 EMBEDDING_MODEL = "voyage-large-2"  # Default to Voyage AI
-EMBEDDING_DIMENSION = 1536  # voyage-large-2 = 1536, voyage-2 = 1024
+EMBEDDING_DIMENSION = int(os.getenv("FORGE_EMBED_DIM", "1536"))  # Ecosystem-wide; voyage-large-2 = 1536
 MAX_EMBEDDING_INPUT_LENGTH = 8000  # Max chars for embedding API
 
 # ============================================
