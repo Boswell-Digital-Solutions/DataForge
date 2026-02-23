@@ -26,7 +26,7 @@ COPY requirements.txt .
 COPY forge-telemetry/ ./forge-telemetry/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -e ./forge-telemetry \
+RUN pip install --no-cache-dir ./forge-telemetry \
     && pip install --no-cache-dir -r requirements.txt \
     && pip cache purge
 

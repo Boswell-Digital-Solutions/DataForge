@@ -14,7 +14,8 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
--e ./forge-telemetry
+# forge-telemetry installed separately (see Dockerfile / render.yaml)
+# -e ./forge-telemetry
 
 # Authentication
 python-jose[cryptography]==3.3.0
