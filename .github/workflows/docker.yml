@@ -65,12 +65,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: build
-    
+
     steps:
+    - name: Lowercase image name
+      id: lower
+      run: echo "image=$(echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        image-ref: ${{ steps.lower.outputs.image }}:latest
         format: 'sarif'
         output: 'trivy-results.sarif'
     
