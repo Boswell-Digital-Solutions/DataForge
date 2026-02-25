@@ -34,6 +34,7 @@ from app.api.multi_provider_router import router as multi_provider_router  # Mul
 from app.api.rate_limits_router import router as rate_limits_router  # Global rate limiting (XAI/MAID cross-run)
 from app.api.sentinel_router import router as sentinel_router  # Sentinel Agent (sweeps, healing events)
 from app.api.compression_router import router as compression_router  # Dictionary Compression (Phase 2)
+from app.api.press_router import router as press_router  # PressForge: journalist outreach (AuthorForge module)
 from app.middleware.correlation import CorrelationIDMiddleware
 from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
 from app.config import (
@@ -224,6 +225,7 @@ app.include_router(multi_provider_router)  # Multi-Provider Pipeline: model cata
 app.include_router(rate_limits_router)  # Global rate limiting: XAI/MAID cross-run enforcement
 app.include_router(sentinel_router)  # Sentinel Agent: health sweeps, healing events
 app.include_router(compression_router)  # Dictionary Compression: CRUD for Zstd dictionaries
+app.include_router(press_router)  # PressForge: journalist outreach module
 
 # ============================================
 # Health Check & Info Endpoints

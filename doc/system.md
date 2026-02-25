@@ -29,10 +29,10 @@ This document is the **service-level compilation** of all DataForge system docum
 
 **DataForge** is the unified data and knowledge engine of the Forge Ecosystem. It runs on port **8001** and serves as the single, authoritative source of truth for all durable state across every Forge service.
 
-- **Version:** v5.2
-- **Status:** 18/18 phases complete
-- **Scale:** 42,732 LOC across 133 Python files
-- **Tests:** 296/296 passing, 82% coverage
+- **Version:** v5.4
+- **Status:** 21/21 phases complete
+- **Scale:** 61,074 LOC across 221 Python files
+- **Tests:** 296+ passing, 82% coverage
 - **Port:** 8001
 
 ## The Source-of-Truth Contract
@@ -126,21 +126,23 @@ Prometheus metrics at `/metrics`, OpenTelemetry distributed tracing, structured 
 DataForge (port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── 29 API routers
+│   ├── 33 API routers
 │   ├── Lifespan handler (CORS, startup/shutdown)
 │   ├── Static file serving
-│   └── Admin UI (Jinja2 template)
+│   ├── Admin UI (Jinja2 template)
+│   └── Compression middleware (PayloadSizeCollector + ZstdDictionaryMiddleware)
 │
 ├── Business Logic Layer
 │   ├── CRUD operations (app/api/crud.py)
 │   ├── Hybrid search engine (app/api/search.py)
 │   ├── Embedding pipeline (app/utils/embeddings.py)
 │   ├── Auth utilities (app/utils/auth.py)
-│   └── Anomaly detection (inline with auth)
+│   ├── Anomaly detection (inline with auth)
+│   └── Dictionary compression (forge-compression middleware)
 │
 ├── ORM Layer
-│   ├── SQLAlchemy models (app/models/models.py) — 31+ classes
-│   ├── Pydantic schemas (app/models/schemas.py) — 90+ schemas
+│   ├── SQLAlchemy models (app/models/models.py + domain models) — 40+ classes
+│   ├── Pydantic schemas (app/models/schemas.py + domain schemas) — 130+ schemas
 │   └── Session dependency (app/database.py)
 │
 └── Storage Layer
@@ -342,7 +344,7 @@ No JavaScript framework dependency; the admin UI is a single-file template.
 |-----------|---------|-------|
 | SQLAlchemy | 2.0.36 | Core ORM; 2.x async session style |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
-| Alembic | 1.13.1 | Schema migrations; 11 version files |
+| Alembic | 1.13.1 | Schema migrations; 32 version files |
 
 ## Data Validation
 
@@ -393,6 +395,12 @@ No JavaScript framework dependency; the admin UI is a single-file template.
 | OpenTelemetry | Distributed tracing with correlation IDs |
 | structlog / logging | Structured JSON logging |
 
+## Compression
+
+| Component   | Version   | Notes                                                          |
+|-------------|-----------|----------------------------------------------------------------|
+| zstandard   | >= 0.22.0 | Zstandard dictionary compression (via forge-compression package)|
+
 ## Optional / Load Testing
 
 | Component | Notes |
@@ -431,11 +439,13 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 13 migration version files
+│   └── versions/                     # 32 migration version files
 │       ├── 0001_initial_schema.py
 │       ├── ...
-│       ├── 0012_multi_provider_tables.py
-│       └── 0013_sentinel_tables.py
+│       ├── 20260224_multi_provider_tables.py
+│       ├── 20260224_sentinel_tables.py
+│       ├── 20260224_1800_create_global_rate_limits.py
+│       └── 20260224_2000_create_compression_dictionaries.py
 │
 ├── app/                              # Main application package
 │   ├── main.py                       # FastAPI app + lifespan + router registration
@@ -447,7 +457,11 @@ DataForge/
 │   │   ├── multi_provider_models.py  # Multi-provider pipeline models (6 tables)
 │   │   ├── multi_provider_schemas.py # Multi-provider Pydantic schemas
 │   │   ├── sentinel_models.py        # Sentinel health sweep + healing models
-│   │   └── sentinel_schemas.py       # Sentinel Pydantic schemas
+│   │   ├── sentinel_schemas.py       # Sentinel Pydantic schemas
+│   │   ├── compression_models.py     # Dictionary compression ORM model
+│   │   ├── compression_schemas.py    # Compression Pydantic schemas
+│   │   ├── rate_limits_models.py     # Global rate limits model
+│   │   └── rate_limits_schemas.py    # Rate limits Pydantic schemas
 │   │
 │   ├── api/
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
@@ -458,7 +472,9 @@ DataForge/
 │   │   ├── model_catalog_router.py   # Multi-provider model catalog CRUD
 │   │   ├── pricing_router.py         # Pricing snapshots, alerts, monitor runs
 │   │   ├── cost_ledger_router.py     # Cost ledger entries + aggregations
-│   │   └── sentinel_router.py        # Sentinel sweeps + healing events CRUD
+│   │   ├── sentinel_router.py        # Sentinel sweeps + healing events CRUD
+│   │   ├── compression_router.py     # Dictionary compression CRUD + blob download
+│   │   └── rate_limits_router.py     # Global rate limits enforcement
 │   │
 │   └── utils/
 │       ├── embeddings.py             # Text chunking + Voyage AI embedding generation
@@ -501,7 +517,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 33 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 36 routers with their prefixes. Installs `PayloadSizeCollector` middleware for response size baseline and optionally `ZstdDictionaryMiddleware` for dictionary-compressed responses. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware.
 
@@ -567,9 +583,18 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 | `BatchQueue` | `batch_queue` | Batch inference queue tracking |
 | `SentinelSweep` | `sentinel_sweeps` | Health sweep run records (light/deep) |
 | `SentinelHealingEvent` | `sentinel_healing_events` | Healing action records with tier + outcome |
+| `CompressionDictionary` | `compression_dictionaries` | Zstd dictionary registry with lifecycle (TRAINING/CANDIDATE/ACTIVE/RETIRED) |
+| `GlobalRateLimit` | `global_rate_limits` | Cross-run XAI/MAID rate limit enforcement |
+| `PFJournalist` | `pf_journalists` | Media contacts (encrypted email, beat, publication, coverage_embedding VECTOR(1536), consent_status) |
+| `PFCampaign` | `pf_campaigns` | Outreach campaigns linked to AuthorForge project_id (news_angle, status) |
+| `PFPitch` | `pf_pitches` | Per-journalist pitches (ai_generated, ai_rationale, humanity_score, human_verification_checksum) |
+| `PFOutreachEvent` | `pf_outreach_events` | Send/reply/bounce event log (event_type, timestamps, metadata JSONB) |
+| `PFCoverage` | `pf_coverage` | Media mention tracking (article_url, journalist_id, campaign_id, ai_sentiment_score) |
+| `PFDomainReputation` | `pf_domain_reputation` | Sender domain health (dmarc_status, warmup_state, bounce_rate) |
+| `PFAIAuditLog` | `pf_ai_audit_log` | AI transparency trail — immutable append-only (model_version, rationale, personalization_notes) |
 
 ### `app/models/schemas.py`
-Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
+Pydantic v2 schemas (140+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
 
 ### `app/api/crud.py`
 Raw database operations. No business logic. Each function takes a `db: Session` parameter and returns ORM model instances. CRUD functions never raise HTTP exceptions — they return `None` on not-found; routers handle HTTP responses.
@@ -583,7 +608,7 @@ Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosin
 `process_document(document_id, db)` — orchestrates chunk creation and embedding for a document.
 
 ### `alembic/versions/`
-13 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns, multi-provider pipeline tables, and Sentinel health sweep tables. Always run `alembic upgrade head` after pulling new code.
+32 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns, multi-provider pipeline tables, Sentinel health sweep tables, global rate limits, and compression dictionary registry. Always run `alembic upgrade head` after pulling new code.
 
 ---
 
@@ -699,6 +724,17 @@ Rate limits are enforced via Redis token bucket. Global limits apply across all 
 | `ENCRYPTION_KEY` | str | AES-256 Fernet key for field-level PII encryption. Derived from `SECRET_KEY` if not set separately |
 | `GDPR_DELETION_DELAY_DAYS` | int | Days before hard deletion executes after GDPR erasure request |
 
+## Dictionary Compression
+
+| Variable | Type | Default | Required | Notes |
+|----------|------|---------|----------|-------|
+| `COMPRESSION_ENABLED` | bool | `false` | NO | Enable Zstd dictionary compression middleware |
+| `FORGECOMMAND_COMPRESSION_URL` | str | `http://127.0.0.1:8003` | NO | ForgeCommand endpoint for dictionary distribution |
+| `COMPRESSION_MIN_SIZE` | int | `1024` | NO | Minimum response size (bytes) to compress |
+| `COMPRESSION_POLL_INTERVAL` | int | `300` | NO | Dictionary polling interval (seconds) |
+
+When `COMPRESSION_ENABLED=true`, the `ZstdDictionaryMiddleware` compresses responses on Tier 1 routes (`/api/v1/search`, `/api/v1/bugcheck`, `/api/v1/experience`) using active dictionaries fetched from ForgeCommand. The `PayloadSizeCollector` runs unconditionally for baseline measurement.
+
 ## Full `.env.example` Reference
 
 ```dotenv
@@ -747,7 +783,7 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §6 — API Layer
 
-DataForge exposes 33 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
+DataForge exposes 36 API routers covering 120+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
 
 ## Authentication Requirements
 
@@ -996,6 +1032,46 @@ Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 s
 | `GET` | `/api/v1/sentinel/healing` | List healing events (filterable by tier, outcome) |
 | `GET` | `/api/v1/sentinel/healing/{event_id}` | Get healing event details |
 | `PATCH` | `/api/v1/sentinel/healing/{event_id}` | Update healing event status |
+
+#### `/api/pressforge` — PressForge Module (BDS-internal)
+
+All `pf_*` endpoints serve PressForge, the journalist outreach module gated behind `--features press` in AuthorForge. These routes are accessed via AuthorForge's Fastify proxy for reads and campaign CRUD.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/pressforge/journalists` | API key | Create journalist profile |
+| `GET` | `/api/pressforge/journalists` | API key | List/search journalists (supports pgvector cosine + temporal decay) |
+| `GET` | `/api/pressforge/journalists/{id}` | API key | Get journalist detail with coverage history |
+| `PATCH` | `/api/pressforge/journalists/{id}` | API key | Update journalist profile or consent_status |
+| `POST` | `/api/pressforge/campaigns` | API key | Create campaign (linked to AuthorForge project_id) |
+| `GET` | `/api/pressforge/campaigns` | API key | List campaigns with status |
+| `GET` | `/api/pressforge/campaigns/{id}` | API key | Get campaign detail + pitch summary |
+| `PATCH` | `/api/pressforge/campaigns/{id}` | API key | Update campaign status/news_angle |
+| `POST` | `/api/pressforge/campaigns/{id}/pitches` | API key | Create pitch for journalist |
+| `GET` | `/api/pressforge/campaigns/{id}/pitches` | API key | List pitches for campaign |
+| `PATCH` | `/api/pressforge/pitches/{id}` | API key | Update pitch (human edits, humanity_score) |
+| `POST` | `/api/pressforge/outreach-events` | API key | Log send/reply/bounce event |
+| `GET` | `/api/pressforge/outreach-events` | API key | Query outreach events (filterable by campaign, journalist, type) |
+| `POST` | `/api/pressforge/coverage` | API key | Record media mention |
+| `GET` | `/api/pressforge/coverage` | API key | Query coverage (filterable by campaign, journalist) |
+| `GET` | `/api/pressforge/domain-reputation` | API key | Get domain health (DMARC, SPF, DKIM, bounce_rate, warmup_state) |
+| `PATCH` | `/api/pressforge/domain-reputation` | API key | Update domain reputation metrics |
+| `POST` | `/api/pressforge/ai-audit` | API key | Append AI transparency record (immutable) |
+| `GET` | `/api/pressforge/ai-audit` | API key | Query AI audit trail (filterable by campaign, pitch) |
+| `GET` | `/api/pressforge/analytics` | API key | Campaign analytics (reply rates, coverage correlation, humanity_score ROI) |
+
+#### `/api/compression/dictionaries` — Dictionary Compression Registry
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/compression/dictionaries` | Register new dictionary (base64 blob, SHA-256 validation) |
+| `GET` | `/api/compression/dictionaries` | List dictionaries (filterable by service_pair, status, program) |
+| `GET` | `/api/compression/dictionaries/active` | Get active dictionaries for a service pair |
+| `GET` | `/api/compression/dictionaries/{id}` | Get dictionary metadata |
+| `GET` | `/api/compression/dictionaries/{id}/blob` | Download binary blob (octet-stream, SHA-256 header) |
+| `PUT` | `/api/compression/dictionaries/{id}/status` | Lifecycle transition (auto-retires previous ACTIVE) |
+
+Dictionary lifecycle: `TRAINING -> CANDIDATE -> ACTIVE -> RETIRED`. Only one ACTIVE dictionary per `(service_pair, payload_class, program)` combination — activating a new one auto-retires the previous.
 
 ---
 
@@ -1260,6 +1336,63 @@ app.add_middleware(
 
 ---
 
+## Dictionary Compression (Zstandard)
+
+DataForge participates in the Forge ecosystem's dictionary compression system as both a **dictionary registry** and a **compression endpoint**.
+
+### Architecture
+
+```
+Services (ForgeAgents, Rake, etc.)
+    │
+    ├── Accept-Encoding: dcz ──► DataForge
+    │                              │
+    │                     ZstdDictionaryMiddleware
+    │                     (checks payload ≥ 1024 bytes)
+    │                              │
+    │                     DictionaryStore (local cache)
+    │                     (polls ForgeCommand for active dicts)
+    │                              │
+    │                     Compress at Zstd level 3
+    │                              │
+    ◄── Content-Encoding: dcz ────┘
+        Dictionary-ID: {uuid}
+        Vary: Accept-Encoding, Available-Dictionary
+```
+
+### Middleware Stack
+
+1. **PayloadSizeCollector** — Always active. Emits `forge_http_response_size_bytes` Prometheus Histogram with labels `service`, `method`, `endpoint`, `content_type`. Buckets: 256B to 1MB.
+2. **ZstdDictionaryMiddleware** — Active when `COMPRESSION_ENABLED=true`. Compresses responses matching `Accept-Encoding: dcz` on configured routes using the active dictionary for that service pair.
+
+### Dictionary Registry
+
+DataForge stores compression dictionaries in the `compression_dictionaries` table. Each dictionary has:
+
+- **service_pair** — Source-destination pair (e.g., `forgeagents-dataforge`)
+- **payload_class** — Content category (e.g., `experience`, `search`)
+- **program** — `transport` (level 3, 64KB) or `archive` (level 9, 128KB)
+- **status** — `TRAINING` -> `CANDIDATE` -> `ACTIVE` -> `RETIRED`
+- **Partial unique constraint** — Only one ACTIVE dictionary per `(service_pair, payload_class, schema_version_max, program)`
+
+### Invariant
+
+**Hash before compress, never compress before hash.** Compression is a transport/storage optimization only. SHA-256 hashes in brandpack receipts, evidence manifests, and audit logs are always computed on uncompressed data.
+
+### Fallback Behavior
+
+On any compression failure (missing dictionary, encoding error, client doesn't support `dcz`), the middleware falls through and returns the uncompressed response. Fallbacks are counted via `forge_compression_fallback_total` Counter with a `reason` label.
+
+### Safe Decompression
+
+The `safe_decompress()` function enforces dual limits:
+- **Absolute limit:** 50MB maximum decompressed output
+- **Proportional limit:** 10x compressed size
+
+Exceeding either limit raises `DecompressionLimitExceeded`. This prevents decompression bombs.
+
+---
+
 
 # §8 — Ecosystem Integration Contracts
 
@@ -1423,6 +1556,35 @@ AuthorForge is the most content-intensive integration. All narrative content —
 
 ---
 
+## PressForge (AuthorForge BDS Module)
+
+PressForge is a feature-gated module inside AuthorForge (`--features press`) that adds journalist outreach to the writing workflow. It is BDS-internal only and never ships to public AuthorForge users. All `pf_*` data is persisted to DataForge.
+
+### Integration Points
+
+| Resource | Endpoint Pattern | Notes |
+|----------|-----------------|-------|
+| Journalists | `/api/pressforge/journalists` | Profiles with encrypted email, beat, publication, coverage_embedding (VECTOR(1536)), consent_status |
+| Campaigns | `/api/pressforge/campaigns` | Linked to AuthorForge `project_id` — no separate companies table |
+| Pitches | `/api/pressforge/campaigns/{id}/pitches` | AI-generated with rationale, humanity_score, human_verification_checksum |
+| Outreach Events | `/api/pressforge/outreach-events` | Send/reply/bounce log (JSONB metadata) |
+| Coverage | `/api/pressforge/coverage` | Media mentions with ai_sentiment_score |
+| Domain Reputation | `/api/pressforge/domain-reputation` | DMARC/SPF/DKIM status, warmup_state, bounce_rate |
+| AI Audit Log | `/api/pressforge/ai-audit` | Immutable append-only (model_version, rationale, personalization_notes) |
+| Analytics | `/api/pressforge/analytics` | Reply rates, coverage correlation, humanity_score ROI |
+
+**Key design decisions:**
+
+- Campaign links to AuthorForge project via `project_id` FK — book metadata is read from existing AuthorForge project data, zero re-entry.
+- `pf_journalists.email` uses field-level AES-256 Fernet encryption (same pattern as existing PII fields).
+- `pf_journalists.coverage_embedding` is a 1536-dim pgvector column supporting cosine similarity search with temporal decay weighting.
+- `pf_ai_audit_log` is append-only and immutable (EU AI Act compliance). No UPDATE or DELETE permitted.
+- Journalist matching uses pgvector cosine similarity with temporal decay: articles <90 days weighted higher.
+
+**Auth:** Service API keys (same as AuthorForge).
+
+---
+
 ## ForgeAgents
 
 ForgeAgents (the agent runtime) uses DataForge for agent configuration persistence and execution record keeping.
@@ -1532,6 +1694,25 @@ The Pricing Monitor Agent periodically scrapes provider pricing pages and compar
 | Update run status | `PATCH /api/v1/pricing/runs/{run_id}` |
 
 **Auth:** Service API key. Alert types: PRICE_INCREASE, PRICE_DECREASE, NEW_MODEL, MODEL_DEPRECATED, CAPABILITY_CHANGE.
+
+---
+
+## Dictionary Compression Middleware
+
+All Forge services that install the `forge-compression` middleware interact with DataForge for dictionary storage and with ForgeCommand for dictionary distribution.
+
+### Integration Points
+
+| Operation | DataForge Endpoint |
+|-----------|-------------------|
+| Register dictionary | `POST /api/compression/dictionaries` |
+| Get active dictionaries | `GET /api/compression/dictionaries/active` |
+| Download dictionary blob | `GET /api/compression/dictionaries/{id}/blob` |
+| Lifecycle transition | `PUT /api/compression/dictionaries/{id}/status` |
+
+**Auth:** Service API key.
+
+**Middleware Contract:** Services advertising `Accept-Encoding: dcz` receive dictionary-compressed responses. The `Dictionary-ID` response header identifies which dictionary was used. Services must cache dictionaries locally and verify SHA-256 hashes on download. Dictionary staleness is monitored via ratio degradation detection.
 
 ---
 
@@ -2294,7 +2475,9 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 | `tests/` | 32 test files |
 | `app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `app/models/sentinel_models.py` | Sentinel health + healing models |
+| `app/models/compression_models.py` | Dictionary compression ORM model |
 | `app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
+| `app/api/compression_router.py` | Dictionary compression CRUD + blob download |
 | `scripts/seed_model_catalog.py` | 14-model catalog seed script |
 | `.env.example` | All env vars documented |
 | `requirements.txt` | Pinned dependencies |
