@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
-# BDS Documentation Protocol v1.0 — BUILD.sh
+# BDS Documentation Protocol v2.0 — BUILD.sh
+# Assembles numbered section files into dfSYSTEM.md
+# Usage: bash doc/system/BUILD.sh
+
 set -euo pipefail
+
+PREFIX="df"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUT="$SCRIPT_DIR/../../context-bundle.md"
+OUTPUT="${SCRIPT_DIR}/../${PREFIX}SYSTEM.md"
 
-echo "# DataForge — Context Bundle" > "$OUT"
-echo "_Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)_" >> "$OUT"
-echo "" >> "$OUT"
+# Write _index.md header
+cat "${SCRIPT_DIR}/_index.md" > "${OUTPUT}"
+printf '\n---\n' >> "${OUTPUT}"
 
-for f in "$SCRIPT_DIR"/0*.md; do
-  echo "" >> "$OUT"
-  echo "---" >> "$OUT"
-  echo "" >> "$OUT"
-  cat "$f" >> "$OUT"
+# Concatenate all numbered sections in order
+for part in "${SCRIPT_DIR}"/[0-9][0-9]-*.md; do
+  [ -f "$part" ] || continue
+  printf '\n' >> "${OUTPUT}"
+  cat "${part}" >> "${OUTPUT}"
+  printf '\n---\n' >> "${OUTPUT}"
 done
 
-echo ""
-echo "Context bundle written to: $OUT"
-echo "   $(wc -l < "$OUT") lines"
+echo "${PREFIX}SYSTEM.md rebuilt ($(wc -l < "${OUTPUT}") lines)"
