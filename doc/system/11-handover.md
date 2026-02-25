@@ -46,6 +46,8 @@ Changing `SECRET_KEY` (and thus the derived Fernet key) without a migration scri
 | NeuroForge (API key) | Run results, inference records, performance metrics | BugCheck data |
 | AuthorForge (API key) | Project content hierarchy | BugCheck data, run records |
 | SMITH (API key) | Planning sessions, portfolio, governance events | BugCheck findings |
+| Sentinel (API key) | Sweep records, healing events | BugCheck data, run records |
+| Pricing Monitor (API key) | Pricing snapshots, alerts, monitor runs | BugCheck data |
 | Any service | Audit events (append-only) | Modify/delete audit events |
 
 ---
@@ -257,6 +259,10 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
 | `/home/charlie/Forge/ecosystem/DataForge/tests/` | 32 test files |
+| `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
+| `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
+| `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
+| `/home/charlie/Forge/ecosystem/DataForge/scripts/seed_model_catalog.py` | 14-model catalog seed script |
 | `/home/charlie/Forge/ecosystem/DataForge/.env.example` | All env vars documented |
 | `/home/charlie/Forge/ecosystem/DataForge/requirements.txt` | Pinned dependencies |
 
@@ -266,7 +272,8 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 
 | Version | Phases | Status |
 |---------|--------|--------|
-| v5.2 (current) | 18/18 complete | 296 tests, 82% coverage, 42,732 LOC |
+| v5.3 (current) | 20/20 complete | Multi-provider pipeline + Sentinel agent models |
+| v5.2 | 18/18 complete | 296 tests, 82% coverage, 42,732 LOC |
 | v5.1 | 17/18 complete | BugCheck integration added |
 | v5.0 | 15/18 complete | AuthorForge V2, Teams, Smithy added |
 | v4.x | Core platform | NeuroForge, VibeForge, auth, search |

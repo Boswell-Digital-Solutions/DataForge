@@ -12,7 +12,6 @@ from sqlalchemy import (
     ARRAY,
     Column,
     DateTime,
-    ForeignKey,
     Integer,
     JSON,
     Numeric,
@@ -40,7 +39,7 @@ class ExecutionExperienceModel(Base):
     __tablename__ = "execution_experiences"
 
     experience_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    run_id = Column(UUID(as_uuid=True), ForeignKey("forge_runs.run_id", ondelete="CASCADE"), nullable=False)
+    run_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # Cross-service ref to ForgeAgents run
     agent_id = Column(UUID(as_uuid=True), nullable=False)
     agent_archetype = Column(String(50), nullable=False)
     task_embedding = Column(Vector(768), nullable=False)
@@ -99,7 +98,7 @@ class GovernedBroadcastModel(Base):
 
     broadcast_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     source_agent_id = Column(UUID(as_uuid=True), nullable=False)
-    source_run_id = Column(UUID(as_uuid=True), ForeignKey("forge_runs.run_id", ondelete="CASCADE"), nullable=False)
+    source_run_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # Cross-service ref to ForgeAgents run
     target_scope = Column(JSON, nullable=False)
     knowledge_type = Column(String(30), nullable=False)  # context_discovery, error_signal, dependency_finding, scope_overlap
     payload = Column(JSON, nullable=False)

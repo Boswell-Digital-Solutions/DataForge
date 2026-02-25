@@ -1,6 +1,6 @@
 # §6 — API Layer
 
-DataForge exposes 29 API routers covering 80+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
+DataForge exposes 33 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
 
 ## Authentication Requirements
 
@@ -205,6 +205,50 @@ Stores model performance metrics and surfaces improvement recommendations for Ne
 | `GET` | `/api/events` | Query events (filterable, read-only) |
 
 Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 signature on each event enables tamper detection.
+
+#### `/api/v1/model-catalog` — Multi-Provider Model Catalog
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/model-catalog` | List all models (filterable by tier, provider) |
+| `GET` | `/api/v1/model-catalog/{model_id}` | Get model details with current pricing |
+| `POST` | `/api/v1/model-catalog` | Register a new model |
+| `PUT` | `/api/v1/model-catalog/{model_id}` | Update model metadata |
+| `DELETE` | `/api/v1/model-catalog/{model_id}` | Remove model from catalog |
+
+#### `/api/v1/pricing` — Pricing Monitoring
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/pricing/snapshots` | List pricing snapshots (filterable by model, date range) |
+| `POST` | `/api/v1/pricing/snapshots` | Store a pricing snapshot |
+| `GET` | `/api/v1/pricing/alerts` | List pricing alerts (filterable by status, type) |
+| `POST` | `/api/v1/pricing/alerts` | Create a pricing alert |
+| `PATCH` | `/api/v1/pricing/alerts/{alert_id}` | Acknowledge or update an alert |
+| `GET` | `/api/v1/pricing/runs` | List pricing monitor runs |
+| `POST` | `/api/v1/pricing/runs` | Record a pricing monitor run |
+| `PATCH` | `/api/v1/pricing/runs/{run_id}` | Update run status |
+
+#### `/api/v1/cost-ledger` — Cost Tracking
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/cost-ledger` | Record a cost entry (per-inference) |
+| `GET` | `/api/v1/cost-ledger` | Query cost entries (filterable by run, model, provider, date range) |
+| `GET` | `/api/v1/cost-ledger/aggregations` | Aggregated cost data (by provider, by model, by period) |
+
+#### `/api/v1/sentinel` — Sentinel Health Sweeps & Healing
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/sentinel/sweeps` | Create a sweep record |
+| `GET` | `/api/v1/sentinel/sweeps` | List sweeps (filterable by type, status) |
+| `GET` | `/api/v1/sentinel/sweeps/{sweep_id}` | Get sweep details with dimension results |
+| `PATCH` | `/api/v1/sentinel/sweeps/{sweep_id}` | Update sweep status/findings |
+| `POST` | `/api/v1/sentinel/healing` | Record a healing event |
+| `GET` | `/api/v1/sentinel/healing` | List healing events (filterable by tier, outcome) |
+| `GET` | `/api/v1/sentinel/healing/{event_id}` | Get healing event details |
+| `PATCH` | `/api/v1/sentinel/healing/{event_id}` | Update healing event status |
 
 ---
 

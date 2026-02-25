@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [6.0.0] - 2026-02-24
+
+### Added - Multi-Provider Pipeline Infrastructure
+
+**New Database Tables (6 tables)**:
+
+- `model_catalog` — 14-model catalog across 4 providers (OpenAI, Anthropic, Google, xAI) with 3 tiers (budget, workhorse, flagship)
+- `pricing_snapshot` — Historical pricing snapshots per model with raw content hash
+- `pricing_alert` — Price change alerts with severity levels (info, warning, critical)
+- `pricing_monitor_run` — Pricing monitor agent run tracking (trigger, status, changes detected)
+- `cost_ledger` — Per-inference cost recording (model, provider, tokens, cost_usd, cached_tokens, batch_savings)
+- `batch_queue` — Batch inference job tracking (batch_id, provider, model_id, status, item counts, cost)
+
+**Migrations**:
+
+- `012_add_multi_provider_tables.py` — Creates model_catalog, pricing_snapshot, pricing_alert, pricing_monitor_run, cost_ledger tables
+- `014_add_batch_queue_table.py` — Creates batch_queue table with UUID PK and status indexes
+
+**API Routers (3 new)**:
+
+- `model_catalog` — CRUD for model catalog entries (GET list, GET by id, POST, PUT, DELETE)
+- `pricing` — Pricing snapshots, alerts, monitor runs (GET/POST snapshots, GET/POST alerts, POST/PATCH runs)
+- `cost_ledger` — Cost entry recording and aggregation (POST record, GET by run, GET aggregations, GET by-task-type)
+
+**Seed Script**:
+
+- `scripts/seed_model_catalog.py` — Seeds all 14 models:
+  - Budget: gpt-5-nano, gpt-4.1-nano, gemini-2.5-flash-lite, grok-4.1-fast
+  - Workhorse: gemini-2.5-flash, gemini-3-flash, gpt-5-mini, gpt-4.1-mini, claude-haiku-4.5
+  - Flagship: gemini-2.5-pro, gemini-3-pro, claude-sonnet-4.5, claude-opus-4.5, grok-4
+- All cost fields use `Decimal` precision
+- Includes per-model capabilities: `supports_batch`, `supports_structured_output`, `cache_read_discount`, `max_context`
+
+---
+
 ## [5.3.0] - 2025-11-23
 
 ### Added - DataForge Phase 3.1: VibeForge Learning Layer Backend
@@ -347,6 +382,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **6.0.0** (2026-02-24): Multi-Provider Pipeline Infrastructure
 - **5.2.0** (2025-11-23): Learning Layer Integration
 - **5.1.0** (2025-11-22): LLM Provider Integration
 - **5.0.0** (2025-11-21): Authentication & Security

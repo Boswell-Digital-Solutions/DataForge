@@ -43,11 +43,37 @@ from .neuroforge_models import Inference
 from .agentic_reasoning_models import (
     ExecutionExperienceModel, SkillNominationModel, GovernedBroadcastModel
 )
+from .multi_provider_models import (
+    ModelCatalog, PricingMonitorRun, PricingSnapshot,
+    PricingAlert, CostLedger, BatchQueue
+)
+from .rate_limits_models import GlobalRateLimit
+from .rate_limits_schemas import (
+    RateLimitProvider, RateLimitCheckRequest, RateLimitCheckResponse,
+    RateLimitConfigUpsert, RateLimitStatusResponse, RateLimitSummaryResponse,
+)
+from .sentinel_models import SentinelSweep, SentinelHealingEvent
+from .sentinel_schemas import (
+    SweepType, SweepStatus, OverallStatus, SweepTrigger,
+    HealingTier, HealingOutcome, DimensionResult,
+    SweepCreate, SweepUpdate, SweepResponse, SweepListResponse,
+    HealingEventCreate, HealingEventUpdate, HealingEventResponse, HealingEventListResponse,
+)
 from .agentic_reasoning_schemas import (
     ExecutionOutcome, NominationStatus, KnowledgeType,
     ExperienceCreate, ExperienceResponse, ExperienceSearchRequest, ExperienceSearchResult,
     NominationCreate, NominationResponse, NominationStatusUpdate,
     BroadcastCreate, BroadcastResponse,
+)
+from .multi_provider_schemas import (
+    ModelTier, ProviderName, PricingAlertChangeType, PricingAlertStatus,
+    PricingRunStatus, PricingRunTrigger, BatchStatus,
+    ModelCatalogCreate, ModelCatalogUpdate, ModelCatalogResponse, ModelCatalogListResponse,
+    PricingMonitorRunCreate, PricingMonitorRunUpdate, PricingMonitorRunResponse, PricingMonitorRunListResponse,
+    PricingSnapshotCreate, PricingSnapshotResponse,
+    PricingAlertCreate, PricingAlertUpdate, PricingAlertResponse, PricingAlertListResponse,
+    CostLedgerCreate, CostLedgerResponse, CostLedgerListResponse, CostLedgerAggregation,
+    BatchQueueCreate, BatchQueueUpdate, BatchQueueResponse, BatchQueueListResponse,
 )
 from .neuroforge_schemas import (
     InferenceCreate, InferenceResponse, InferenceListResponse, InferenceStats,
@@ -213,4 +239,27 @@ __all__ = [
     "ExperienceCreate", "ExperienceResponse", "ExperienceSearchRequest", "ExperienceSearchResult",
     "NominationCreate", "NominationResponse", "NominationStatusUpdate",
     "BroadcastCreate", "BroadcastResponse",
+    # Multi-Provider Pipeline Models
+    "ModelCatalog", "PricingMonitorRun", "PricingSnapshot",
+    "PricingAlert", "CostLedger", "BatchQueue",
+    # Multi-Provider Pipeline Schemas
+    "ModelTier", "ProviderName", "PricingAlertChangeType", "PricingAlertStatus",
+    "PricingRunStatus", "PricingRunTrigger", "BatchStatus",
+    "ModelCatalogCreate", "ModelCatalogUpdate", "ModelCatalogResponse", "ModelCatalogListResponse",
+    "PricingMonitorRunCreate", "PricingMonitorRunUpdate", "PricingMonitorRunResponse", "PricingMonitorRunListResponse",
+    "PricingSnapshotCreate", "PricingSnapshotResponse",
+    "PricingAlertCreate", "PricingAlertUpdate", "PricingAlertResponse", "PricingAlertListResponse",
+    "CostLedgerCreate", "CostLedgerResponse", "CostLedgerListResponse", "CostLedgerAggregation",
+    "BatchQueueCreate", "BatchQueueUpdate", "BatchQueueResponse", "BatchQueueListResponse",
+    # Global Rate Limits
+    "GlobalRateLimit",
+    "RateLimitProvider", "RateLimitCheckRequest", "RateLimitCheckResponse",
+    "RateLimitConfigUpsert", "RateLimitStatusResponse", "RateLimitSummaryResponse",
+    # Sentinel Agent Models
+    "SentinelSweep", "SentinelHealingEvent",
+    # Sentinel Agent Schemas
+    "SweepType", "SweepStatus", "OverallStatus", "SweepTrigger",
+    "HealingTier", "HealingOutcome", "DimensionResult",
+    "SweepCreate", "SweepUpdate", "SweepResponse", "SweepListResponse",
+    "HealingEventCreate", "HealingEventUpdate", "HealingEventResponse", "HealingEventListResponse",
 ]

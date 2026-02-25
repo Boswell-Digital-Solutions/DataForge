@@ -62,10 +62,16 @@ ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 # ============================================
-# API Keys
+# NeuroForge Integration (Law 2)
 # ============================================
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")  # For future use (Claude API)
-VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")  # Recommended for embeddings (Anthropic-owned)
+# All AI operations (embeddings, inference) route through NeuroForge.
+# API keys are managed by NeuroForge, not by DataForge.
+NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "http://127.0.0.1:8000")
+
+# Legacy API keys — kept for backward compatibility but NO LONGER USED
+# for embeddings. NeuroForge handles all provider routing.
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
@@ -74,7 +80,7 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 # ============================================
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "8788"))  # Default port for DataForge
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:8021,http://127.0.0.1:8022").split(",")
 
 # ============================================
 # CORS Configuration
@@ -86,6 +92,14 @@ CORS_ALLOW_HEADERS = ["*"]
 # Logging Configuration
 # ============================================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+# ============================================
+# Compression Configuration (Phase 3)
+# ============================================
+COMPRESSION_ENABLED = os.getenv("COMPRESSION_ENABLED", "false").lower() == "true"
+FORGECOMMAND_COMPRESSION_URL = os.getenv("FORGECOMMAND_COMPRESSION_URL", "http://127.0.0.1:8003")
+COMPRESSION_MIN_SIZE = int(os.getenv("COMPRESSION_MIN_SIZE", "1024"))
+COMPRESSION_POLL_INTERVAL = int(os.getenv("COMPRESSION_POLL_INTERVAL", "300"))
 
 
 def validate_config():
@@ -119,11 +133,12 @@ def validate_config():
             "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
         )
 
-    # Check embedding provider
+    # Check embedding provider (legacy — NeuroForge handles all embeddings per Law 2)
     if not VOYAGE_API_KEY and not OPENAI_API_KEY and not COHERE_API_KEY:
-        errors.append(
-            "No embedding provider API key configured. "
-            "Set one of: VOYAGE_API_KEY (recommended), OPENAI_API_KEY, or COHERE_API_KEY"
+        warnings.append(
+            "WARNING: No legacy embedding provider API key configured. "
+            "Embeddings route through NeuroForge (Law 2). "
+            "Set VOYAGE_API_KEY only if direct embedding fallback is needed."
         )
 
     # Check database URL

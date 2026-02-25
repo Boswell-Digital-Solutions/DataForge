@@ -7,10 +7,11 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 11 migration version files
+│   └── versions/                     # 13 migration version files
 │       ├── 0001_initial_schema.py
 │       ├── ...
-│       └── 0011_latest_migration.py
+│       ├── 0012_multi_provider_tables.py
+│       └── 0013_sentinel_tables.py
 │
 ├── app/                              # Main application package
 │   ├── main.py                       # FastAPI app + lifespan + router registration
@@ -18,21 +19,30 @@ DataForge/
 │   │
 │   ├── models/
 │   │   ├── models.py                 # SQLAlchemy ORM models (31+ classes)
-│   │   └── schemas.py                # Pydantic request/response schemas (90+)
+│   │   ├── schemas.py                # Pydantic request/response schemas (90+)
+│   │   ├── multi_provider_models.py  # Multi-provider pipeline models (6 tables)
+│   │   ├── multi_provider_schemas.py # Multi-provider Pydantic schemas
+│   │   ├── sentinel_models.py        # Sentinel health sweep + healing models
+│   │   └── sentinel_schemas.py       # Sentinel Pydantic schemas
 │   │
 │   ├── api/
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
 │   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
 │   │   ├── auth_router.py            # JWT, OAuth2, TOTP 2FA endpoints
 │   │   ├── crud.py                   # Database operations (no business logic)
-│   │   └── search.py                 # Hybrid vector + BM25 search logic
+│   │   ├── search.py                 # Hybrid vector + BM25 search logic
+│   │   ├── model_catalog_router.py   # Multi-provider model catalog CRUD
+│   │   ├── pricing_router.py         # Pricing snapshots, alerts, monitor runs
+│   │   ├── cost_ledger_router.py     # Cost ledger entries + aggregations
+│   │   └── sentinel_router.py        # Sentinel sweeps + healing events CRUD
 │   │
 │   └── utils/
 │       ├── embeddings.py             # Text chunking + Voyage AI embedding generation
 │       └── auth.py                   # JWT creation/validation + bcrypt helpers
 │
 ├── scripts/
-│   └── create_admin.py               # Interactive CLI: create initial admin user
+│   ├── create_admin.py               # Interactive CLI: create initial admin user
+│   └── seed_model_catalog.py         # Seed 14-model multi-provider catalog
 │
 ├── templates/
 │   └── admin.html                    # Self-contained Jinja2 admin UI template
@@ -67,7 +77,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 29 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 33 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware.
 
@@ -125,9 +135,17 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 | `DiligenceProject` | `diligence_projects` | Compliance assessment projects |
 | `DiligenceFinding` | `diligence_findings` | Assessment findings |
 | `DiligenceReview` | `diligence_reviews` | Review records |
+| `ModelCatalog` | `model_catalog` | Multi-provider model registry (14 models, 3 tiers) |
+| `PricingMonitorRun` | `pricing_monitor_runs` | Pricing monitor agent run records |
+| `PricingSnapshot` | `pricing_snapshots` | Point-in-time provider pricing data |
+| `PricingAlert` | `pricing_alerts` | Price change / model change alerts |
+| `CostLedger` | `cost_ledger` | Per-inference cost records |
+| `BatchQueue` | `batch_queue` | Batch inference queue tracking |
+| `SentinelSweep` | `sentinel_sweeps` | Health sweep run records (light/deep) |
+| `SentinelHealingEvent` | `sentinel_healing_events` | Healing action records with tier + outcome |
 
 ### `app/models/schemas.py`
-Pydantic v2 schemas (90+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
+Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
 
 ### `app/api/crud.py`
 Raw database operations. No business logic. Each function takes a `db: Session` parameter and returns ORM model instances. CRUD functions never raise HTTP exceptions — they return `None` on not-found; routers handle HTTP responses.
@@ -141,4 +159,4 @@ Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosin
 `process_document(document_id, db)` — orchestrates chunk creation and embedding for a document.
 
 ### `alembic/versions/`
-11 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns. Always run `alembic upgrade head` after pulling new code.
+13 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns, multi-provider pipeline tables, and Sentinel health sweep tables. Always run `alembic upgrade head` after pulling new code.

@@ -17,6 +17,9 @@ pgvector==0.2.4
 # forge-telemetry installed separately (see Dockerfile / render.yaml)
 # -e ./forge-telemetry
 
+# forge-compression installed separately: pip install -e ../ForgeAgents/forge-compression
+zstandard>=0.22.0
+
 # Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4

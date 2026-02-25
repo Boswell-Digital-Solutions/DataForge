@@ -39,11 +39,11 @@ test_service() {
     # Check if process is still running
     if ps -p $pid > /dev/null 2>&1; then
         # Test health endpoint
-        if curl -s -f http://localhost:${port}/health > /dev/null 2>&1; then
+        if curl -s -f http://127.0.0.1:${port}/health > /dev/null 2>&1; then
             echo -e "  ${GREEN}✓ Service started successfully${NC}"
             echo -e "  ${GREEN}✓ Health endpoint responding${NC}"
             status="success"
-        elif curl -s -f http://localhost:${port}/ > /dev/null 2>&1; then
+        elif curl -s -f http://127.0.0.1:${port}/ > /dev/null 2>&1; then
             echo -e "  ${GREEN}✓ Service started successfully${NC}"
             echo -e "  ${YELLOW}⚠ Health endpoint not found (root responds)${NC}"
             status="success"
@@ -70,17 +70,17 @@ test_service() {
 # Test each service
 cd "$FORGE_DIR"
 
-test_service "DataForge" "8788" \
+test_service "DataForge" "8001" \
     "$FORGE_DIR/DataForge" \
-    "venv/bin/python -m uvicorn app.main:app --port 8788"
+    "venv/bin/python -m uvicorn app.main:app --port 8001"
 
 test_service "NeuroForge" "8000" \
     "$FORGE_DIR/NeuroForge" \
     "neuroforge_backend/.venv/bin/python -m uvicorn neuroforge_backend.main:app --port 8000"
 
-test_service "ForgeAgents" "8787" \
+test_service "ForgeAgents" "8010" \
     "$FORGE_DIR/forge_agents_bds_api" \
-    "venv/bin/uvicorn app.main:app --port 8787"
+    "venv/bin/uvicorn app.main:app --port 8010"
 
 test_service "Rake" "8002" \
     "$FORGE_DIR/rake" \

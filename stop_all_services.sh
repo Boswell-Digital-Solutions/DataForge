@@ -13,7 +13,7 @@ echo "======================================="
 echo ""
 
 # Kill by port
-for port in 8788 8000 8787 8002; do
+for port in 8001 8000 8010 8002; do
     if lsof -ti:$port >/dev/null 2>&1; then
         echo -e "${YELLOW}Stopping service on port $port...${NC}"
         lsof -ti:$port | xargs kill -9 2>/dev/null
@@ -25,7 +25,7 @@ done
 
 echo ""
 echo "Verifying all services stopped..."
-if lsof -i:8788,8000,8787,8002 2>/dev/null | grep LISTEN; then
+if lsof -i:8001,8000,8010,8002 2>/dev/null | grep LISTEN; then
     echo -e "${RED}Some services still running!${NC}"
 else
     echo -e "${GREEN}✓ All services stopped${NC}"

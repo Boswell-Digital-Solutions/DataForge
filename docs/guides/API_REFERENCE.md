@@ -879,6 +879,255 @@ print(response.json())
 
 ---
 
-**API Version:** 5.1  
-**Last Updated:** November 21, 2025  
+---
+
+## Multi-Provider Pipeline APIs
+
+### Model Catalog
+
+#### List Models
+
+**GET** `/api/v1/models`
+
+```bash
+curl -X GET 'http://localhost/api/v1/models' \
+  -H 'Authorization: Bearer eyJhbGc...'
+```
+
+**Query Parameters:**
+
+- `provider` (optional): Filter by provider (`openai`, `anthropic`, `google`, `xai`)
+- `tier` (optional): Filter by tier (`budget`, `workhorse`, `flagship`)
+
+**Response (200 OK):**
+
+```json
+{
+  "models": [
+    {
+      "id": 1,
+      "provider": "openai",
+      "model_id": "gpt-5-nano",
+      "tier": "budget",
+      "input_cost_per_mtok": "0.10",
+      "output_cost_per_mtok": "0.40",
+      "supports_batch": true,
+      "supports_structured_output": true,
+      "cache_read_discount": "0.50",
+      "max_context": 128000
+    }
+  ],
+  "total": 14
+}
+```
+
+#### Get Model
+
+**GET** `/api/v1/models/{model_id}`
+
+#### Create Model
+
+**POST** `/api/v1/models`
+
+#### Update Model
+
+**PUT** `/api/v1/models/{model_id}`
+
+#### Delete Model
+
+**DELETE** `/api/v1/models/{model_id}`
+
+---
+
+### Pricing Monitor
+
+#### Create Pricing Run
+
+**POST** `/api/v1/pricing/runs`
+
+```json
+{
+  "trigger_type": "scheduled"
+}
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": "run-abc123",
+  "trigger_type": "scheduled",
+  "status": "running",
+  "started_at": "2026-02-24T10:00:00Z"
+}
+```
+
+#### Finalize Pricing Run
+
+**PATCH** `/api/v1/pricing/runs/{run_id}`
+
+```json
+{
+  "status": "completed",
+  "changes_detected": 3,
+  "alerts_created": 3
+}
+```
+
+#### Store Pricing Snapshot
+
+**POST** `/api/v1/pricing/snapshots`
+
+```json
+{
+  "provider": "openai",
+  "run_id": "run-abc123",
+  "models": [],
+  "raw_content_hash": "sha256..."
+}
+```
+
+#### Get Pricing Alerts
+
+**GET** `/api/v1/pricing/alerts`
+
+**Query Parameters:**
+
+- `severity` (optional): `info`, `warning`, `critical`
+- `acknowledged` (optional): `true`, `false`
+- `provider` (optional): Filter by provider
+
+**Response (200 OK):**
+
+```json
+{
+  "alerts": [
+    {
+      "id": "alert-123",
+      "run_id": "run-abc123",
+      "provider": "openai",
+      "model_id": "gpt-5-mini",
+      "change_type": "price_decrease",
+      "field_changed": "input_cost_per_mtok",
+      "old_value": "0.50",
+      "new_value": "0.40",
+      "change_percent": "-20.0",
+      "severity": "info",
+      "acknowledged": false,
+      "created_at": "2026-02-24T10:05:00Z"
+    }
+  ]
+}
+```
+
+#### Create Pricing Alert
+
+**POST** `/api/v1/pricing/alerts`
+
+---
+
+### Cost Ledger
+
+#### Record Cost Entry
+
+**POST** `/api/v1/costs/record`
+
+```json
+{
+  "model": "gpt-5-mini",
+  "provider": "openai",
+  "input_tokens": 150,
+  "output_tokens": 300,
+  "cached_tokens": 50,
+  "cost_usd": "0.0012",
+  "task_type": "summarization",
+  "latency_ms": 2400
+}
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": "cost-abc123",
+  "recorded_at": "2026-02-24T10:00:00Z"
+}
+```
+
+#### Get Costs by Run
+
+**GET** `/api/v1/costs/by-run/{run_id}`
+
+#### Get Cost Aggregations
+
+**GET** `/api/v1/costs/aggregations`
+
+**Query Parameters:**
+
+- `group_by` (required): `provider`, `model`, `task_type`, `day`
+- `start_date` (optional): ISO date
+- `end_date` (optional): ISO date
+
+**Response (200 OK):**
+
+```json
+{
+  "aggregations": [
+    {
+      "key": "openai",
+      "total_cost_usd": "12.45",
+      "request_count": 523,
+      "avg_latency_ms": 1840
+    }
+  ]
+}
+```
+
+#### Get Costs by Task Type
+
+**GET** `/api/v1/costs/by-task-type`
+
+**Response (200 OK):**
+
+```json
+{
+  "items": [
+    {
+      "task_type": "summarization",
+      "total_cost_usd": "5.23",
+      "request_count": 210
+    }
+  ]
+}
+```
+
+---
+
+### Batch Queue
+
+#### Get Batch Status
+
+**GET** `/api/v1/batch/{batch_id}`
+
+**Response (200 OK):**
+
+```json
+{
+  "batch_id": "batch-abc123",
+  "provider": "openai",
+  "model_id": "gpt-5-mini",
+  "status": "completed",
+  "items_total": 10,
+  "items_completed": 10,
+  "items_failed": 0,
+  "cost_usd": "0.024",
+  "submitted_at": "2026-02-24T10:00:00Z",
+  "completed_at": "2026-02-24T10:02:30Z"
+}
+```
+
+---
+
+**API Version:** 6.0
+**Last Updated:** February 24, 2026
 **Stability:** Stable

@@ -20,9 +20,9 @@ FORGE_DIR="/home/charles/projects/Coding2025/Forge"
 
 # Service configurations (port:directory:command)
 declare -A SERVICES=(
-    ["DataForge"]="8788:$FORGE_DIR/DataForge:uvicorn app.main:app --port 8788"
+    ["DataForge"]="8001:$FORGE_DIR/DataForge:uvicorn app.main:app --port 8001"
     ["NeuroForge"]="8000:$FORGE_DIR/NeuroForge:neuroforge_backend/.venv/bin/uvicorn neuroforge_backend.main:app --port 8000"
-    ["ForgeAgents"]="8787:$FORGE_DIR/forge_agents_bds_api:uvicorn app.main:app --port 8787"
+    ["ForgeAgents"]="8010:$FORGE_DIR/forge_agents_bds_api:uvicorn app.main:app --port 8010"
     ["Rake"]="8002:$FORGE_DIR/rake:uvicorn main:app --port 8002"
 )
 
@@ -40,8 +40,8 @@ wait_for_service() {
 
     echo -n "  Waiting for $service on port $port"
     while [ $attempt -le $max_attempts ]; do
-        if curl -s http://localhost:$port/health >/dev/null 2>&1 || \
-           curl -s http://localhost:$port/ >/dev/null 2>&1; then
+        if curl -s http://127.0.0.1:$port/health >/dev/null 2>&1 || \
+           curl -s http://127.0.0.1:$port/ >/dev/null 2>&1; then
             echo -e " ${GREEN}✓${NC}"
             return 0
         fi
@@ -104,14 +104,14 @@ echo "==================================="
 echo ""
 echo "To start all services, run in separate terminals:"
 echo ""
-echo -e "${YELLOW}# Terminal 1: DataForge (Port 8788)${NC}"
-echo "cd DataForge && uvicorn app.main:app --port 8788 --reload"
+echo -e "${YELLOW}# Terminal 1: DataForge (Port 8001)${NC}"
+echo "cd DataForge && uvicorn app.main:app --port 8001 --reload"
 echo ""
 echo -e "${YELLOW}# Terminal 2: NeuroForge (Port 8000)${NC}"
 echo "cd NeuroForge && neuroforge_backend/.venv/bin/uvicorn neuroforge_backend.main:app --port 8000 --reload"
 echo ""
-echo -e "${YELLOW}# Terminal 3: ForgeAgents (Port 8787)${NC}"
-echo "cd forge_agents_bds_api && uvicorn app.main:app --port 8787 --reload"
+echo -e "${YELLOW}# Terminal 3: ForgeAgents (Port 8010)${NC}"
+echo "cd forge_agents_bds_api && uvicorn app.main:app --port 8010 --reload"
 echo ""
 echo -e "${YELLOW}# Terminal 4: Rake (Port 8002)${NC}"
 echo "cd rake && uvicorn main:app --port 8002 --reload"

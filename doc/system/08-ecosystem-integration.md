@@ -232,6 +232,46 @@ The Teams subsystem is service-agnostic; any Forge service can query team member
 
 ---
 
+## Sentinel Agent
+
+The Sentinel Agent monitors ecosystem health and performs autonomous healing. It uses DataForge to persist sweep results and healing event records.
+
+### Integration Points
+
+| Operation | DataForge Endpoint |
+|-----------|-------------------|
+| Create sweep | `POST /api/v1/sentinel/sweeps` |
+| Update sweep | `PATCH /api/v1/sentinel/sweeps/{sweep_id}` |
+| Record healing | `POST /api/v1/sentinel/healing` |
+| Update healing | `PATCH /api/v1/sentinel/healing/{event_id}` |
+| Query sweep history | `GET /api/v1/sentinel/sweeps` |
+
+**Auth:** Service API key. Healing events at Tier B require ForgeCommand approval metadata.
+
+**Sweep Types:**
+- **Light sweep** (D1+D3+D6): Runs every 5 minutes, <10s execution
+- **Deep sweep** (D1-D6): On-demand or triggered by anomaly, 30-60s execution
+
+---
+
+## Pricing Monitor Agent
+
+The Pricing Monitor Agent periodically scrapes provider pricing pages and compares against stored catalog data.
+
+### Integration Points
+
+| Operation | DataForge Endpoint |
+|-----------|-------------------|
+| Fetch model catalog | `GET /api/v1/model-catalog` |
+| Store pricing snapshot | `POST /api/v1/pricing/snapshots` |
+| Create pricing alert | `POST /api/v1/pricing/alerts` |
+| Record monitor run | `POST /api/v1/pricing/runs` |
+| Update run status | `PATCH /api/v1/pricing/runs/{run_id}` |
+
+**Auth:** Service API key. Alert types: PRICE_INCREASE, PRICE_DECREASE, NEW_MODEL, MODEL_DEPRECATED, CAPABILITY_CHANGE.
+
+---
+
 ## Common Integration Patterns
 
 ### Health Check Before Run Start

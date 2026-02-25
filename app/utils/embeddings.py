@@ -1,22 +1,32 @@
-import os
-from typing import List
-import logging
+"""
+Embedding utilities — routes all embedding requests through NeuroForge.
+
+Law 2 Compliance: All AI operations route through NeuroForge.
+NeuroForge provides POST /api/v1/embed for text embeddings.
+
+This module maintains the same public API (generate_embedding,
+generate_embeddings_batch, chunk_text) so all callers work unchanged.
+"""
+
 import hashlib
 import json
+import logging
+import os
+from typing import List
+
+import httpx
 from fastapi import HTTPException
-from dotenv import load_dotenv
 
-load_dotenv()
-
-from app.config import (
-    MAX_EMBEDDING_INPUT_LENGTH,
-    EMBEDDING_MODEL,
-    VOYAGE_API_KEY,
-    OPENAI_API_KEY,
-    COHERE_API_KEY
-)
+from app.config import MAX_EMBEDDING_INPUT_LENGTH
 
 logger = logging.getLogger(__name__)
+
+# NeuroForge endpoint
+NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "http://127.0.0.1:8000")
+NEUROFORGE_EMBED_ENDPOINT = f"{NEUROFORGE_URL}/api/v1/embed"
+
+# Max texts per NeuroForge request
+NEUROFORGE_BATCH_LIMIT = 100
 
 # Redis cache for embeddings (lazy-initialized)
 try:
@@ -25,51 +35,50 @@ try:
 except ImportError:
     REDIS_AVAILABLE = False
 
-_redis_client: any = None  # type: ignore
+_redis_client = None
 
 
-def get_redis_for_embeddings() -> any:  # type: ignore
+def get_redis_for_embeddings():
     """Get Redis client for embedding caching."""
     global _redis_client
-    
+
     if not REDIS_AVAILABLE:
         return None
-    
+
     if _redis_client is None:
         try:
             from app.config import REDIS_URL
             if REDIS_URL:
                 _redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-                _redis_client.ping()  # type: ignore
+                _redis_client.ping()
                 logger.debug("Redis client initialized for embeddings")
         except Exception as e:
             logger.debug(f"Redis init for embeddings failed: {e}")
-    
+
     return _redis_client
 
 
-def get_embedding_cache_key(text: str, provider: str = "default") -> str:
+def get_embedding_cache_key(text: str, provider: str = "neuroforge") -> str:
     """Generate a cache key for an embedding."""
-    # Hash to keep keys reasonable length
     text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
     return f"embedding:{provider}:{text_hash}"
 
 
-def get_cached_embedding(text: str) -> any:  # type: ignore
+def get_cached_embedding(text: str):
     """Get embedding from cache if available."""
     try:
         client = get_redis_for_embeddings()
         if not client:
             return None
-        
+
         cache_key = get_embedding_cache_key(text)
-        cached = client.get(cache_key)  # type: ignore
+        cached = client.get(cache_key)
         if cached:
             logger.debug(f"Embedding cache hit: {cache_key}")
-            return json.loads(cached)  # type: ignore
+            return json.loads(cached)
     except Exception as e:
         logger.debug(f"Embedding cache get error: {e}")
-    
+
     return None
 
 
@@ -79,24 +88,63 @@ def cache_embedding(text: str, embedding: List[float]) -> bool:
         client = get_redis_for_embeddings()
         if not client:
             return False
-        
+
         cache_key = get_embedding_cache_key(text)
-        client.setex(cache_key, 3600, json.dumps(embedding))  # type: ignore
+        client.setex(cache_key, 3600, json.dumps(embedding))
         logger.debug(f"Embedding cached: {cache_key}")
         return True
     except Exception as e:
         logger.debug(f"Embedding cache set error: {e}")
-    
+
     return False
+
+
+async def _call_neuroforge_embed(texts: List[str], model: str | None = None) -> List[List[float]]:
+    """Call NeuroForge /api/v1/embed endpoint.
+
+    Args:
+        texts: List of texts to embed
+        model: Optional model override
+
+    Returns:
+        List of embedding vectors
+
+    Raises:
+        HTTPException: If NeuroForge is unavailable or returns error
+    """
+    payload = {"texts": texts}
+    if model:
+        payload["model"] = model
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            response = await client.post(NEUROFORGE_EMBED_ENDPOINT, json=payload)
+        except httpx.ConnectError:
+            raise HTTPException(
+                status_code=503,
+                detail=f"NeuroForge unavailable at {NEUROFORGE_URL}. Ensure NeuroForge is running on port 8000."
+            )
+        except httpx.TimeoutException:
+            raise HTTPException(
+                status_code=504,
+                detail="NeuroForge embedding request timed out (60s)."
+            )
+
+    if response.status_code != 200:
+        detail = response.text[:500] if response.text else "Unknown error"
+        raise HTTPException(
+            status_code=502,
+            detail=f"NeuroForge embed error (HTTP {response.status_code}): {detail}"
+        )
+
+    data = response.json()
+    return data["embeddings"]
 
 
 async def generate_embedding(text: str) -> List[float]:
     """
-    Generate embedding vector for text using configured provider.
+    Generate embedding vector for text via NeuroForge.
     Results are cached for 1 hour.
-
-    Priority: Voyage AI (Anthropic-owned) > OpenAI > Cohere
-    Voyage AI is recommended for use with Anthropic's ecosystem.
 
     Args:
         text: Text to generate embedding for
@@ -107,7 +155,6 @@ async def generate_embedding(text: str) -> List[float]:
     Raises:
         HTTPException: If embedding generation fails
     """
-    # Validate and truncate input
     if not text or not text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
@@ -118,57 +165,16 @@ async def generate_embedding(text: str) -> List[float]:
     # Check cache first
     cached_embedding = get_cached_embedding(text)
     if cached_embedding:
-        return cached_embedding  # type: ignore
+        return cached_embedding
 
     try:
-        embedding = None
-        
-        # Option 1: Voyage AI (Recommended - Anthropic-owned)
-        if VOYAGE_API_KEY:
-            import voyageai
-
-            vo = voyageai.Client(api_key=VOYAGE_API_KEY)
-            result = vo.embed(
-                [text],
-                model=EMBEDDING_MODEL,
-                input_type="document"
-            )
-            embedding = result.embeddings[0]  # type: ignore
-
-        # Option 2: OpenAI
-        elif OPENAI_API_KEY:
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-            response = await client.embeddings.create(
-                input=text,
-                model="text-embedding-ada-002"
-            )
-            embedding = response.data[0].embedding  # type: ignore
-
-        # Option 3: Cohere
-        elif COHERE_API_KEY:
-            import cohere
-
-            co = cohere.Client(COHERE_API_KEY)
-            response = co.embed(
-                texts=[text],
-                model="embed-english-v3.0",
-                input_type="search_document"
-            )
-            embedding = response.embeddings[0]  # type: ignore
-
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="No embedding provider configured. Please set VOYAGE_API_KEY, OPENAI_API_KEY, or COHERE_API_KEY."
-            )
+        embeddings = await _call_neuroforge_embed([text])
+        embedding = embeddings[0]
 
         # Cache the result
-        if embedding:
-            cache_embedding(text, embedding)
-        
-        return embedding  # type: ignore
+        cache_embedding(text, embedding)
+
+        return embedding
 
     except HTTPException:
         raise
@@ -176,13 +182,13 @@ async def generate_embedding(text: str) -> List[float]:
         logger.error(f"Embedding generation failed: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate embedding: {str(e)}"
+            detail=f"Failed to generate embedding via NeuroForge: {str(e)}"
         )
 
 
 async def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """
-    Generate embeddings for multiple texts in batch.
+    Generate embeddings for multiple texts in batch via NeuroForge.
     More efficient than calling generate_embedding multiple times.
     Results are cached individually for 1 hour.
 
@@ -203,7 +209,7 @@ async def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
     for i, text in enumerate(texts):
         if not text or not text.strip():
             logger.warning(f"Empty text at index {i}, using placeholder")
-            validated_texts.append(".")  # Use placeholder for empty texts
+            validated_texts.append(".")
         elif len(text) > MAX_EMBEDDING_INPUT_LENGTH:
             logger.warning(f"Text at index {i} length {len(text)} exceeds max, truncating")
             validated_texts.append(text[:MAX_EMBEDDING_INPUT_LENGTH])
@@ -212,75 +218,38 @@ async def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
 
     try:
         embeddings: List[List[float]] = []
-        texts_to_generate: List[int] = []  # Indices of texts not in cache
-        
+        texts_to_generate: List[int] = []
+
         # Check cache for each text
         for i, text in enumerate(validated_texts):
             cached = get_cached_embedding(text)
             if cached:
-                embeddings.append(cached)  # type: ignore
+                embeddings.append(cached)
             else:
-                embeddings.append([])  # Placeholder
+                embeddings.append([])
                 texts_to_generate.append(i)
-        
+
         # If all cached, return early
         if not texts_to_generate:
             logger.debug(f"All {len(validated_texts)} embeddings from cache")
             return embeddings
-        
-        # Generate missing embeddings in batch
+
+        # Generate missing embeddings in batches (NeuroForge limit: 100 per request)
         texts_batch = [validated_texts[i] for i in texts_to_generate]
-        logger.debug(f"Generating {len(texts_batch)} embeddings from {len(validated_texts)} total")
-        
-        generated = []
-        
-        # Option 1: Voyage AI (Recommended - Anthropic-owned)
-        if VOYAGE_API_KEY:
-            import voyageai
+        logger.debug(f"Generating {len(texts_batch)} embeddings via NeuroForge from {len(validated_texts)} total")
 
-            vo = voyageai.Client(api_key=VOYAGE_API_KEY)
-            result = vo.embed(
-                texts_batch,
-                model=EMBEDDING_MODEL,
-                input_type="document"
-            )
-            generated = result.embeddings  # type: ignore
-
-        # Option 2: OpenAI
-        elif OPENAI_API_KEY:
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-            response = await client.embeddings.create(
-                input=texts_batch,
-                model="text-embedding-ada-002"
-            )
-            generated = [item.embedding for item in response.data]  # type: ignore
-
-        # Option 3: Cohere
-        elif COHERE_API_KEY:
-            import cohere
-
-            co = cohere.Client(COHERE_API_KEY)
-            response = co.embed(
-                texts=texts_batch,
-                model="embed-english-v3.0",
-                input_type="search_document"
-            )
-            generated = response.embeddings  # type: ignore
-
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="No embedding provider configured. Please set VOYAGE_API_KEY, OPENAI_API_KEY, or COHERE_API_KEY."
-            )
+        all_generated: List[List[float]] = []
+        for batch_start in range(0, len(texts_batch), NEUROFORGE_BATCH_LIMIT):
+            batch = texts_batch[batch_start:batch_start + NEUROFORGE_BATCH_LIMIT]
+            batch_embeddings = await _call_neuroforge_embed(batch)
+            all_generated.extend(batch_embeddings)
 
         # Insert generated embeddings into result and cache them
         for i, gen_idx in enumerate(texts_to_generate):
-            embedding = generated[i]
+            embedding = all_generated[i]
             embeddings[gen_idx] = embedding
             cache_embedding(validated_texts[gen_idx], embedding)
-        
+
         return embeddings
 
     except HTTPException:
@@ -289,7 +258,7 @@ async def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
         logger.error(f"Batch embedding generation failed: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate embeddings: {str(e)}"
+            detail=f"Failed to generate embeddings via NeuroForge: {str(e)}"
         )
 
 
@@ -316,7 +285,6 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
 
         # Try to break at a sentence or paragraph boundary
         if end < len(text):
-            # Look for sentence endings
             for delimiter in ['\n\n', '\n', '. ', '! ', '? ']:
                 last_delim = text[start:end].rfind(delimiter)
                 if last_delim != -1:

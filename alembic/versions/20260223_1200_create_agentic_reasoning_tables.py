@@ -27,7 +27,7 @@ def upgrade() -> None:
     op.create_table(
         'execution_experiences',
         sa.Column('experience_id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
-        sa.Column('run_id', UUID(as_uuid=True), sa.ForeignKey('forge_runs.run_id', ondelete='CASCADE'), nullable=False),
+        sa.Column('run_id', UUID(as_uuid=True), nullable=False),  # Cross-service ref to ForgeAgents run
         sa.Column('agent_id', UUID(as_uuid=True), nullable=False),
         sa.Column('agent_archetype', sa.String(50), nullable=False),
         sa.Column('task_embedding', Vector(768), nullable=False),
@@ -51,8 +51,8 @@ def upgrade() -> None:
     op.create_index('ix_execution_experiences_archetype_outcome', 'execution_experiences', ['agent_archetype', 'outcome'])
     op.create_index('ix_execution_experiences_run_id', 'execution_experiences', ['run_id'])
     op.create_index('ix_execution_experiences_created_at', 'execution_experiences', ['created_at'])
-    op.execute("CREATE INDEX ix_execution_experiences_target_scope ON execution_experiences USING GIN (target_scope)")
-    op.execute("CREATE INDEX ix_execution_experiences_gate_results ON execution_experiences USING GIN (gate_results_snapshot)")
+    op.execute("CREATE INDEX ix_execution_experiences_target_scope ON execution_experiences USING GIN ((target_scope::jsonb))")
+    op.execute("CREATE INDEX ix_execution_experiences_gate_results ON execution_experiences USING GIN ((gate_results_snapshot::jsonb))")
 
     # ── Table 2: skill_nominations ──
     op.create_table(
@@ -80,7 +80,7 @@ def upgrade() -> None:
         'governed_broadcasts',
         sa.Column('broadcast_id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('source_agent_id', UUID(as_uuid=True), nullable=False),
-        sa.Column('source_run_id', UUID(as_uuid=True), sa.ForeignKey('forge_runs.run_id', ondelete='CASCADE'), nullable=False),
+        sa.Column('source_run_id', UUID(as_uuid=True), nullable=False),  # Cross-service ref to ForgeAgents run
         sa.Column('target_scope', JSON, nullable=False),
         sa.Column('knowledge_type', sa.String(30), sa.CheckConstraint("knowledge_type IN ('context_discovery', 'error_signal', 'dependency_finding', 'scope_overlap')"), nullable=False),
         sa.Column('payload', JSON, nullable=False),
@@ -93,8 +93,8 @@ def upgrade() -> None:
     op.create_index('ix_governed_broadcasts_source_run_id', 'governed_broadcasts', ['source_run_id'])
     op.create_index('ix_governed_broadcasts_knowledge_type', 'governed_broadcasts', ['knowledge_type'])
     op.create_index('ix_governed_broadcasts_created_at', 'governed_broadcasts', ['created_at'])
-    op.execute("CREATE INDEX ix_governed_broadcasts_target_scope ON governed_broadcasts USING GIN (target_scope)")
-    op.execute("CREATE INDEX ix_governed_broadcasts_payload ON governed_broadcasts USING GIN (payload)")
+    op.execute("CREATE INDEX ix_governed_broadcasts_target_scope ON governed_broadcasts USING GIN ((target_scope::jsonb))")
+    op.execute("CREATE INDEX ix_governed_broadcasts_payload ON governed_broadcasts USING GIN ((payload::jsonb))")
 
 
 def downgrade() -> None:

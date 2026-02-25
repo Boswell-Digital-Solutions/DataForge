@@ -30,7 +30,12 @@ from app.api.experience_router import router as experience_router  # Agentic Rea
 from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
 from app.api.smithy_planning_router import router as smithy_planning_router  # Smithy Planning Sessions
 from app.api.neuroforge_router import router as neuroforge_router  # NeuroForge inference logging
+from app.api.multi_provider_router import router as multi_provider_router  # Multi-Provider Pipeline (catalog, pricing, costs, batch)
+from app.api.rate_limits_router import router as rate_limits_router  # Global rate limiting (XAI/MAID cross-run)
+from app.api.sentinel_router import router as sentinel_router  # Sentinel Agent (sweeps, healing events)
+from app.api.compression_router import router as compression_router  # Dictionary Compression (Phase 2)
 from app.middleware.correlation import CorrelationIDMiddleware
+from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
 from app.config import (
     validate_config,
     get_embedding_provider,
@@ -39,7 +44,11 @@ from app.config import (
     CORS_ALLOW_HEADERS,
     LOG_LEVEL,
     HOST,
-    PORT
+    PORT,
+    COMPRESSION_ENABLED,
+    FORGECOMMAND_COMPRESSION_URL,
+    COMPRESSION_MIN_SIZE,
+    COMPRESSION_POLL_INTERVAL,
 )
 from app.security_config import configure_security_headers
 from app.logging_config import initialize_logging, get_logger, log_security_event
@@ -142,6 +151,30 @@ configure_security_headers(app)
 main_logger.info("Adding correlation ID middleware...")
 app.add_middleware(CorrelationIDMiddleware)
 
+# Payload size collection (compression baseline — Phase 1)
+main_logger.info("Adding payload size collector middleware...")
+app.add_middleware(PayloadSizeCollector, service_name="dataforge")
+
+# Zstd dictionary compression (Phase 3 — Tier 1 routes)
+if COMPRESSION_ENABLED:
+    main_logger.info("Adding Zstd dictionary compression middleware...")
+    _dict_store = DictionaryStore(
+        forgecommand_url=FORGECOMMAND_COMPRESSION_URL,
+        poll_interval=COMPRESSION_POLL_INTERVAL,
+    )
+    _dict_store.start()
+    app.add_middleware(
+        ZstdDictionaryMiddleware,
+        service_name="dataforge",
+        dictionary_store=_dict_store,
+        enabled_routes=[
+            "/api/v1/search",
+            "/api/v1/bugcheck",
+            "/api/v1/experience",
+        ],
+        min_size=COMPRESSION_MIN_SIZE,
+    )
+
 # Configure CORS
 main_logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
 app.add_middleware(
@@ -187,6 +220,10 @@ app.include_router(smithy_planning_router)  # Smithy Planning Sessions persisten
 app.include_router(authorforge_v2_router)  # AuthorForge V2: chapters, scenes, graph, maps, covers
 app.include_router(neuroforge_router)  # NeuroForge inference logging & transparency
 app.include_router(experience_router)  # Agentic Reasoning: Experience Store (search, index, get)
+app.include_router(multi_provider_router)  # Multi-Provider Pipeline: model catalog, pricing, costs, batch
+app.include_router(rate_limits_router)  # Global rate limiting: XAI/MAID cross-run enforcement
+app.include_router(sentinel_router)  # Sentinel Agent: health sweeps, healing events
+app.include_router(compression_router)  # Dictionary Compression: CRUD for Zstd dictionaries
 
 # ============================================
 # Health Check & Info Endpoints
