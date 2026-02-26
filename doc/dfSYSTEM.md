@@ -448,7 +448,9 @@ DataForge/
 │   │   ├── multi_provider_models.py  # Multi-provider pipeline models (6 tables)
 │   │   ├── multi_provider_schemas.py # Multi-provider Pydantic schemas
 │   │   ├── sentinel_models.py        # Sentinel health sweep + healing models
-│   │   └── sentinel_schemas.py       # Sentinel Pydantic schemas
+│   │   ├── sentinel_schemas.py       # Sentinel Pydantic schemas
+│   │   ├── private_source_models.py  # PSIM: PrivateSourceProfile table
+│   │   └── private_source_schemas.py # PSIM: PSPCreate/Update/Response schemas
 │   │
 │   ├── api/
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
@@ -459,7 +461,9 @@ DataForge/
 │   │   ├── model_catalog_router.py   # Multi-provider model catalog CRUD
 │   │   ├── pricing_router.py         # Pricing snapshots, alerts, monitor runs
 │   │   ├── cost_ledger_router.py     # Cost ledger entries + aggregations
-│   │   └── sentinel_router.py        # Sentinel sweeps + healing events CRUD
+│   │   ├── sentinel_router.py        # Sentinel sweeps + healing events CRUD
+│   │   ├── private_source_crud.py   # PSIM: PrivateSourceProfile CRUD ops
+│   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
 │   │
 │   └── utils/
 │       ├── embeddings.py             # Text chunking + Voyage AI embedding generation
@@ -502,7 +506,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 33 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 34 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware.
 
@@ -568,6 +572,7 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 | `BatchQueue` | `batch_queue` | Batch inference queue tracking |
 | `SentinelSweep` | `sentinel_sweeps` | Health sweep run records (light/deep) |
 | `SentinelHealingEvent` | `sentinel_healing_events` | Healing action records with tier + outcome |
+| `PrivateSourceProfile` | `private_source_profiles` | PSIM: operator-curated crawl configurations |
 
 ### `app/models/schemas.py`
 Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
@@ -746,7 +751,7 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §6 — API Layer
 
-DataForge exposes 33 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
+DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
 
 ## Authentication Requirements
 
@@ -1040,6 +1045,22 @@ CRUD endpoints for 11 automation tables. All follow standard DataForge patterns 
 | `POST` | `/api/v1/press/campaign-outcomes` | Record campaign outcome |
 
 Full schema details in [§12 PressForge Automation Schema](12-pressforge-automation-schema.md).
+
+#### `/api/v1/private-source-profiles` — Private Source Ingestion Profiles (PSIM)
+
+CRUD endpoints for operator-curated private source configurations. Each profile defines a crawl scope (base_url + allowed_paths), authentication method, and quality gate overrides. Credentials live in the OS keyring via ForgeCommand — never in DataForge.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/private-source-profiles` | Create profile (201) |
+| `GET` | `/api/v1/private-source-profiles/{id}` | Get profile by ID |
+| `GET` | `/api/v1/private-source-profiles?workspace_id=...` | List profiles (workspace-scoped, paginated) |
+| `PUT` | `/api/v1/private-source-profiles/{id}` | Update profile (partial) |
+| `DELETE` | `/api/v1/private-source-profiles/{id}` | Delete profile (204) |
+
+**Query parameters (list):** `workspace_id` (required), `source_type`, `active_only` (default true), `limit`, `offset`
+
+**Duplicate prevention:** Unique constraint on `(workspace_id, name)` — returns 409 on conflict.
 
 ---
 

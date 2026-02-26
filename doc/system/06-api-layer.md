@@ -1,6 +1,6 @@
 # §6 — API Layer
 
-DataForge exposes 33 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
+DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return JSON. All write endpoints require authentication. The base URL is `http://localhost:8001` in development.
 
 ## Authentication Requirements
 
@@ -294,6 +294,22 @@ CRUD endpoints for 11 automation tables. All follow standard DataForge patterns 
 | `POST` | `/api/v1/press/campaign-outcomes` | Record campaign outcome |
 
 Full schema details in [§12 PressForge Automation Schema](12-pressforge-automation-schema.md).
+
+#### `/api/v1/private-source-profiles` — Private Source Ingestion Profiles (PSIM)
+
+CRUD endpoints for operator-curated private source configurations. Each profile defines a crawl scope (base_url + allowed_paths), authentication method, and quality gate overrides. Credentials live in the OS keyring via ForgeCommand — never in DataForge.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/private-source-profiles` | Create profile (201) |
+| `GET` | `/api/v1/private-source-profiles/{id}` | Get profile by ID |
+| `GET` | `/api/v1/private-source-profiles?workspace_id=...` | List profiles (workspace-scoped, paginated) |
+| `PUT` | `/api/v1/private-source-profiles/{id}` | Update profile (partial) |
+| `DELETE` | `/api/v1/private-source-profiles/{id}` | Delete profile (204) |
+
+**Query parameters (list):** `workspace_id` (required), `source_type`, `active_only` (default true), `limit`, `offset`
+
+**Duplicate prevention:** Unique constraint on `(workspace_id, name)` — returns 409 on conflict.
 
 ---
 
