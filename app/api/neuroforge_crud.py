@@ -1,5 +1,5 @@
 """
-CRUD operations for NeuroForge inference tracking.
+CRUD operations for NeuroForge inference tracking and routing decisions.
 
 Service-to-service endpoints — no user-ownership checks needed.
 """
@@ -9,8 +9,8 @@ from sqlalchemy import func as sql_func, and_
 from typing import Optional, Tuple, List, Dict
 from datetime import datetime
 
-from app.models.neuroforge_models import Inference
-from app.models.neuroforge_schemas import InferenceCreate
+from app.models.neuroforge_models import Inference, RoutingDecision
+from app.models.neuroforge_schemas import InferenceCreate, RoutingDecisionCreate
 
 
 def create_inference(db: Session, data: InferenceCreate) -> Inference:
@@ -122,3 +122,55 @@ def get_inference_stats(
         "average_latency_ms": round(float(avg_latency), 1),
         "by_domain": by_domain,
     }
+
+
+# ── Routing Decisions ──────────────────────────────────────
+
+
+def create_routing_decision(db: Session, data: RoutingDecisionCreate) -> RoutingDecision:
+    """Insert a new routing decision record."""
+    row = RoutingDecision(
+        request_id=data.request_id,
+        task_type=data.task_type,
+        selected_provider=data.selected_provider,
+        selected_model=data.selected_model,
+        selected_tier=data.selected_tier,
+        reasons=data.reasons,
+        fallback_chain=data.fallback_chain,
+        rejected=data.rejected,
+        latency_ms=data.latency_ms,
+        cost_estimate=data.cost_estimate,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def list_routing_decisions(
+    db: Session,
+    task_type: Optional[str] = None,
+    selected_provider: Optional[str] = None,
+    selected_tier: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> Tuple[List[RoutingDecision], int]:
+    """List routing decisions with optional filters. Returns (items, total_count)."""
+    query = db.query(RoutingDecision)
+
+    if task_type:
+        query = query.filter(RoutingDecision.task_type == task_type)
+    if selected_provider:
+        query = query.filter(RoutingDecision.selected_provider == selected_provider)
+    if selected_tier:
+        query = query.filter(RoutingDecision.selected_tier == selected_tier)
+    if date_from:
+        query = query.filter(RoutingDecision.created_at >= date_from)
+    if date_to:
+        query = query.filter(RoutingDecision.created_at <= date_to)
+
+    total = query.count()
+    items = query.order_by(RoutingDecision.created_at.desc()).offset(offset).limit(limit).all()
+    return items, total

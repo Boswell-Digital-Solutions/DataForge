@@ -118,6 +118,8 @@ Returns aggregate search usage: total queries, average latency, top domains, cac
 | `POST` | `/api/neuroforge/inferences` | Log inference record |
 | `GET` | `/api/neuroforge/performance` | Query model performance metrics |
 | `GET` | `/api/neuroforge/context` | Retrieve relevant context for a query |
+| `POST` | `/api/neuroforge/routing-decisions` | Log routing decision record |
+| `GET` | `/api/neuroforge/routing-decisions` | Query routing decisions (task_type, provider, tier filters) |
 
 #### `/api/vibeforge` — VibeForge Integration
 | Method | Path | Description |
@@ -249,6 +251,49 @@ Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 s
 | `GET` | `/api/v1/sentinel/healing` | List healing events (filterable by tier, outcome) |
 | `GET` | `/api/v1/sentinel/healing/{event_id}` | Get healing event details |
 | `PATCH` | `/api/v1/sentinel/healing/{event_id}` | Update healing event status |
+
+#### `/api/v1/press` — PressForge Automation Tables
+
+CRUD endpoints for 11 automation tables. All follow standard DataForge patterns (pagination, filtering, FK cascade).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/v1/press/automation-jobs` | List automation job definitions |
+| `GET` | `/api/v1/press/automation-jobs/{id}` | Get job definition |
+| `POST` | `/api/v1/press/automation-jobs` | Create job definition |
+| `PATCH` | `/api/v1/press/automation-jobs/{id}` | Update job definition |
+| `GET` | `/api/v1/press/automation-runs` | List execution runs (filterable by job_key, status) |
+| `GET` | `/api/v1/press/automation-runs/{id}` | Get run details |
+| `POST` | `/api/v1/press/automation-runs` | Create run record |
+| `PATCH` | `/api/v1/press/automation-runs/{id}` | Update run status/summary |
+| `GET` | `/api/v1/press/automation-alerts` | List alerts (filterable by severity, job_key) |
+| `GET` | `/api/v1/press/automation-alerts/{id}` | Get alert details |
+| `POST` | `/api/v1/press/automation-alerts` | Create alert |
+| `PATCH` | `/api/v1/press/automation-alerts/{id}` | Dismiss alert |
+| `GET` | `/api/v1/press/automation-overrides` | List active overrides |
+| `POST` | `/api/v1/press/automation-overrides` | Create override (TTL-enforced, max 7 days) |
+| `GET` | `/api/v1/press/agent-logs` | List agent logs (filterable by job_key, run_id) |
+| `GET` | `/api/v1/press/agent-logs/{id}` | Get agent log entry |
+| `POST` | `/api/v1/press/agent-logs` | Append agent log (**no UPDATE/DELETE — append-only**) |
+| `GET` | `/api/v1/press/provider-configs` | List provider configurations |
+| `POST` | `/api/v1/press/provider-configs` | Create provider config |
+| `PATCH` | `/api/v1/press/provider-configs/{id}` | Update provider config |
+| `GET` | `/api/v1/press/geo-probes` | List GEO probes (filterable by campaign_id, provider) |
+| `POST` | `/api/v1/press/geo-probes` | Record probe result |
+| `GET` | `/api/v1/press/geo-probe-templates` | List probe templates |
+| `POST` | `/api/v1/press/geo-probe-templates` | Create template |
+| `PATCH` | `/api/v1/press/geo-probe-templates/{id}` | Update template |
+| `DELETE` | `/api/v1/press/geo-probe-templates/{id}` | Delete template |
+| `GET` | `/api/v1/press/social-draftsets` | List social draftsets |
+| `POST` | `/api/v1/press/social-draftsets` | Create draftset |
+| `PATCH` | `/api/v1/press/social-draftsets/{id}` | Update draftset status |
+| `GET` | `/api/v1/press/prompt-packs` | List prompt packs |
+| `POST` | `/api/v1/press/prompt-packs` | Create prompt pack |
+| `PATCH` | `/api/v1/press/prompt-packs/{id}` | Update prompt pack |
+| `GET` | `/api/v1/press/campaign-outcomes` | List campaign outcomes |
+| `POST` | `/api/v1/press/campaign-outcomes` | Record campaign outcome |
+
+Full schema details in [§12 PressForge Automation Schema](12-pressforge-automation-schema.md).
 
 ---
 

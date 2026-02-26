@@ -71,3 +71,42 @@ class InferenceStats(BaseModel):
     total_tokens: int
     average_latency_ms: float
     by_domain: Dict[str, DomainBreakdown]
+
+
+# ============================================
+# Routing Decision Schemas
+# ============================================
+
+class RoutingDecisionCreate(BaseModel):
+    request_id: str
+    task_type: str
+    selected_provider: str
+    selected_model: str
+    selected_tier: str
+    reasons: List[str]
+    fallback_chain: List[str] = []
+    rejected: Dict[str, str] = {}
+    latency_ms: Optional[float] = None
+    cost_estimate: Optional[float] = None
+
+
+class RoutingDecisionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    request_id: str
+    task_type: str
+    selected_provider: str
+    selected_model: str
+    selected_tier: str
+    reasons: List[str]
+    fallback_chain: List[str]
+    rejected: Dict[str, str]
+    latency_ms: Optional[float] = None
+    cost_estimate: Optional[float] = None
+    created_at: datetime
+
+
+class RoutingDecisionListResponse(BaseModel):
+    items: List[RoutingDecisionResponse]
+    total: int

@@ -15,6 +15,7 @@
 | §9 | [09-error-handling.md](09-error-handling.md) | Lifecycle state machine, access control matrix, 409 rules |
 | §10 | [10-testing.md](10-testing.md) | Test suite structure, coverage, compliance tests |
 | §11 | [11-handover.md](11-handover.md) | Critical constraints, access control matrix, migration runbook |
+| §12 | [12-pressforge-automation-schema.md](12-pressforge-automation-schema.md) | PressForge Automation Schema — 11 new pf_* tables, column additions, indexes, CRUD endpoints |
 
 ## Quick Assembly
 
@@ -22,4 +23,4 @@
 bash doc/system/BUILD.sh   # Assembles all parts into doc/dfSYSTEM.md
 ```
 
-*Last updated: 2026-02-18*
+*Last updated: 2026-02-25*

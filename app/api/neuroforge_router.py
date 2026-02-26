@@ -1,7 +1,7 @@
 """
 NeuroForge API Router
 
-Endpoints for inference logging and transparency.
+Endpoints for inference logging, routing decisions, and transparency.
 Service-to-service — no user auth required.
 """
 
@@ -15,6 +15,9 @@ from app.models.neuroforge_schemas import (
     InferenceResponse,
     InferenceListResponse,
     InferenceStats,
+    RoutingDecisionCreate,
+    RoutingDecisionResponse,
+    RoutingDecisionListResponse,
 )
 from app.api import neuroforge_crud as crud
 
@@ -78,3 +81,40 @@ def get_inference_stats(
 ):
     """Get aggregate inference statistics."""
     return crud.get_inference_stats(db, domain=domain, date_from=date_from, date_to=date_to)
+
+
+# ── Routing Decisions ──────────────────────────────────────
+
+
+@router.post("/routing-decisions", response_model=RoutingDecisionResponse, status_code=status.HTTP_201_CREATED)
+def create_routing_decision(
+    data: RoutingDecisionCreate,
+    db: Session = Depends(get_db),
+):
+    """Log a routing decision from NeuroForge."""
+    return crud.create_routing_decision(db, data)
+
+
+@router.get("/routing-decisions", response_model=RoutingDecisionListResponse)
+def list_routing_decisions(
+    task_type: Optional[str] = Query(None),
+    selected_provider: Optional[str] = Query(None),
+    selected_tier: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """List routing decisions with optional filters."""
+    items, total = crud.list_routing_decisions(
+        db,
+        task_type=task_type,
+        selected_provider=selected_provider,
+        selected_tier=selected_tier,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
+    )
+    return RoutingDecisionListResponse(items=items, total=total)
