@@ -17,7 +17,7 @@ pgvector==0.2.4
 # forge-telemetry installed separately (see Dockerfile / render.yaml)
 # -e ./forge-telemetry
 
-forge-compression @ git+ssh://git@github.com/Boswecw/Forge-Agents.git@master#subdirectory=forge-compression
+# forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
 
 # Authentication

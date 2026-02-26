@@ -36,7 +36,11 @@ from app.api.sentinel_router import router as sentinel_router  # Sentinel Agent 
 from app.api.compression_router import router as compression_router  # Dictionary Compression (Phase 2)
 from app.api.press_router import router as press_router  # PressForge: journalist outreach (AuthorForge module)
 from app.middleware.correlation import CorrelationIDMiddleware
-from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
+try:
+    from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
+    _HAS_COMPRESSION = True
+except ImportError:
+    _HAS_COMPRESSION = False
 from app.config import (
     validate_config,
     get_embedding_provider,
@@ -152,29 +156,31 @@ configure_security_headers(app)
 main_logger.info("Adding correlation ID middleware...")
 app.add_middleware(CorrelationIDMiddleware)
 
-# Payload size collection (compression baseline — Phase 1)
-main_logger.info("Adding payload size collector middleware...")
-app.add_middleware(PayloadSizeCollector, service_name="dataforge")
+# Payload size collection + Zstd dictionary compression (local-only; requires forge-compression)
+if _HAS_COMPRESSION:
+    main_logger.info("Adding payload size collector middleware...")
+    app.add_middleware(PayloadSizeCollector, service_name="dataforge")
 
-# Zstd dictionary compression (Phase 3 — Tier 1 routes)
-if COMPRESSION_ENABLED:
-    main_logger.info("Adding Zstd dictionary compression middleware...")
-    _dict_store = DictionaryStore(
-        forgecommand_url=FORGECOMMAND_COMPRESSION_URL,
-        poll_interval=COMPRESSION_POLL_INTERVAL,
-    )
-    _dict_store.start()
-    app.add_middleware(
-        ZstdDictionaryMiddleware,
-        service_name="dataforge",
-        dictionary_store=_dict_store,
-        enabled_routes=[
-            "/api/v1/search",
-            "/api/v1/bugcheck",
-            "/api/v1/experience",
-        ],
-        min_size=COMPRESSION_MIN_SIZE,
-    )
+    if COMPRESSION_ENABLED:
+        main_logger.info("Adding Zstd dictionary compression middleware...")
+        _dict_store = DictionaryStore(
+            forgecommand_url=FORGECOMMAND_COMPRESSION_URL,
+            poll_interval=COMPRESSION_POLL_INTERVAL,
+        )
+        _dict_store.start()
+        app.add_middleware(
+            ZstdDictionaryMiddleware,
+            service_name="dataforge",
+            dictionary_store=_dict_store,
+            enabled_routes=[
+                "/api/v1/search",
+                "/api/v1/bugcheck",
+                "/api/v1/experience",
+            ],
+            min_size=COMPRESSION_MIN_SIZE,
+        )
+else:
+    main_logger.warning("forge_compression not installed — compression middleware disabled (local-only feature)")
 
 # Configure CORS
 main_logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")
