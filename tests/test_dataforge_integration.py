@@ -135,8 +135,9 @@ class TestDataForgeClient:
         """Happy path: successful context fetch."""
         client = DataForgeClient(settings)
         
-        # Mock the HTTP client
-        mock_response = AsyncMock()
+        # Mock the HTTP client (MagicMock, not AsyncMock: .json() and
+        # .raise_for_status() are sync methods on httpx.Response)
+        mock_response = MagicMock()
         mock_response.json.return_value = sample_context_pack.model_dump()
         
         client._client = AsyncMock()

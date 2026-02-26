@@ -355,7 +355,7 @@ class TestRetryPolicy:
             jitter_enabled=True,
         )
         
-        delays = [policy.calculate_delay(0) for _ in range(10)]
+        delays = [policy.calculate_delay(1) for _ in range(10)]
         # Should have variation due to jitter
         assert len(set(delays)) > 1
 

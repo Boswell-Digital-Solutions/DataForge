@@ -109,6 +109,21 @@ Rate limits are enforced via Redis token bucket. Global limits apply across all 
 | `ENCRYPTION_KEY` | str | AES-256 Fernet key for field-level PII encryption. Derived from `SECRET_KEY` if not set separately |
 | `GDPR_DELETION_DELAY_DAYS` | int | Days before hard deletion executes after GDPR erasure request |
 
+## NeuroForge Integration
+
+These fields are defined in `app/neuroforge/config.py` (`NeuroForgeSettings`) and control the DataForgeClient's resilience behavior when calling NeuroForge.
+
+| Variable | Type | Default | Notes |
+|----------|------|---------|-------|
+| `NEUROFORGE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS` | int | `1` | Max trial calls allowed in half-open state |
+| `NEUROFORGE_RETRY_MAX_ATTEMPTS` | int | `3` | Max retry attempts for transient failures |
+| `NEUROFORGE_RETRY_INITIAL_DELAY` | float | `0.5` | Initial retry delay in seconds |
+| `NEUROFORGE_RETRY_BACKOFF_BASE` | float | `2.0` | Exponential backoff base multiplier |
+
+These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`, `NEUROFORGE_TIMEOUT`, circuit breaker thresholds).
+
+---
+
 ## Full `.env.example` Reference
 
 ```dotenv

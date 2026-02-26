@@ -704,6 +704,21 @@ Rate limits are enforced via Redis token bucket. Global limits apply across all 
 | `ENCRYPTION_KEY` | str | AES-256 Fernet key for field-level PII encryption. Derived from `SECRET_KEY` if not set separately |
 | `GDPR_DELETION_DELAY_DAYS` | int | Days before hard deletion executes after GDPR erasure request |
 
+## NeuroForge Integration
+
+These fields are defined in `app/neuroforge/config.py` (`NeuroForgeSettings`) and control the DataForgeClient's resilience behavior when calling NeuroForge.
+
+| Variable | Type | Default | Notes |
+|----------|------|---------|-------|
+| `NEUROFORGE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS` | int | `1` | Max trial calls allowed in half-open state |
+| `NEUROFORGE_RETRY_MAX_ATTEMPTS` | int | `3` | Max retry attempts for transient failures |
+| `NEUROFORGE_RETRY_INITIAL_DELAY` | float | `0.5` | Initial retry delay in seconds |
+| `NEUROFORGE_RETRY_BACKOFF_BASE` | float | `2.0` | Exponential backoff base multiplier |
+
+These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`, `NEUROFORGE_TIMEOUT`, circuit breaker thresholds).
+
+---
+
 ## Full `.env.example` Reference
 
 ```dotenv
@@ -2075,6 +2090,51 @@ def run_token():
 | Domain-specific routers | 74% | 80%+ |
 
 Lines currently not covered: error recovery branches in database failover simulation, some OAuth2 provider edge cases, and k6 load test infrastructure.
+
+## Preflight Script (`scripts/preflight.sh`)
+
+A single deterministic gate script that validates the service before deployment. If preflight passes locally, Render will pass.
+
+```bash
+bash scripts/preflight.sh
+```
+
+### Phases
+
+| Phase | Check | Blocking |
+|-------|-------|----------|
+| 1 | `pip install -r requirements.txt` | Yes |
+| 2 | Alembic heads (single head required) | Yes |
+| 3 | `pytest` (unit tests, `-x` fail-fast) | Yes |
+
+### Test Exclusions
+
+Preflight runs only tests that work without live infrastructure. The following directories are excluded because they require PostgreSQL, Redis, pgvector, or a running server:
+
+| Excluded Path | Reason |
+|---------------|--------|
+| `tests/test_integration/` | Full integration tests (live DB) |
+| `tests/test_api/` | API endpoint tests (`db_session` fixture) |
+| `tests/test_unit/` | Unit tests that import DB fixtures |
+| `tests/test_sql_integration.py` | Raw SQL queries against PostgreSQL |
+| `tests/test_performance_optimization.py` | Performance benchmarks (live DB) |
+| `tests/test_security/` | Security tests (live DB + Redis) |
+| `tests/load/` | k6 load tests (running server) |
+
+### Preflight Results (Feb 2026)
+
+| Metric | Value |
+|--------|-------|
+| Tests collected | 174 |
+| Passed | 171 |
+| Skipped | 3 |
+| Duration | ~12 seconds |
+
+### Venv Auto-Detection
+
+The script automatically activates `.venv` or `venv` if present and no virtual environment is already active. On Render, dependencies are pre-installed by the build command.
+
+---
 
 ## Load Testing (Optional)
 

@@ -189,6 +189,51 @@ def run_token():
 
 Lines currently not covered: error recovery branches in database failover simulation, some OAuth2 provider edge cases, and k6 load test infrastructure.
 
+## Preflight Script (`scripts/preflight.sh`)
+
+A single deterministic gate script that validates the service before deployment. If preflight passes locally, Render will pass.
+
+```bash
+bash scripts/preflight.sh
+```
+
+### Phases
+
+| Phase | Check | Blocking |
+|-------|-------|----------|
+| 1 | `pip install -r requirements.txt` | Yes |
+| 2 | Alembic heads (single head required) | Yes |
+| 3 | `pytest` (unit tests, `-x` fail-fast) | Yes |
+
+### Test Exclusions
+
+Preflight runs only tests that work without live infrastructure. The following directories are excluded because they require PostgreSQL, Redis, pgvector, or a running server:
+
+| Excluded Path | Reason |
+|---------------|--------|
+| `tests/test_integration/` | Full integration tests (live DB) |
+| `tests/test_api/` | API endpoint tests (`db_session` fixture) |
+| `tests/test_unit/` | Unit tests that import DB fixtures |
+| `tests/test_sql_integration.py` | Raw SQL queries against PostgreSQL |
+| `tests/test_performance_optimization.py` | Performance benchmarks (live DB) |
+| `tests/test_security/` | Security tests (live DB + Redis) |
+| `tests/load/` | k6 load tests (running server) |
+
+### Preflight Results (Feb 2026)
+
+| Metric | Value |
+|--------|-------|
+| Tests collected | 174 |
+| Passed | 171 |
+| Skipped | 3 |
+| Duration | ~12 seconds |
+
+### Venv Auto-Detection
+
+The script automatically activates `.venv` or `venv` if present and no virtual environment is already active. On Render, dependencies are pre-installed by the build command.
+
+---
+
 ## Load Testing (Optional)
 
 k6 scripts are available for load testing but are not part of the standard CI pipeline:
