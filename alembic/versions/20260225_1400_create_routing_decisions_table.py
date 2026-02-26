@@ -1,7 +1,7 @@
 """Create routing_decisions table for NeuroForge routing audit log.
 
 Revision ID: routing_decisions_001
-Revises: pressforge_001
+Revises: pressforge_v12_002
 Create Date: 2026-02-25
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 # revision identifiers, used by Alembic.
 revision: str = 'routing_decisions_001'
-down_revision: Union[str, Sequence[str], None] = 'pressforge_001'
+down_revision: Union[str, Sequence[str], None] = 'pressforge_v12_002'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
