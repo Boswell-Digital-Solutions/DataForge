@@ -158,7 +158,7 @@ class TestTokenRevocationManager:
         )
 
         assert success is True
-        assert mock_redis.setex.called or mock_redis.set.called
+        assert mock_redis.set.called
         assert revocation_manager.get_metrics().total_revoked == 1
 
     def test_revoke_token_with_metadata(self, revocation_manager, mock_redis):
@@ -173,8 +173,9 @@ class TestTokenRevocationManager:
         )
 
         assert success is True
-        call_args = mock_redis.set.call_args or mock_redis.setex.call_args
+        call_args = mock_redis.set.call_args
         assert call_args is not None
+        assert "ex" in call_args.kwargs
 
     def test_is_revoked_check(self, revocation_manager, mock_redis):
         """Test checking if token is revoked."""
@@ -240,6 +241,7 @@ class TestTokenRevocationManager:
         assert manager.is_redis_available() is False
         success = manager.revoke_token("token-123", "user-456")
         assert success is False
+        assert manager.is_revoked("token-123") is True
 
 
 # ============================================================================
@@ -253,7 +255,7 @@ class TestRevocationBulkOps:
     def test_revoke_user_tokens(self, revocation_manager, mock_redis):
         """Test revoking all tokens for a user."""
         mock_redis.ping.return_value = True
-        mock_redis.smembers.return_value = {b"token-1", b"token-2", b"token-3"}
+        mock_redis.get.return_value = '["token-1", "token-2", "token-3"]'
 
         count = revocation_manager.revoke_user_tokens(
             user_id="user-456",
@@ -261,12 +263,12 @@ class TestRevocationBulkOps:
         )
 
         assert count >= 0
-        assert mock_redis.sadd.called or count == 0
+        assert mock_redis.set.called or count == 0
 
     def test_revoke_tokens_except(self, revocation_manager, mock_redis):
         """Test revoking all but one token."""
         mock_redis.ping.return_value = True
-        mock_redis.smembers.return_value = {b"token-1", b"token-2", b"token-3"}
+        mock_redis.get.return_value = '["token-1", "token-2", "token-3"]'
 
         count = revocation_manager.revoke_tokens_except(
             user_id="user-456",
@@ -279,7 +281,7 @@ class TestRevocationBulkOps:
     def test_bulk_revocation_metrics(self, revocation_manager, mock_redis):
         """Test metrics after bulk operations."""
         mock_redis.ping.return_value = True
-        mock_redis.smembers.return_value = set()
+        mock_redis.get.return_value = "[]"
 
         revocation_manager.revoke_user_tokens("user-456")
         metrics = revocation_manager.get_metrics()
@@ -300,8 +302,10 @@ class TestRevocationBulkOps:
         }
 
         mock_redis.ping.return_value = True
-        mock_redis.smembers.return_value = {b"token-1"}
-        mock_redis.get.return_value = json.dumps(record1).encode()
+        mock_redis.get.side_effect = [
+            json.dumps(["token-1"]),
+            json.dumps(record1),
+        ]
 
         records = revocation_manager.get_revocations_for_user("user-456")
         assert isinstance(records, list)
@@ -434,7 +438,7 @@ class TestRevocationIntegration:
 
         # Check operations fail gracefully
         is_revoked = manager.is_revoked("token-123")
-        assert is_revoked is False
+        assert is_revoked is True
 
 
 # ============================================================================

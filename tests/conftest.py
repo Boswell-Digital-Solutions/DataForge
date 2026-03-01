@@ -5,14 +5,18 @@ import os
 import pytest
 from typing import Generator
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import ARRAY, create_engine
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+from pgvector.sqlalchemy import Vector
 
 from app.database import Base, get_db
 from app.main import app
 from app.models import models
 from app.utils.auth import get_password_hash
+from app.utils.rate_limit import rate_limiter as simple_rate_limiter
 from tests.conftest_security import (
     TestCredentials,
     test_credentials,
@@ -27,6 +31,31 @@ from tests.conftest_security import (
 
 # Use in-memory SQLite for testing
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(TSVECTOR, "sqlite")
+def _compile_tsvector_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(ARRAY, "sqlite")
+def _compile_array_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(UUID, "sqlite")
+def _compile_uuid_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(Vector, "sqlite")
+def _compile_vector_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
 
 # Create test engine with special settings for SQLite
 engine = create_engine(
@@ -48,6 +77,11 @@ def db() -> Generator[Session, None, None]:
     
     # Create session
     session = TestingSessionLocal()
+
+    if session.query(models.CorpusState).filter(models.CorpusState.id == 1).first() is None:
+        session.add(models.CorpusState(id=1, current_version=1))
+        session.add(models.CorpusVersion(version=1, trigger_event="initial", trigger_entity_id=None))
+        session.commit()
     
     try:
         yield session
@@ -171,3 +205,10 @@ def setup_test_env(monkeypatch):
     monkeypatch.setenv("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
+
+@pytest.fixture(autouse=True)
+def reset_in_memory_rate_limiter():
+    """Prevent shared in-memory rate limit state from leaking across tests."""
+    simple_rate_limiter.reset()
+    yield
+    simple_rate_limiter.reset()

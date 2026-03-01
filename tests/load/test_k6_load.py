@@ -17,10 +17,17 @@ import requests
 import time
 import random
 import string
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
+
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_LOAD_TESTS") != "1",
+    reason="Load tests require an explicit RUN_LOAD_TESTS=1 opt-in and a running local API server.",
+)
 
 
 @dataclass

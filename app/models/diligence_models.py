@@ -32,6 +32,10 @@ class FindingStatus(str, enum.Enum):
     RESOLVED = "resolved"
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class DiligenceProject(Base):
     """
     A software project under due diligence review.
@@ -50,7 +54,10 @@ class DiligenceProject(Base):
     project_metadata = Column(JSON, default=dict)  # Flexible metadata storage (renamed from 'metadata' to avoid SQLAlchemy conflict)
 
     # Computed from latest review
-    current_health_status = Column(SQLEnum(OverallRating), nullable=True)
+    current_health_status = Column(
+        SQLEnum(OverallRating, name="overallrating", values_callable=_enum_values),
+        nullable=True,
+    )
     latest_review_date = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -91,7 +98,10 @@ class DiligenceReview(Base):
     documentation_score = Column(Float, nullable=True)
 
     # Overall rating
-    overall_rating = Column(SQLEnum(OverallRating), nullable=True)
+    overall_rating = Column(
+        SQLEnum(OverallRating, name="overallrating", values_callable=_enum_values),
+        nullable=True,
+    )
 
     # Raw AI output (if applicable)
     raw_report_text = Column(Text)  # Original markdown from AI
@@ -117,8 +127,17 @@ class DiligenceFinding(Base):
 
     title = Column(String(500), nullable=False)
     description = Column(Text)
-    severity = Column(SQLEnum(FindingSeverity), nullable=False, index=True)
-    status = Column(SQLEnum(FindingStatus), default=FindingStatus.OPEN, nullable=False, index=True)
+    severity = Column(
+        SQLEnum(FindingSeverity, name="findingseverity", values_callable=_enum_values),
+        nullable=False,
+        index=True,
+    )
+    status = Column(
+        SQLEnum(FindingStatus, name="findingstatus", values_callable=_enum_values),
+        default=FindingStatus.OPEN,
+        nullable=False,
+        index=True,
+    )
 
     # Optional metadata
     category = Column(String(100))  # "security", "code_quality", "architecture", etc.

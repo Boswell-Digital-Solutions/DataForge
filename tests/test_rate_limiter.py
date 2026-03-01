@@ -167,14 +167,14 @@ class TestSlidingWindowLimiter:
         assert info["used"] == 60
         assert info["allowed"] == 60
 
-    def test_redis_unavailable_allows_request(self, mock_redis):
-        """Test allowing request when Redis unavailable."""
+    def test_redis_unavailable_denies_request(self, mock_redis):
+        """Test denying request when Redis is unavailable."""
         mock_redis.ping.side_effect = Exception("Connection refused")
         limiter = SlidingWindowLimiter(mock_redis)
 
         is_limited, info = limiter.is_rate_limited("public_api", "1.2.3.4")
 
-        assert is_limited is False
+        assert is_limited is True
         assert "Redis unavailable" in info.get("message", "")
 
     def test_disabled_limit_allows_request(self, rate_limiter, mock_redis):
@@ -206,17 +206,16 @@ class TestWhitelist:
     def test_whitelist_identifier(self, rate_limiter, mock_redis):
         """Test whitelisting an identifier."""
         mock_redis.ping.return_value = True
-        mock_redis.sadd.return_value = 1
-        mock_redis.expire.return_value = 1
+        mock_redis.set.return_value = True
 
         success = rate_limiter.whitelist_identifier("admin-user-1", ttl_hours=24)
         assert success is True
-        assert mock_redis.sadd.called
+        assert mock_redis.set.called
 
     def test_whitelisted_identifier_unlimited(self, rate_limiter, mock_redis):
         """Test whitelisted identifier gets unlimited requests."""
         mock_redis.ping.return_value = True
-        mock_redis.sismember.return_value = 1  # Is whitelisted
+        mock_redis.exists.return_value = 1  # Is whitelisted
 
         is_limited, info = rate_limiter.is_rate_limited("public_api", "admin-user-1")
 
@@ -226,16 +225,16 @@ class TestWhitelist:
     def test_remove_from_whitelist(self, rate_limiter, mock_redis):
         """Test removing identifier from whitelist."""
         mock_redis.ping.return_value = True
-        mock_redis.srem.return_value = 1
+        mock_redis.delete.return_value = 1
 
         success = rate_limiter.remove_from_whitelist("admin-user-1")
         assert success is True
-        assert mock_redis.srem.called
+        assert mock_redis.delete.called
 
     def test_whitelist_not_found_ok(self, rate_limiter, mock_redis):
         """Test removing non-whitelisted identifier is OK."""
         mock_redis.ping.return_value = True
-        mock_redis.srem.return_value = 0
+        mock_redis.delete.return_value = 0
 
         success = rate_limiter.remove_from_whitelist("not-whitelisted")
         assert success is True

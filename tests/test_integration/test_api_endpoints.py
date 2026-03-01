@@ -407,15 +407,14 @@ class TestErrorHandling:
         """Test rate limiting on endpoints."""
         headers = {"Authorization": f"Bearer {admin_token}"}
         
-        # Make many rapid requests
+        # Keep this bounded: the suite runs against a real remote DB and this
+        # endpoint is not actually rate-limited in the current app wiring.
         responses = []
-        for i in range(150):
+        for _ in range(3):
             response = client.get("/api/projects", headers=headers)
             responses.append(response.status_code)
         
-        # At least one should be rate limited (429)
-        # or all should succeed if rate limiting not enforced in test
-        assert any(code in [200, 429] for code in responses)
+        assert all(code in [200, 429] for code in responses)
 
 
 @pytest.mark.integration

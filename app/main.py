@@ -8,9 +8,11 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler as fastapi_request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
@@ -149,6 +151,16 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Preserve legacy 404 semantics for invalid project path IDs."""
+    if request.url.path.startswith("/api/projects/"):
+        for error in exc.errors():
+            if error.get("loc") == ("path", "project_id"):
+                return JSONResponse(status_code=404, content={"detail": "Project not found"})
+    return await fastapi_request_validation_exception_handler(request, exc)
+
 # Configure security headers middleware (must be added before CORS)
 main_logger.info("Adding security headers middleware...")
 configure_security_headers(app)
@@ -203,10 +215,10 @@ if os.path.exists("templates"):
     templates = Jinja2Templates(directory="templates")
 
 # Register routers
-app.include_router(fpvs_router, tags=["FPVS"])  # FPVS Phase 1: /health, /ready, /version
 app.include_router(search_router.router)
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)
+app.include_router(auth_router.legacy_router)
 app.include_router(projects_router.router)  # AuthorForge projects API
 app.include_router(diligence_router)  # Due Diligence API
 app.include_router(diligence_ui_router)  # Due Diligence UI
@@ -217,7 +229,6 @@ app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
 app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
 app.include_router(rotation_router)  # Admin Token Rotation (72-hour auto-rotation)
-app.include_router(auth_info_router)  # /auth/whoami and /health
 app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)
 app.include_router(tarcie_router)  # Tarcie friction capture ingest
 app.include_router(forge_run_router)  # ForgeAgents run persistence (Phase 2)
@@ -239,9 +250,21 @@ app.include_router(private_source_router)  # PSIM: private source profile CRUD
 # Health Check & Info Endpoints
 # ============================================
 
-@app.get("/", tags=["info"], response_class=HTMLResponse)
+@app.get("/", tags=["info"])
 async def root(request: Request):
-    """Home page with links to main features"""
+    """Service info endpoint with optional HTML home page for browsers."""
+    info = {
+        "name": "DataForge",
+        "version": app.version,
+        "description": app.description,
+        "endpoints": ["/health", "/docs", "/admin-ui", "/diligence/dashboard"],
+    }
+
+    accept = request.headers.get("accept", "")
+    wants_html = "text/html" in accept
+    if not wants_html:
+        return info
+
     if templates is None:
         return HTMLResponse(
             content="""
@@ -398,6 +421,10 @@ async def readiness_check():
         },
         status_code=status_code
     )
+
+
+app.include_router(auth_info_router)  # /auth/whoami and secondary /health info
+app.include_router(fpvs_router, tags=["FPVS"])  # FPVS Phase 1: /health, /ready, /version
 
 
 # ============================================

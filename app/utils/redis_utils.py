@@ -15,6 +15,8 @@ import redis.asyncio as aioredis
 from redis.asyncio import Redis
 from redis.exceptions import RedisError, ConnectionError as RedisConnectionError
 
+from app.utils.cache_governance import redis_set_with_ttl
+
 logger = logging.getLogger(__name__)
 
 # Global Redis client (lazy-initialized)
@@ -173,7 +175,7 @@ def cache_result(
                 redis_client = await get_redis_client()
                 if redis_client is not None and result is not None:
                     serialized = json.dumps(result, default=str)
-                    await redis_client.setex(cache_key, ttl_seconds, serialized)
+                    await redis_set_with_ttl(redis_client, cache_key, serialized, ttl_seconds)
                     logger.debug(f"Cache set: {cache_key} (TTL: {ttl_seconds}s)")
             except Exception as e:
                 logger.warning(f"Cache storage error: {e}. Continuing without cache.")

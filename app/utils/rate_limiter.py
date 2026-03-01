@@ -15,13 +15,14 @@ Features:
 """
 
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, Dict, List, Any, Tuple
-import json
 import logging
 import time
 from functools import lru_cache
+
+from app.config import get_rate_limit_ttl
+from app.utils.cache_governance import redis_set_with_ttl_sync
 
 
 logger = logging.getLogger(__name__)
@@ -199,8 +200,8 @@ class SlidingWindowLimiter:
             return False
 
         try:
-            key = f"{self.key_prefix}:whitelist"
-            return self.redis.sismember(key, identifier) > 0
+            key = f"{self.key_prefix}:whitelist:{identifier}"
+            return self.redis.exists(key) > 0
         except Exception as e:
             logger.error(f"Failed to check whitelist: {e}")
             return False
@@ -211,10 +212,9 @@ class SlidingWindowLimiter:
             return False
 
         try:
-            key = f"{self.key_prefix}:whitelist"
-            self.redis.sadd(key, identifier)
-            if ttl_hours > 0:
-                self.redis.expire(key, ttl_hours * 3600)
+            key = f"{self.key_prefix}:whitelist:{identifier}"
+            ttl_seconds = ttl_hours * 3600 if ttl_hours > 0 else 10 * 365 * 24 * 3600
+            redis_set_with_ttl_sync(self.redis, key, "1", ttl_seconds)
             logger.info(f"Whitelisted identifier: {identifier}")
             return True
         except Exception as e:
@@ -227,8 +227,8 @@ class SlidingWindowLimiter:
             return False
 
         try:
-            key = f"{self.key_prefix}:whitelist"
-            self.redis.srem(key, identifier)
+            key = f"{self.key_prefix}:whitelist:{identifier}"
+            self.redis.delete(key)
             logger.info(f"Removed from whitelist: {identifier}")
             return True
         except Exception as e:
@@ -263,9 +263,8 @@ class SlidingWindowLimiter:
             return False, {"message": "Identifier whitelisted", "unlimited": True}
 
         if not self._redis_available:
-            # Fail open: allow requests if Redis unavailable
-            logger.warning(f"Redis unavailable, allowing request for {identifier}")
-            return False, {"message": "Redis unavailable, allowing request"}
+            logger.warning("Redis unavailable, denying request for %s", identifier)
+            return True, {"message": "Redis unavailable, request denied"}
 
         try:
             key = self._redis_key(
@@ -303,8 +302,10 @@ class SlidingWindowLimiter:
                 }
 
             # Add current request to the window
-            self.redis.zadd(key, {str(now): now})
-            self.redis.expire(key, window_seconds + 1)
+            pipeline = self.redis.pipeline()
+            pipeline.zadd(key, {str(now): now})
+            pipeline.expire(key, get_rate_limit_ttl(window_seconds))
+            pipeline.execute()
 
             self._metrics.allowed_requests += 1
 
@@ -320,8 +321,7 @@ class SlidingWindowLimiter:
         except Exception as e:
             logger.error(f"Rate limit check failed for {identifier}: {e}")
             self._metrics.redis_errors += 1
-            # Fail open: allow request
-            return False, {"error": str(e), "message": "Rate limit check failed"}
+            return True, {"error": str(e), "message": "Rate limit check failed"}
 
     def get_current_usage(
         self,

@@ -3,13 +3,13 @@ CRUD operations for AuthorForge projects and related entities.
 """
 
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, text
+from sqlalchemy import and_, bindparam, text
 from typing import List, Optional
 from datetime import datetime
 
 from app.models.authorforge_models import (
     Project, Manuscript, Character, Location, StoryArc,
-    BrainstormSession, GenreEnum, ProjectStatus
+    BrainstormSession, GenreEnum
 )
 from app.models.authorforge_schemas import (
     ProjectCreate, ProjectUpdate,
@@ -19,6 +19,14 @@ from app.models.authorforge_schemas import (
     StoryArcCreate, StoryArcUpdate,
     BrainstormSessionCreate
 )
+
+
+def _normalize_project_status(status: Optional[object]) -> Optional[str]:
+    """Convert schema enum or raw status text to the stored lowercase value."""
+    if status is None:
+        return None
+    raw_value = getattr(status, "value", status)
+    return str(raw_value).lower()
 
 
 def _load_genres(db: Session, project: Optional[Project]) -> Optional[Project]:
@@ -35,8 +43,24 @@ def _load_genres(db: Session, project: Optional[Project]) -> Optional[Project]:
 
 def _load_genres_list(db: Session, projects: List[Project]) -> List[Project]:
     """Load genres for a list of projects."""
-    for p in projects:
-        _load_genres(db, p)
+    if not projects:
+        return projects
+
+    project_ids = [project.id for project in projects]
+    rows = db.execute(
+        text(
+            "SELECT project_id, genre FROM project_genres "
+            "WHERE project_id IN :project_ids"
+        ).bindparams(bindparam("project_ids", expanding=True)),
+        {"project_ids": project_ids},
+    ).fetchall()
+
+    genres_by_project = {project_id: [] for project_id in project_ids}
+    for project_id, genre in rows:
+        genres_by_project.setdefault(project_id, []).append(GenreEnum(genre))
+
+    for project in projects:
+        project.genres = genres_by_project.get(project.id, [])
     return projects
 
 
@@ -44,11 +68,11 @@ def _load_genres_list(db: Session, projects: List[Project]) -> List[Project]:
 # Projects
 # ============================================
 
-def get_user_projects(db: Session, user_id: int, status: Optional[ProjectStatus] = None) -> List[Project]:
+def get_user_projects(db: Session, user_id: int, status: Optional[object] = None) -> List[Project]:
     """Get all projects for a user"""
     query = db.query(Project).filter(Project.user_id == user_id)
     if status:
-        query = query.filter(Project.status == status)
+        query = query.filter(Project.status == _normalize_project_status(status))
     return _load_genres_list(db, query.order_by(Project.last_edited_at.desc().nullsfirst(), Project.updated_at.desc()).all())
 
 
@@ -66,7 +90,7 @@ def create_project(db: Session, project: ProjectCreate, user_id: int) -> Project
         user_id=user_id,
         name=project.name,
         description=project.description,
-        status=project.status,
+        status=_normalize_project_status(project.status),
         target_word_count=project.target_word_count,
         settings=project.settings,
         word_count=0
@@ -111,6 +135,8 @@ def update_project(db: Session, project_id: int, user_id: int, project_update: P
 
     # Update other fields
     for field, value in update_data.items():
+        if field == "status":
+            value = _normalize_project_status(value)
         setattr(db_project, field, value)
 
     db_project.updated_at = datetime.utcnow()
@@ -121,11 +147,12 @@ def update_project(db: Session, project_id: int, user_id: int, project_update: P
 
 def delete_project(db: Session, project_id: int, user_id: int) -> bool:
     """Delete a project"""
-    db_project = get_project(db, project_id, user_id)
-    if not db_project:
+    deleted_rows = db.query(Project).filter(
+        and_(Project.id == project_id, Project.user_id == user_id)
+    ).delete(synchronize_session=False)
+    if deleted_rows == 0:
         return False
 
-    db.delete(db_project)
     db.commit()
     return True
 

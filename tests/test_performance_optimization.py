@@ -7,6 +7,10 @@ when Redis is unavailable.
 import pytest
 import json
 from unittest.mock import patch, MagicMock
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from app.api.diligence_crud import (
     cache_get,
     cache_set,
@@ -16,6 +20,8 @@ from app.api.diligence_crud import (
     create_project,
     update_project,
 )
+from app.models.diligence_models import DiligenceFinding, DiligenceProject, DiligenceReview
+from app.models.models import User
 from app.models.diligence_schemas import DiligenceProjectCreate, DiligenceProjectUpdate
 from app.utils.metrics import (
     track_query_timing,
@@ -23,6 +29,25 @@ from app.utils.metrics import (
     reset_query_metrics,
     TimingContext,
 )
+
+
+@pytest.fixture
+def db():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    User.__table__.create(bind=engine)
+    DiligenceProject.__table__.create(bind=engine)
+    DiligenceReview.__table__.create(bind=engine)
+    DiligenceFinding.__table__.create(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 class TestCaching:
@@ -56,7 +81,7 @@ class TestCaching:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_cache_invalidation_on_update(self, db_session, test_user):
+    async def test_cache_invalidation_on_update(self, db, test_user):
         """Test that cache is invalidated on project update."""
         # Create a project
         project_data = DiligenceProjectCreate(
@@ -68,7 +93,7 @@ class TestCaching:
             project_metadata={},
         )
         
-        project = create_project(db_session, project_data, test_user.id)
+        project = create_project(db, project_data, test_user.id)
         
         # Cache should be invalidated after creation
         # (which means cache_delete was called)
@@ -198,7 +223,7 @@ class TestDatabaseQueryOptimization:
     """Test database query optimizations."""
 
     @pytest.mark.asyncio
-    async def test_get_projects_pagination(self, db_session, test_user):
+    async def test_get_projects_pagination(self, db, test_user):
         """Test that project queries support pagination."""
         # Create multiple projects
         for i in range(5):
@@ -210,11 +235,11 @@ class TestDatabaseQueryOptimization:
                 tags=["test"],
                 project_metadata={},
             )
-            create_project(db_session, project_data, test_user.id)
+            create_project(db, project_data, test_user.id)
         
         # Test pagination
-        projects_page1 = get_projects(db_session, test_user.id, skip=0, limit=2)
-        projects_page2 = get_projects(db_session, test_user.id, skip=2, limit=2)
+        projects_page1 = get_projects(db, test_user.id, skip=0, limit=2)
+        projects_page2 = get_projects(db, test_user.id, skip=2, limit=2)
         
         # Pages should be different (unless less than 4 projects exist)
         # At minimum, the query should succeed
@@ -222,7 +247,7 @@ class TestDatabaseQueryOptimization:
         assert isinstance(projects_page2, list)
 
     @pytest.mark.asyncio
-    async def test_get_project_eager_loading(self, db_session, test_user):
+    async def test_get_project_eager_loading(self, db, test_user):
         """Test that project queries use eager loading for relationships."""
         project_data = DiligenceProjectCreate(
             name="Eager Load Test",
@@ -233,10 +258,10 @@ class TestDatabaseQueryOptimization:
             project_metadata={},
         )
         
-        project = create_project(db_session, project_data, test_user.id)
+        project = create_project(db, project_data, test_user.id)
         
         # Fetch with get_project (which uses eager loading)
-        fetched = get_project(db_session, project.id, test_user.id)
+        fetched = get_project(db, project.id, test_user.id)
         
         # Should be able to access relationships without additional queries
         assert fetched is not None
@@ -244,7 +269,7 @@ class TestDatabaseQueryOptimization:
 
 
 @pytest.fixture
-def test_user(db_session, test_credentials):
+def test_user(db, test_credentials):
     """Create a test user for testing."""
     from app.models.models import User
     
@@ -253,9 +278,9 @@ def test_user(db_session, test_credentials):
         email="test@example.com",
         hashed_password=test_credentials.get_hashed_test_password(),
         is_active=True,
-        is_superuser=False,
+        is_admin=False,
     )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user

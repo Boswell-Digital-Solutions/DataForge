@@ -82,6 +82,24 @@ class Chunk(Base):
     document = relationship("Document", back_populates="chunks")
 
 
+class CorpusState(Base):
+    __tablename__ = "corpus_state"
+
+    id = Column(Integer, primary_key=True)
+    current_version = Column(Integer, nullable=False, default=1)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CorpusVersion(Base):
+    __tablename__ = "corpus_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    version = Column(Integer, nullable=False, unique=True, index=True)
+    trigger_event = Column(String(50), nullable=False)
+    trigger_entity_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
 # =============================================================================
 # ForgeAgents Execution Persistence (Phase 2)
 # =============================================================================

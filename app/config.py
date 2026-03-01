@@ -5,6 +5,9 @@ Central configuration for constants and settings.
 """
 
 import os
+from functools import lru_cache
+from types import SimpleNamespace
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,6 +56,13 @@ DATABASE_URL = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://postgres:postgr
 # Redis Configuration (Caching)
 # ============================================
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# Cache TTLs (seconds)
+DOC_FETCH_CACHE_TTL = int(os.getenv("DOC_FETCH_CACHE_TTL", "600"))
+SEARCH_RESULTS_CACHE_TTL = int(os.getenv("SEARCH_RESULTS_CACHE_TTL", "300"))
+EMBEDDING_RESULTS_CACHE_TTL = int(os.getenv("EMBEDDING_RESULTS_CACHE_TTL", "86400"))
+SESSION_OAUTH_TOTP_CACHE_TTL = int(os.getenv("SESSION_OAUTH_TOTP_CACHE_TTL", "900"))
+CORPUS_CURRENT_VERSION_CACHE_TTL = int(os.getenv("CORPUS_CURRENT_VERSION_CACHE_TTL", "60"))
 
 # ============================================
 # Security Configuration
@@ -189,3 +199,43 @@ def get_embedding_provider():
         return ("cohere", COHERE_API_KEY)
     else:
         return (None, None)
+
+
+@lru_cache(maxsize=1)
+def get_settings():
+    """
+    Backwards-compatible settings accessor for tests and older modules.
+    """
+    provider, _ = get_embedding_provider()
+    normalized_provider = (provider or "voyage-ai").replace("-ai", "")
+    return SimpleNamespace(
+        DATABASE_URL=DATABASE_URL,
+        REDIS_URL=REDIS_URL,
+        SECRET_KEY=SECRET_KEY,
+        ALGORITHM=ALGORITHM,
+        ACCESS_TOKEN_EXPIRE_MINUTES=ACCESS_TOKEN_EXPIRE_MINUTES,
+        EMBEDDING_MODEL=EMBEDDING_MODEL,
+        EMBEDDING_PROVIDER=normalized_provider,
+        NEUROFORGE_URL=NEUROFORGE_URL,
+        HOST=HOST,
+        PORT=PORT,
+        LOG_LEVEL=LOG_LEVEL,
+    )
+
+
+def get_rate_limit_ttl(window_seconds: int) -> int:
+    """
+    Calculate a Redis TTL for rate-limit windows.
+    """
+    return window_seconds + 60
+
+
+class _CompatConfig:
+    """
+    Backwards-compatible object interface for older modules.
+    """
+
+    redis_url = REDIS_URL
+
+
+config = _CompatConfig()

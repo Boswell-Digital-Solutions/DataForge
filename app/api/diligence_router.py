@@ -10,9 +10,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import models
+from app.models.authorforge_models import Project as AuthorForgeProject
+from app.models.diligence_models import DiligenceProject as DiligenceProjectModel
 from app.models.diligence_models import FindingStatus
 from app.models.diligence_schemas import (
     DiligenceProject,
@@ -29,10 +32,11 @@ from app.models.diligence_schemas import (
     DiligenceFindingCreate,
     DiligenceFindingUpdate,
     BulkReviewCreate,
+    FindingSeverityEnum,
     FindingStatusEnum
 )
 from app.api import diligence_crud
-from app.utils.auth import get_current_admin_user, get_optional_user
+from app.utils.auth import get_current_admin_user, get_current_user, get_optional_user
 from app.utils.diligence_parser import parse_ai_report
 
 # Router for API endpoints
@@ -47,9 +51,186 @@ if os.path.exists("templates"):
     templates = Jinja2Templates(directory="templates")
 
 
+class LegacyDiligenceFindingPayload(BaseModel):
+    title: str
+    description: Optional[str] = None
+    severity: str
+    status: FindingStatusEnum = FindingStatusEnum.OPEN
+    category: Optional[str] = None
+    file_path: Optional[str] = None
+    line_number: Optional[int] = None
+    remediation: Optional[str] = None
+
+
+class LegacyDiligenceClosePayload(BaseModel):
+    rating: Optional[str] = None
+    recommendation: Optional[str] = None
+
+
+def _legacy_project_id_for_review(review: object) -> int:
+    project_metadata = getattr(getattr(review, "project", None), "project_metadata", None) or {}
+    source_project_id = project_metadata.get("source_project_id")
+    if isinstance(source_project_id, int):
+        return source_project_id
+    return getattr(review, "project_id")
+
+
+def _legacy_review_status(review: object) -> str:
+    if getattr(review, "overall_rating", None) is not None or getattr(review, "recommendation", None):
+        return "closed"
+    return "open"
+
+
+def _serialize_legacy_review_response(review: object, *, include_findings: bool = False) -> dict:
+    schema = DiligenceReviewWithFindings if include_findings else DiligenceReview
+    payload = schema.model_validate(review, from_attributes=True).model_dump(mode="json")
+    payload["project_id"] = _legacy_project_id_for_review(review)
+    payload["status"] = _legacy_review_status(review)
+    return payload
+
+
+def _resolve_legacy_diligence_project_id(
+    db: Session,
+    *,
+    current_user_id: int,
+    legacy_project_id: int,
+) -> Optional[int]:
+    diligence_project = db.query(DiligenceProjectModel).filter(
+        DiligenceProjectModel.id == legacy_project_id,
+        DiligenceProjectModel.user_id == current_user_id,
+    ).first()
+    if diligence_project:
+        return diligence_project.id
+
+    source_project = db.query(AuthorForgeProject).filter(
+        AuthorForgeProject.id == legacy_project_id,
+        AuthorForgeProject.user_id == current_user_id,
+    ).first()
+    if not source_project:
+        return None
+
+    diligence_projects = db.query(DiligenceProjectModel).filter(
+        DiligenceProjectModel.user_id == current_user_id
+    ).all()
+    for candidate in diligence_projects:
+        metadata = candidate.project_metadata or {}
+        if metadata.get("source_project_id") == source_project.id:
+            return candidate.id
+
+    created_project = diligence_crud.create_project(
+        db,
+        user_id=current_user_id,
+        project=DiligenceProjectCreate(
+            name=source_project.name,
+            description=source_project.description,
+            tags=["legacy_authorforge_project"],
+            project_metadata={"source_project_id": source_project.id},
+        ),
+    )
+    return created_project.id
+
+
+def _normalize_legacy_finding_severity(severity: str) -> FindingSeverityEnum:
+    normalized = severity.strip().lower()
+    if normalized == "info":
+        normalized = FindingSeverityEnum.LOW.value
+    try:
+        return FindingSeverityEnum(normalized)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Unsupported finding severity: {severity}") from exc
+
+
+def _normalize_legacy_review_rating(rating: Optional[str]):
+    if rating is None:
+        return None
+    normalized = rating.strip().lower()
+    rating_map = {
+        "recommended": "green",
+        "proceed": "green",
+        "conditional": "yellow",
+        "caution": "yellow",
+        "not_recommended": "red",
+        "do_not_proceed": "red",
+        "reject": "red",
+        "green": "green",
+        "yellow": "yellow",
+        "red": "red",
+    }
+    mapped = rating_map.get(normalized)
+    if mapped is None:
+        raise HTTPException(status_code=422, detail=f"Unsupported review rating: {rating}")
+    return mapped
+
+
+def _build_legacy_review_report(review: object) -> dict:
+    findings = [
+        DiligenceFinding.model_validate(finding, from_attributes=True).model_dump(mode="json")
+        for finding in getattr(review, "findings", [])
+    ]
+    severity_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    for finding in findings:
+        severity = finding.get("severity", "unknown")
+        status = finding.get("status", "unknown")
+        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    return {
+        "review_id": getattr(review, "id"),
+        "project_id": _legacy_project_id_for_review(review),
+        "status": _legacy_review_status(review),
+        "overall_rating": getattr(review, "overall_rating", None),
+        "recommendation": getattr(review, "recommendation", None),
+        "summary": getattr(review, "summary", None),
+        "findings": findings,
+        "findings_summary": {
+            "total": len(findings),
+            "by_severity": severity_counts,
+            "by_status": status_counts,
+        },
+    }
+
+
 # ============================================
 # Project API Endpoints
 # ============================================
+
+@router.get("", response_model=List[DiligenceReviewSummary])
+def list_reviews_legacy(
+    project_id: Optional[int] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for listing diligence reviews."""
+    return diligence_crud.get_reviews(db, user_id=current_user.id, project_id=project_id, skip=skip, limit=limit)
+
+
+@router.post("", response_model=DiligenceReview)
+def create_review_legacy(
+    review: DiligenceReviewCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for creating a diligence review."""
+    diligence_project_id = _resolve_legacy_diligence_project_id(
+        db,
+        current_user_id=current_user.id,
+        legacy_project_id=review.project_id,
+    )
+    if diligence_project_id is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    db_review = diligence_crud.create_review(
+        db,
+        user_id=current_user.id,
+        review=review.model_copy(update={"project_id": diligence_project_id}),
+    )
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return _serialize_legacy_review_response(db_review)
+
 
 @router.get("/projects", response_model=List[DiligenceProjectSummary])
 def list_projects(
@@ -268,6 +449,76 @@ def create_finding(
     if not db_finding:
         raise HTTPException(status_code=404, detail="Review not found")
     return db_finding
+
+
+@router.get("/{review_id}")
+def get_review_legacy(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for fetching a diligence review."""
+    review = diligence_crud.get_review(db, user_id=current_user.id, review_id=review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return _serialize_legacy_review_response(review, include_findings=True)
+
+
+@router.post("/{review_id}/findings", response_model=DiligenceFinding)
+def create_finding_legacy(
+    review_id: int,
+    finding: LegacyDiligenceFindingPayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for adding a finding to a diligence review."""
+    db_finding = diligence_crud.create_finding(
+        db,
+        user_id=current_user.id,
+        finding=DiligenceFindingCreate(
+            review_id=review_id,
+            **finding.model_dump(exclude={"severity"}),
+            severity=_normalize_legacy_finding_severity(finding.severity),
+        ),
+    )
+    if not db_finding:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return db_finding
+
+
+@router.get("/{review_id}/report")
+def get_review_report_legacy(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for a structured diligence report."""
+    review = diligence_crud.get_review(db, user_id=current_user.id, review_id=review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return _build_legacy_review_report(review)
+
+
+@router.post("/{review_id}/close")
+def close_review_legacy(
+    review_id: int,
+    close_payload: LegacyDiligenceClosePayload,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Legacy compatibility endpoint for closing a diligence review."""
+    review = diligence_crud.update_review(
+        db,
+        user_id=current_user.id,
+        review_id=review_id,
+        review_update=DiligenceReviewUpdate(
+            overall_rating=_normalize_legacy_review_rating(close_payload.rating),
+            recommendation=close_payload.recommendation,
+        ),
+    )
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return _serialize_legacy_review_response(review)
 
 
 @router.get("/findings/{finding_id}", response_model=DiligenceFinding)

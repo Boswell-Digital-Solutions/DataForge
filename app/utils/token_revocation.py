@@ -22,6 +22,9 @@ import json
 import logging
 from functools import lru_cache
 
+from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, SESSION_OAUTH_TOTP_CACHE_TTL
+from app.utils.cache_governance import redis_set_with_ttl_sync
+
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +117,28 @@ class TokenRevocationManager:
             return f"{self.key_prefix}:{key_type}:{identifier}"
         return f"{self.key_prefix}:{key_type}"
 
+    def _default_revocation_ttl(self) -> int:
+        return max(ACCESS_TOKEN_EXPIRE_MINUTES * 60, SESSION_OAUTH_TOTP_CACHE_TTL)
+
+    def _load_user_revocations(self, user_id: str) -> List[str]:
+        try:
+            raw = self.redis.get(self._redis_key("user_revocations", user_id))
+            if not raw:
+                return []
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, list) else []
+        except Exception as e:
+            logger.error(f"Failed to load user revocations for {user_id}: {e}")
+            return []
+
+    def _store_user_revocations(self, user_id: str, jtis: List[str], ttl: int) -> None:
+        redis_set_with_ttl_sync(
+            self.redis,
+            self._redis_key("user_revocations", user_id),
+            json.dumps(sorted(set(jtis))),
+            max(ttl, SESSION_OAUTH_TOTP_CACHE_TTL),
+        )
+
     def revoke_token(
         self,
         jti: str,
@@ -150,24 +175,19 @@ class TokenRevocationManager:
             )
 
             # Calculate TTL: expire revocation record when token would naturally expire
-            ttl = None
+            ttl = self._default_revocation_ttl()
             if expires_at:
-                ttl = int((expires_at - datetime.utcnow()).total_seconds())
-                if ttl < 0:
-                    ttl = 1  # Token already expired, keep record for 1 second
+                ttl = max(int((expires_at - datetime.utcnow()).total_seconds()), 1)
 
             # Store revocation record
             token_key = self._redis_key("token", jti)
             record_json = json.dumps(record.to_dict())
-
-            if ttl and ttl > 0:
-                self.redis.setex(token_key, ttl, record_json)
-            else:
-                self.redis.set(token_key, record_json)
+            redis_set_with_ttl_sync(self.redis, token_key, record_json, ttl)
 
             # Track user's revoked tokens (for bulk operations)
-            user_key = self._redis_key("user_revocations", user_id)
-            self.redis.sadd(user_key, jti)
+            user_revocations = self._load_user_revocations(user_id)
+            user_revocations.append(jti)
+            self._store_user_revocations(user_id, user_revocations, ttl)
 
             # Update metrics
             self._metrics.total_revoked += 1
@@ -194,15 +214,15 @@ class TokenRevocationManager:
             True if token is revoked, False otherwise
         """
         if not self._redis_available:
-            return False
+            logger.warning(f"Redis unavailable for revocation check: {jti}")
+            return True
 
         try:
             token_key = self._redis_key("token", jti)
             return self.redis.exists(token_key) > 0
         except Exception as e:
             logger.error(f"Failed to check revocation status for {jti}: {e}")
-            # Fail open: allow token if Redis unavailable
-            return False
+            return True
 
     def get_revocation(self, jti: str) -> Optional[RevocationRecord]:
         """
@@ -252,12 +272,10 @@ class TokenRevocationManager:
             return 0
 
         try:
-            user_key = self._redis_key("user_revocations", user_id)
-            jtis = self.redis.smembers(user_key)
+            jtis = self._load_user_revocations(user_id)
             count = 0
 
-            for jti_bytes in jtis:
-                jti = jti_bytes.decode() if isinstance(jti_bytes, bytes) else jti_bytes
+            for jti in jtis:
                 if self.revoke_token(jti, user_id, reason, metadata=metadata):
                     count += 1
 
@@ -291,12 +309,10 @@ class TokenRevocationManager:
             return 0
 
         try:
-            user_key = self._redis_key("user_revocations", user_id)
-            jtis = self.redis.smembers(user_key)
+            jtis = self._load_user_revocations(user_id)
             count = 0
 
-            for jti_bytes in jtis:
-                jti = jti_bytes.decode() if isinstance(jti_bytes, bytes) else jti_bytes
+            for jti in jtis:
                 if jti != keep_jti:
                     if self.revoke_token(jti, user_id, reason):
                         count += 1
@@ -331,9 +347,17 @@ class TokenRevocationManager:
             deleted = self.redis.delete(token_key) > 0
 
             if deleted:
-                # Remove from user's revocation set
-                user_key = self._redis_key("user_revocations", revocation.user_id)
-                self.redis.srem(user_key, jti)
+                remaining = [
+                    item for item in self._load_user_revocations(revocation.user_id) if item != jti
+                ]
+                if remaining:
+                    self._store_user_revocations(
+                        revocation.user_id,
+                        remaining,
+                        self._default_revocation_ttl(),
+                    )
+                else:
+                    self.redis.delete(self._redis_key("user_revocations", revocation.user_id))
                 self._metrics.active_revocations = max(0, self._metrics.active_revocations - 1)
                 logger.info(f"Token revocation removed: {jti}")
 
@@ -373,12 +397,10 @@ class TokenRevocationManager:
             return []
 
         try:
-            user_key = self._redis_key("user_revocations", user_id)
-            jtis = self.redis.smembers(user_key)
+            jtis = self._load_user_revocations(user_id)
             records = []
 
-            for jti_bytes in jtis:
-                jti = jti_bytes.decode() if isinstance(jti_bytes, bytes) else jti_bytes
+            for jti in jtis:
                 record = self.get_revocation(jti)
                 if record:
                     records.append(record)

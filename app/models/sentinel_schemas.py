@@ -61,7 +61,7 @@ class DimensionResult(BaseModel):
 
 class SweepCreate(BaseModel):
     sweep_type: SweepType
-    trigger: SweepTrigger = SweepTrigger.MANUAL
+    trigger: SweepTrigger = SweepTrigger.SCHEDULED
 
 class SweepUpdate(BaseModel):
     status: SweepStatus | None = None

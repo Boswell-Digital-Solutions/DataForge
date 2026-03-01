@@ -7,9 +7,8 @@ Tests:
 4. Search with outcome filter
 """
 
-import json
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -17,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.experience_router import router
-from app.models.agentic_reasoning_models import ExecutionExperienceModel
+from app.database import get_db
 
 
 @pytest.fixture
@@ -32,6 +31,19 @@ def app():
 def client(app):
     """Create test client."""
     return TestClient(app)
+
+
+@pytest.fixture
+def mock_db(app):
+    """Override the router DB dependency with a mock session."""
+    db = MagicMock()
+
+    def override_get_db():
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    yield db
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -55,27 +67,23 @@ def sample_experience():
 class TestCreateExperience:
     """Test POST /api/v1/experience."""
 
-    def test_create_experience_success(self, client, sample_experience):
+    def test_create_experience_success(self, client, mock_db, sample_experience):
         """Creating an experience record returns 201 with experience_id."""
-        with patch("app.api.experience_router.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_get_db.return_value = iter([mock_db])
+        # Mock the db.add/commit/refresh cycle
+        def set_experience_id(obj):
+            obj.experience_id = uuid4()
+            obj.created_at = datetime.utcnow()
 
-            # Mock the db.add/commit/refresh cycle
-            def set_experience_id(obj):
-                obj.experience_id = uuid4()
-                obj.created_at = datetime.utcnow()
+        mock_db.refresh.side_effect = set_experience_id
 
-            mock_db.refresh.side_effect = set_experience_id
+        response = client.post("/api/v1/experience", json=sample_experience)
 
-            response = client.post("/api/v1/experience", json=sample_experience)
-
-            assert response.status_code == 201
-            data = response.json()
-            assert "experience_id" in data
-            assert data["agent_archetype"] == "coder"
-            assert data["outcome"] == "success"
-            assert data["execution_summary"] == sample_experience["execution_summary"]
+        assert response.status_code == 201
+        data = response.json()
+        assert "experience_id" in data
+        assert data["agent_archetype"] == "coder"
+        assert data["outcome"] == "success"
+        assert data["execution_summary"] == sample_experience["execution_summary"]
 
 
 @pytest.mark.skip(reason="Requires pgvector — raw SQL with <=> operator bypasses mock")
@@ -100,83 +108,71 @@ class TestSearchExperiences:
         row.similarity = similarity
         return row
 
-    def test_search_with_similarity(self, client):
+    def test_search_with_similarity(self, client, mock_db):
         """Search returns results ordered by cosine similarity."""
-        with patch("app.api.experience_router.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_get_db.return_value = iter([mock_db])
+        row1 = self._make_search_result(similarity=0.92)
+        row2 = self._make_search_result(similarity=0.78)
+        mock_db.execute.return_value.fetchall.return_value = [row1, row2]
 
-            row1 = self._make_search_result(similarity=0.92)
-            row2 = self._make_search_result(similarity=0.78)
-            mock_db.execute.return_value.fetchall.return_value = [row1, row2]
+        response = client.post(
+            "/api/v1/experience/search",
+            json={
+                "query_embedding": [0.1] * 768,
+                "min_similarity": 0.65,
+                "limit": 5,
+            },
+        )
 
-            response = client.post(
-                "/api/v1/experience/search",
-                json={
-                    "query_embedding": [0.1] * 768,
-                    "min_similarity": 0.65,
-                    "limit": 5,
-                },
-            )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["similarity"] == 0.92
+        assert data[1]["similarity"] == 0.78
 
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data) == 2
-            assert data[0]["similarity"] == 0.92
-            assert data[1]["similarity"] == 0.78
-
-    def test_search_with_archetype_filter(self, client):
+    def test_search_with_archetype_filter(self, client, mock_db):
         """Search filters by agent archetype."""
-        with patch("app.api.experience_router.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_get_db.return_value = iter([mock_db])
+        row = self._make_search_result(archetype="researcher")
+        mock_db.execute.return_value.fetchall.return_value = [row]
 
-            row = self._make_search_result(archetype="researcher")
-            mock_db.execute.return_value.fetchall.return_value = [row]
+        response = client.post(
+            "/api/v1/experience/search",
+            json={
+                "query_embedding": [0.1] * 768,
+                "agent_archetype": "researcher",
+                "limit": 5,
+            },
+        )
 
-            response = client.post(
-                "/api/v1/experience/search",
-                json={
-                    "query_embedding": [0.1] * 768,
-                    "agent_archetype": "researcher",
-                    "limit": 5,
-                },
-            )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["agent_archetype"] == "researcher"
 
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data) == 1
-            assert data[0]["agent_archetype"] == "researcher"
+        # Verify the SQL includes archetype filter
+        call_args = mock_db.execute.call_args
+        query_text = str(call_args[0][0])
+        assert "agent_archetype" in query_text
 
-            # Verify the SQL includes archetype filter
-            call_args = mock_db.execute.call_args
-            query_text = str(call_args[0][0])
-            assert "agent_archetype" in query_text
-
-    def test_search_with_outcome_filter(self, client):
+    def test_search_with_outcome_filter(self, client, mock_db):
         """Search filters by execution outcome."""
-        with patch("app.api.experience_router.get_db") as mock_get_db:
-            mock_db = MagicMock()
-            mock_get_db.return_value = iter([mock_db])
+        row = self._make_search_result(outcome="failure")
+        mock_db.execute.return_value.fetchall.return_value = [row]
 
-            row = self._make_search_result(outcome="failure")
-            mock_db.execute.return_value.fetchall.return_value = [row]
+        response = client.post(
+            "/api/v1/experience/search",
+            json={
+                "query_embedding": [0.1] * 768,
+                "outcome": "failure",
+                "limit": 5,
+            },
+        )
 
-            response = client.post(
-                "/api/v1/experience/search",
-                json={
-                    "query_embedding": [0.1] * 768,
-                    "outcome": "failure",
-                    "limit": 5,
-                },
-            )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["outcome"] == "failure"
 
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data) == 1
-            assert data[0]["outcome"] == "failure"
-
-            # Verify the SQL includes outcome filter
-            call_args = mock_db.execute.call_args
-            query_text = str(call_args[0][0])
-            assert "outcome" in query_text
+        # Verify the SQL includes outcome filter
+        call_args = mock_db.execute.call_args
+        query_text = str(call_args[0][0])
+        assert "outcome" in query_text

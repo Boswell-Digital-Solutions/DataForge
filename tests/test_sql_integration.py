@@ -11,13 +11,74 @@ These tests verify:
 - Transactions and rollbacks
 """
 import pytest
-from sqlalchemy import create_engine, text, inspect
+from sqlalchemy import create_engine, event, text, inspect
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
-import os
+from sqlalchemy.pool import StaticPool
+from pgvector.sqlalchemy import Vector
 
-from app.models.models import Base, Domain, Tag, Document, Chunk, User
-from app.database import get_db
+from app.models.models import Chunk, Document, Domain, Tag, User, document_tags
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(TSVECTOR, "sqlite")
+def _compile_tsvector_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@compiles(Vector, "sqlite")
+def _compile_vector_sqlite(_type, _compiler, **_kwargs):
+    return "TEXT"
+
+
+@pytest.fixture
+def db():
+    """Create a SQLite-safe schema for the SQL integration tests."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    User.__table__.create(bind=engine)
+    Domain.__table__.create(bind=engine)
+    Tag.__table__.create(bind=engine)
+    Document.__table__.create(bind=engine)
+    document_tags.create(bind=engine)
+    Chunk.__table__.create(bind=engine)
+
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture
+def test_domain(db):
+    """Create a domain scoped to this test module's local DB fixture."""
+    domain = Domain(
+        id="test_domain",
+        label="Test Domain",
+        description="A test domain for testing",
+    )
+    db.add(domain)
+    db.commit()
+    db.refresh(domain)
+    return domain
 
 
 class TestDatabaseConnection:
@@ -470,5 +531,4 @@ class TestComplexQueries:
         ).count()
 
         assert count >= 3
-
 

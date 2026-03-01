@@ -1,6 +1,15 @@
 # Models package
 
-from .models import User, Domain, Tag, Document, Chunk, document_tags
+from .models import (
+    User,
+    Domain,
+    Tag,
+    Document,
+    Chunk,
+    CorpusState,
+    CorpusVersion,
+    document_tags,
+)
 from .authorforge_models import (
     GenreEnum, ProjectStatus,
     Project, Manuscript, Character, Location, StoryArc, BrainstormSession,

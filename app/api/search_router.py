@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Request, Header
+from fastapi import APIRouter, Depends, Request, Header, Query
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 import uuid
 
 from app.database import get_db
@@ -146,6 +146,45 @@ async def hybrid_search_endpoint(
         similarity_threshold=search_request.similarity_threshold,
         min_rank=0.01,  # Default minimum rank threshold
         correlation_id=correlation_id
+    )
+
+
+@router.get("", response_model=schemas.SearchResponse)
+async def hybrid_search_legacy_get(
+    q: Optional[str] = Query(None, alias="q"),
+    query: Optional[str] = Query(None),
+    domain_id: Optional[str] = None,
+    tags: Optional[List[str]] = Query(None),
+    limit: int = 5,
+    similarity_threshold: float = 0.7,
+    db: Session = Depends(get_db),
+    request: Request = None,
+    rate_limit: None = Depends(search_rate_limit),
+    x_correlation_id: Optional[str] = Header(None),
+):
+    """Legacy compatibility GET endpoint for hybrid search."""
+    search_query = q or query
+    if not search_query:
+        search_query = ""
+
+    correlation_id = None
+    if x_correlation_id:
+        try:
+            correlation_id = uuid.UUID(x_correlation_id)
+        except ValueError:
+            correlation_id = uuid.uuid4()
+    else:
+        correlation_id = uuid.uuid4()
+
+    return await search.hybrid_search(
+        db=db,
+        query=search_query,
+        domain_id=domain_id,
+        tags=tags,
+        limit=limit,
+        similarity_threshold=similarity_threshold,
+        min_rank=0.01,
+        correlation_id=correlation_id,
     )
 
 

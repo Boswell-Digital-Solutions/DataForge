@@ -88,6 +88,10 @@ class RateLimiter:
         if identifiers_to_remove:
             logger.debug(f"Cleaned up {len(identifiers_to_remove)} old rate limit entries")
 
+    def reset(self) -> None:
+        """Clear all in-memory rate limit state."""
+        self.requests.clear()
+
 
 # Global rate limiter instance
 rate_limiter = RateLimiter()

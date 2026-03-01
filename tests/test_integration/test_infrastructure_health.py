@@ -2,16 +2,41 @@
 Infrastructure health and connectivity tests.
 Tests database, cache, embedding service, and system health.
 """
+import asyncio
 import pytest
 import time
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import inspect as sa_inspect, text
 
 from app.database import get_db, engine
+from app.utils import redis_utils
 from app.utils.redis_utils import get_redis_client, health_check
 from app.utils import embeddings
 from app.config import get_settings
+
+
+def _dialect_name(db: Session) -> str:
+    return db.get_bind().dialect.name
+
+
+def _require_postgres(db: Session) -> None:
+    if _dialect_name(db) != "postgresql":
+        pytest.skip("PostgreSQL-specific check is not applicable for this test backend")
+
+
+async def _get_redis_or_skip():
+    client = await get_redis_client()
+    if not client:
+        pytest.skip("Redis not available")
+    return client
+
+
+@pytest.fixture(autouse=True)
+async def _reset_async_redis_client():
+    await redis_utils.close_redis()
+    yield
+    await redis_utils.close_redis()
 
 
 @pytest.mark.infrastructure
@@ -26,13 +51,18 @@ class TestDatabaseHealth:
     
     def test_database_version(self, db: Session):
         """Test database version and capabilities."""
-        result = db.execute(text("SELECT version()"))
+        if _dialect_name(db) == "postgresql":
+            result = db.execute(text("SELECT version()"))
+        else:
+            result = db.execute(text("SELECT sqlite_version()"))
         version = result.scalar()
         assert version is not None
-        assert "PostgreSQL" in version or "postgres" in version.lower()
+        if _dialect_name(db) == "postgresql":
+            assert "PostgreSQL" in version or "postgres" in version.lower()
     
     def test_pgvector_extension(self, db: Session):
         """Test pgvector extension is loaded."""
+        _require_postgres(db)
         result = db.execute(
             text("SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='vector')")
         )
@@ -41,23 +71,18 @@ class TestDatabaseHealth:
     
     def test_database_tables_exist(self, db: Session):
         """Test all required tables exist."""
+        inspector = sa_inspect(db.get_bind())
+        existing_tables = set(inspector.get_table_names())
         required_tables = [
-            "user",
-            "project",
-            "diligence_project",
-            "diligence_review",
-            "diligence_finding"
+            "users",
+            "projects",
+            "diligence_projects",
+            "diligence_reviews",
+            "diligence_findings",
         ]
         
         for table_name in required_tables:
-            result = db.execute(
-                text(
-                    f"SELECT EXISTS(SELECT 1 FROM information_schema.tables "
-                    f"WHERE table_name = '{table_name}')"
-                )
-            )
-            exists = result.scalar()
-            assert exists, f"Table {table_name} not found"
+            assert table_name in existing_tables, f"Table {table_name} not found"
     
     def test_database_connection_pool(self, db: Session):
         """Test connection pool health."""
@@ -68,6 +93,7 @@ class TestDatabaseHealth:
     
     def test_database_indexes_exist(self, db: Session):
         """Test critical indexes are created."""
+        _require_postgres(db)
         indexes_to_check = [
             "idx_diligence_project_user_id",
             "idx_diligence_review_status",
@@ -99,6 +125,7 @@ class TestDatabaseHealth:
     
     def test_database_query_timeout(self, db: Session):
         """Test query timeout handling."""
+        _require_postgres(db)
         # Set timeout
         db.execute(text("SET statement_timeout = '5s'"))
         
@@ -108,6 +135,7 @@ class TestDatabaseHealth:
     
     def test_database_encoding(self, db: Session):
         """Test database encoding for Unicode support."""
+        _require_postgres(db)
         result = db.execute(
             text("SELECT datcollate FROM pg_database WHERE datname = current_database()")
         )
@@ -125,111 +153,106 @@ class TestRedisHealth:
         is_healthy = await health_check()
         assert is_healthy, "Redis health check failed"
     
-    def test_redis_client_availability(self):
+    @pytest.mark.asyncio
+    async def test_redis_client_availability(self):
         """Test Redis client is available."""
-        client = get_redis_client()
+        client = await get_redis_client()
         assert client is not None
     
-    def test_redis_set_get(self):
+    @pytest.mark.asyncio
+    async def test_redis_set_get(self):
         """Test basic Redis set/get operations."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         # Set value
-        client.set("test_key", "test_value")
+        await client.set("test_key", "test_value")
         
         # Get value
-        value = client.get("test_key")
+        value = await client.get("test_key")
         assert value == "test_value"
         
         # Cleanup
-        client.delete("test_key")
+        await client.delete("test_key")
     
-    def test_redis_expiration(self):
+    @pytest.mark.asyncio
+    async def test_redis_expiration(self):
         """Test Redis key expiration."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         # Set with expiration
-        client.setex("expire_test", 1, "value")
+        await client.setex("expire_test", 1, "value")
         
         # Should exist immediately
-        assert client.get("expire_test") == "value"
+        assert await client.get("expire_test") == "value"
         
         # Wait for expiration
-        time.sleep(1.1)
+        await asyncio.sleep(1.1)
         
         # Should be gone
-        assert client.get("expire_test") is None
+        assert await client.get("expire_test") is None
     
-    def test_redis_list_operations(self):
+    @pytest.mark.asyncio
+    async def test_redis_list_operations(self):
         """Test Redis list operations."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         key = "test_list"
         
         # Clear first
-        client.delete(key)
+        await client.delete(key)
         
         # Push values
-        client.rpush(key, "item1", "item2", "item3")
+        await client.rpush(key, "item1", "item2", "item3")
         
         # Get all
-        items = client.lrange(key, 0, -1)
+        items = await client.lrange(key, 0, -1)
         assert len(items) == 3
         
         # Cleanup
-        client.delete(key)
+        await client.delete(key)
     
-    def test_redis_hash_operations(self):
+    @pytest.mark.asyncio
+    async def test_redis_hash_operations(self):
         """Test Redis hash operations."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         key = "test_hash"
         
         # Clear first
-        client.delete(key)
+        await client.delete(key)
         
         # Set hash
-        client.hset(key, mapping={"field1": "value1", "field2": "value2"})
+        await client.hset(key, mapping={"field1": "value1", "field2": "value2"})
         
         # Get all
-        hash_data = client.hgetall(key)
+        hash_data = await client.hgetall(key)
         assert len(hash_data) == 2
         
         # Cleanup
-        client.delete(key)
+        await client.delete(key)
     
-    def test_redis_memory_usage(self):
+    @pytest.mark.asyncio
+    async def test_redis_memory_usage(self):
         """Test Redis memory information."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
-        info = client.info("memory")
+        info = await client.info("memory")
         assert "used_memory" in info
         assert info["used_memory"] > 0
     
-    def test_redis_connection_persistence(self):
+    @pytest.mark.asyncio
+    async def test_redis_connection_persistence(self):
         """Test Redis connection persists across operations."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         for i in range(10):
-            client.set(f"persist_test_{i}", f"value_{i}")
-            value = client.get(f"persist_test_{i}")
+            await client.set(f"persist_test_{i}", f"value_{i}")
+            value = await client.get(f"persist_test_{i}")
             assert value == f"value_{i}"
         
         # Cleanup
         for i in range(10):
-            client.delete(f"persist_test_{i}")
+            await client.delete(f"persist_test_{i}")
 
 
 @pytest.mark.infrastructure
@@ -322,6 +345,7 @@ class TestSystemResources:
     
     def test_database_connection_count(self, db: Session):
         """Test current database connection count."""
+        _require_postgres(db)
         result = db.execute(
             text("SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()")
         )
@@ -401,19 +425,18 @@ class TestConcurrentConnections:
         
         assert results == [0, 1, 2, 3, 4]
     
-    def test_redis_concurrent_operations(self):
+    @pytest.mark.asyncio
+    async def test_redis_concurrent_operations(self):
         """Test concurrent Redis operations."""
-        client = get_redis_client()
-        if not client:
-            pytest.skip("Redis not available")
+        client = await _get_redis_or_skip()
         
         for i in range(10):
-            client.set(f"concurrent_{i}", f"value_{i}")
+            await client.set(f"concurrent_{i}", f"value_{i}")
         
         for i in range(10):
-            value = client.get(f"concurrent_{i}")
+            value = await client.get(f"concurrent_{i}")
             assert value == f"value_{i}"
         
         # Cleanup
         for i in range(10):
-            client.delete(f"concurrent_{i}")
+            await client.delete(f"concurrent_{i}")

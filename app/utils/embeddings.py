@@ -8,7 +8,6 @@ This module maintains the same public API (generate_embedding,
 generate_embeddings_batch, chunk_text) so all callers work unchanged.
 """
 
-import hashlib
 import json
 import logging
 import os
@@ -17,7 +16,8 @@ from typing import List
 import httpx
 from fastapi import HTTPException
 
-from app.config import MAX_EMBEDDING_INPUT_LENGTH
+from app.config import EMBEDDING_MODEL, EMBEDDING_RESULTS_CACHE_TTL, MAX_EMBEDDING_INPUT_LENGTH
+from app.utils.cache_governance import build_embed_cache_key, redis_set_with_ttl_sync
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,8 @@ def get_redis_for_embeddings():
 
 def get_embedding_cache_key(text: str, provider: str = "neuroforge") -> str:
     """Generate a cache key for an embedding."""
-    text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
-    return f"embedding:{provider}:{text_hash}"
+    model_name = provider if provider != "neuroforge" else EMBEDDING_MODEL
+    return build_embed_cache_key(model_name, text)
 
 
 def get_cached_embedding(text: str):
@@ -83,14 +83,19 @@ def get_cached_embedding(text: str):
 
 
 def cache_embedding(text: str, embedding: List[float]) -> bool:
-    """Cache an embedding for 1 hour."""
+    """Cache an embedding with an explicit TTL."""
     try:
         client = get_redis_for_embeddings()
         if not client:
             return False
 
         cache_key = get_embedding_cache_key(text)
-        client.setex(cache_key, 3600, json.dumps(embedding))
+        redis_set_with_ttl_sync(
+            client,
+            cache_key,
+            json.dumps(embedding),
+            EMBEDDING_RESULTS_CACHE_TTL,
+        )
         logger.debug(f"Embedding cached: {cache_key}")
         return True
     except Exception as e:

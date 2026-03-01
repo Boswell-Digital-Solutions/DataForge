@@ -35,11 +35,15 @@ from app.models.diligence_models import (
 from app.models.diligence_schemas import (
     DiligenceProjectCreate,
     DiligenceProjectUpdate,
+    DiligenceProjectSummary,
+    DiligenceProjectWithReviews,
     DiligenceReviewCreate,
     DiligenceReviewUpdate,
+    DiligenceReviewSummary,
     DiligenceFindingCreate,
     DiligenceFindingUpdate
 )
+from app.utils.cache_governance import redis_set_with_ttl_sync
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +91,7 @@ def cache_set(key: str, value: any, ttl: int = 300) -> bool:  # type: ignore
         client = get_redis_client()
         if not client:
             return False
-        client.setex(key, ttl, json.dumps(value, default=str))
+        redis_set_with_ttl_sync(client, key, json.dumps(value, default=str), ttl)
         return True
     except Exception as e:
         logger.debug(f"Cache set error: {e}")
@@ -112,15 +116,27 @@ def cache_delete(pattern: str) -> int:
 # Project CRUD (with user ownership)
 # ============================================
 
+def _serialize_project_summary(project: DiligenceProject) -> dict:
+    return DiligenceProjectSummary.model_validate(project, from_attributes=True).model_dump(mode="json")
+
+
+def _serialize_project_with_reviews(project: DiligenceProject) -> dict:
+    payload = DiligenceProjectWithReviews.model_validate(project, from_attributes=True).model_dump(mode="json")
+    payload["reviews"] = [
+        DiligenceReviewSummary.model_validate(review, from_attributes=True).model_dump(mode="json")
+        for review in project.reviews
+    ]
+    return payload
+
 def get_projects(db: Session, user_id: int, skip: int = 0, limit: int = 100) -> List[DiligenceProject]:
     """Get all projects for a specific user with pagination (cached for 5 minutes)"""
     cache_key = f"projects:user:{user_id}:skip:{skip}:limit:{limit}"
     
     # Try cache first
     cached = cache_get(cache_key)
-    if cached:
+    if isinstance(cached, list):
         logger.debug(f"Cache hit for projects: {cache_key}")
-        return cached  # type: ignore
+        return [DiligenceProjectSummary.model_validate(project) for project in cached]  # type: ignore
     
     try:
         results = db.query(DiligenceProject)\
@@ -131,7 +147,7 @@ def get_projects(db: Session, user_id: int, skip: int = 0, limit: int = 100) -> 
             .all()
         
         # Cache results for 5 minutes
-        cache_set(cache_key, results, ttl=300)
+        cache_set(cache_key, [_serialize_project_summary(project) for project in results], ttl=300)
         return results  # type: ignore
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching projects for user {user_id}: {e}")
@@ -144,9 +160,9 @@ def get_project(db: Session, project_id: int, user_id: int) -> Optional[Diligenc
     
     # Try cache first
     cached = cache_get(cache_key)
-    if cached:
+    if isinstance(cached, dict):
         logger.debug(f"Cache hit for project: {cache_key}")
-        return cached  # type: ignore
+        return DiligenceProjectWithReviews.model_validate(cached)  # type: ignore
     
     try:
         result = db.query(DiligenceProject)\
@@ -159,7 +175,7 @@ def get_project(db: Session, project_id: int, user_id: int) -> Optional[Diligenc
         
         # Cache result for 5 minutes
         if result:
-            cache_set(cache_key, result, ttl=300)
+            cache_set(cache_key, _serialize_project_with_reviews(result), ttl=300)
         
         return result  # type: ignore
     except SQLAlchemyError as e:

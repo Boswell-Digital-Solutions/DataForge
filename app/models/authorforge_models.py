@@ -32,6 +32,10 @@ class ProjectStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 # ============================================
 # Association Tables
 # ============================================
@@ -40,7 +44,11 @@ project_genres = Table(
     'project_genres',
     Base.metadata,
     Column('project_id', Integer, ForeignKey('projects.id', ondelete='CASCADE'), primary_key=True),
-    Column('genre', SQLEnum(GenreEnum), primary_key=True)
+    Column(
+        'genre',
+        SQLEnum(GenreEnum, name='genreenum', values_callable=_enum_values),
+        primary_key=True,
+    )
 )
 
 
@@ -63,7 +71,11 @@ class Project(Base):
     # Basic Info
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    status = Column(SQLEnum(ProjectStatus), default=ProjectStatus.ACTIVE, index=True)
+    status = Column(
+        SQLEnum(ProjectStatus, name='projectstatus', values_callable=_enum_values),
+        default=ProjectStatus.ACTIVE,
+        index=True,
+    )
 
     # Word Count Tracking
     word_count = Column(Integer, default=0)
@@ -223,7 +235,10 @@ class BrainstormSession(Base):
 
     # Session Info
     prompt = Column(Text, nullable=False)
-    genre = Column(SQLEnum(GenreEnum), nullable=False)
+    genre = Column(
+        SQLEnum(GenreEnum, name='genreenum', values_callable=_enum_values),
+        nullable=False,
+    )
 
     # Generated Ideas (JSON array)
     ideas = Column(JSON, nullable=False)  # Array of story idea objects

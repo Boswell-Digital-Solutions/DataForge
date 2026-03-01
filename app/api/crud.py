@@ -5,8 +5,22 @@ from fastapi import HTTPException
 from app.models import models, schemas
 from app.utils.embeddings import chunk_text, generate_embeddings_batch
 from app.config import CHUNK_SIZE, CHUNK_OVERLAP
+from app.utils.cache_governance import build_doc_cache_key, delete_cache_key_sync
+from app.utils.corpus_versioning import bump_corpus_version_sync, get_sync_redis_client
 
 logger = logging.getLogger(__name__)
+
+
+def _invalidate_document_cache(document_id: int, event: str) -> None:
+    redis_client = get_sync_redis_client()
+    if redis_client is None:
+        return
+    delete_cache_key_sync(
+        redis_client,
+        build_doc_cache_key(document_id),
+        event=event,
+        log=logger,
+    )
 
 # ============================================
 # Domain CRUD
@@ -77,6 +91,7 @@ async def create_document(db: Session, document: schemas.DocumentCreate):
         db.add(db_document)
         db.commit()
         db.refresh(db_document)
+        bump_corpus_version_sync(db, "doc_insert", db_document.id)
 
         # Chunk the content
         chunks = chunk_text(document.content, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP)
@@ -98,6 +113,7 @@ async def create_document(db: Session, document: schemas.DocumentCreate):
 
         db.commit()
         db.refresh(db_document)
+        bump_corpus_version_sync(db, "chunk_insert", db_document.id)
 
         logger.info(f"Successfully created document '{document.title}' with {len(chunks)} chunks")
         return db_document
@@ -150,6 +166,7 @@ async def update_document(db: Session, document_id: int, document_update: schema
 
         # Check if content changed
         content_changed = "content" in update_data and update_data["content"] != db_document.content
+        _invalidate_document_cache(document_id, "document_update")
 
         # Update other fields
         for key, value in update_data.items():
@@ -179,6 +196,8 @@ async def update_document(db: Session, document_id: int, document_update: schema
 
         db.commit()
         db.refresh(db_document)
+        if content_changed:
+            bump_corpus_version_sync(db, "reindex", document_id)
         return db_document
 
     except Exception as e:
@@ -194,6 +213,8 @@ def delete_document(db: Session, document_id: int):
     if document:
         db.delete(document)
         db.commit()
+        _invalidate_document_cache(document_id, "document_delete")
+        bump_corpus_version_sync(db, "doc_delete", document_id)
         return True
     return False
 
