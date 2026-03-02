@@ -1,8 +1,10 @@
 # DataForge - Project Status
 
-## ✅ Implementation Complete
+## Current Status
 
-All core components of DataForge have been successfully implemented and tested.
+Core DataForge functionality is implemented, and the latest verified suite result is
+`513 passed, 16 skipped` as of March 1, 2026. This document is a broad project snapshot;
+the canonical runtime/system contract now lives in `doc/system/` and `doc/dfSYSTEM.md`.
 
 ---
 
@@ -32,6 +34,8 @@ All core components of DataForge have been successfully implemented and tested.
   - Tag (categorization)
   - Document (content storage)
   - Chunk (semantic units with vector embeddings)
+  - CorpusState (single-row retrieval corpus version)
+  - CorpusVersion (append-only corpus bump audit)
   - Document-Tag association table
 - ✅ **schemas.py**: Pydantic request/response schemas
   - All CRUD operation schemas
@@ -60,8 +64,11 @@ All core components of DataForge have been successfully implemented and tested.
 #### **Utilities** ([app/utils/](app/utils/))
 - ✅ **embeddings.py**: Text processing
   - Smart text chunking with overlap
-  - Embedding generation (OpenAI configured, Voyage AI & Cohere available)
+  - Embedding generation with derived Redis caching
+  - NeuroForge-first runtime path with fallback compatibility
   - Support for multiple embedding providers
+- ✅ **cache_governance.py**: TTL enforcement, deterministic keys, fail-closed cache helpers
+- ✅ **corpus_versioning.py**: Atomic corpus version bump + current-version cache
 - ✅ **auth.py**: Authentication utilities
   - Password hashing with bcrypt
   - JWT token generation and validation
@@ -236,7 +243,7 @@ docker-compose up -d
 docker-compose exec dataforge python scripts/create_admin.py
 
 # 4. Access admin UI
-open http://localhost:8001/admin-ui
+open http://localhost:8788/admin-ui
 ```
 
 ### Option 2: Manual Setup
@@ -262,7 +269,7 @@ alembic upgrade head
 python scripts/create_admin.py
 
 # 6. Start server
-uvicorn app.main:app --reload --port 8001
+uvicorn app.main:app --reload --port 8788
 ```
 
 ---
@@ -290,7 +297,7 @@ uvicorn app.main:app --reload --port 8001
 
 ```bash
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 
 # Security
 SECRET_KEY=your-secret-key
@@ -304,9 +311,16 @@ OPENAI_API_KEY=sk-your-key
 
 # Server
 HOST=0.0.0.0
-PORT=8001
+PORT=8788
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
+
+### Current Governance Notes
+
+- Redis is derived state only, not authority
+- All Redis writes require TTL
+- Retrieval cache keys include corpus version
+- Rate limiting and revocation fail closed on Redis outage
 
 ### Database Models
 

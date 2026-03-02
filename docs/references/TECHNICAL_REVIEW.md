@@ -786,7 +786,7 @@ Suggested endpoint performance targets:
 k6 run load_test.js
 
 # or with Apache Bench
-ab -n 1000 -c 10 http://localhost:8001/api/search/stats
+ab -n 1000 -c 10 http://localhost:8788/api/search/stats
 ```
 
 ---

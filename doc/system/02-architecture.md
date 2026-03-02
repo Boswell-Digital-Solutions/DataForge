@@ -3,10 +3,10 @@
 ## Component Map
 
 ```
-DataForge (port 8001)
+DataForge (default port 8788)
 │
 ├── FastAPI Application Layer
-│   ├── 29 API routers
+│   ├── Router-based API surface
 │   ├── Lifespan handler (CORS, startup/shutdown)
 │   ├── Static file serving
 │   └── Admin UI (Jinja2 template)
@@ -24,9 +24,9 @@ DataForge (port 8001)
 │   └── Session dependency (app/database.py)
 │
 └── Storage Layer
-    ├── PostgreSQL 13+ — primary relational store
+    ├── PostgreSQL 13+ — canonical relational store and authority boundary
     ├── pgvector extension — ANN index (IVFFlat, cosine)
-    └── Redis 6+ — cache, rate limiting, session data
+    └── Redis / Redis Cloud — derived cache only (disposable, TTL-bound)
 ```
 
 ## Hybrid Search Architecture
@@ -159,31 +159,79 @@ This two-layer pattern keeps status queries sub-millisecond while preserving ful
 
 ## Cache Architecture (Redis)
 
-Redis serves three purposes:
-
-1. **Response cache** — frequently read documents and search results
-2. **Rate limiting** — distributed token bucket, per-user and global
-3. **Session data** — OAuth state parameters, TOTP challenges
+Redis is treated as derived state, never as authority. The governing rule is:
 
 ```
-Redis Sentinel
-├── Primary node (writes)
-└── Replica nodes (reads)
-    └── Automated failover < 10 seconds
+Postgres/Supabase = source of truth
+Redis = disposable acceleration layer
 ```
 
-The `/cache` and `/cache-replication` routers manage cache sync and failover signaling.
+Current Redis responsibilities:
+
+1. **Document cache** — `doc:{id}` with explicit TTL
+2. **Retrieval cache** — version-aware result keys that include corpus version
+3. **Embedding cache** — hash-addressed embedding results with explicit TTL
+4. **Short-lived auth-adjacent state** — OAuth/TOTP/session helper records
+5. **Rate limiting and token revocation** — fast-path enforcement, but never allow-on-miss
+6. **Corpus current-version cache** — `corpus_version:current` with a 60-second TTL
+
+### Deterministic Retrieval Keys
+
+Retrieval keys include all inputs required to avoid stale or cross-scope reuse:
+
+```
+retrieval:v{corpus_version}:{embed_model}:{rrf_hash}:{top_k}:{scope}:{query_hash}
+```
+
+Where:
+- `query_hash` is derived from a canonicalized query string
+- `rrf_hash` is derived from sorted JSON config
+- `scope` is `domain_id` or `global`
+- `corpus_version` is mandatory
+
+### TTL Governance
+
+No Redis write is allowed without TTL. The shared wrapper in
+`app/utils/cache_governance.py` rejects writes where `ttl_seconds <= 0`.
+
+### Authority Boundary
+
+Cache lookups may accelerate reads, but authority-adjacent decisions always fall back
+to the canonical database path. Redis errors are logged as degraded operation, then the
+request re-checks the authoritative source.
+
+## Corpus Versioning
+
+Corpus freshness is tracked with two tables:
+
+1. `corpus_state` — single-row current version (`id = 1`)
+2. `corpus_versions` — append-only audit trail of bumps
+
+Every successful document/chunk insert, delete, or reindex bumps the corpus version
+atomically with:
+
+```sql
+UPDATE corpus_state
+SET current_version = current_version + 1,
+    updated_at = now()
+WHERE id = 1
+RETURNING current_version;
+```
+
+The returned version is then inserted into `corpus_versions`, and
+`corpus_version:current` is invalidated in Redis. Retrieval caches naturally age out
+because the version is part of the key.
 
 ## Resilience Architecture
 
 | Layer | Strategy | Recovery Time |
 |-------|----------|--------------|
 | PostgreSQL | Primary-replica + automated failover | < 30s |
-| Redis | Sentinel-managed failover | < 10s |
+| Redis | Cache degradation only; authority checks fall back to DB and rate limiting denies on outage | < 10s |
 | API | Load balancer + health checks + graceful shutdown | < 5s |
 | Downstream calls | Circuit breaker (fail-fast) | Configurable |
 | Async tasks | Celery + DLQ, exponential backoff | 3 retries, 60s max |
-| Rate limiting | Distributed Redis token bucket | Per-user + global |
+| Rate limiting | Redis-backed sliding window with fail-closed deny on Redis outage | Per-user + global |
 
 ## Admin UI
 

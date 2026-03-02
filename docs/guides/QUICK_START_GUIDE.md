@@ -99,9 +99,9 @@ curl -X POST http://localhost:8787/api/v1/bds/skills/A3/invoke \
 - **Production**: Switch to PostgreSQL by updating `.env`
 
 ### DataForge
-- **Type**: SQLite
-- **Location**: `/home/charles/projects/Coding2025/Forge/DataForge/dataforge.db`
-- **Note**: Vector search requires PostgreSQL+pgvector
+- **Type**: PostgreSQL
+- **Config**: `DATAFORGE_DATABASE_URL=postgresql://...`
+- **Note**: pgvector-backed search requires PostgreSQL + `vector` extension
 
 ### NeuroForge
 - **Type**: SQLite

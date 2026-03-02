@@ -4,10 +4,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Total test files | 32 |
-| Total tests | 296 |
-| Passing | 296/296 (100%) |
-| Coverage | 82% |
+| Total test files | 31 |
+| Total tests collected | 529 |
+| Latest verified result | 513 passed, 16 skipped |
+| Coverage config | branch coverage enabled via `pytest.ini` |
 
 ## Test Pyramid
 
@@ -78,12 +78,14 @@ Full workflow tests that exercise multiple routers in sequence, simulating real 
 
 ### All Tests
 ```bash
-pytest tests/ -v
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
 ```
 
 ### With Coverage
 ```bash
-pytest --cov=app tests/ --cov-report=term-missing
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest --cov=app tests/ --cov-report=term-missing
 ```
 
 ### Specific Domain
@@ -109,15 +111,27 @@ pytest tests/test_compliance_gdpr.py tests/test_audit_log.py -v
 ```ini
 [pytest]
 testpaths = tests
-asyncio_mode = auto
-addopts = --strict-markers -q
+addopts =
+    -v
+    --strict-markers
+    --tb=short
+    --cov=app
+    --cov-report=term-missing
+    --cov-report=html
+    --cov-branch
 markers =
-    unit: Unit tests (no external dependencies)
-    integration: Integration tests (requires PostgreSQL + Redis)
-    security: Security and auth tests
-    compliance: Compliance and audit tests
+    unit: Unit tests (fast, no external dependencies)
+    integration: Integration tests (database required)
+    infrastructure: Infrastructure and connectivity tests
+    slow: Slow tests
+    auth: Authentication tests
+    search: Search functionality tests
+    admin: Admin API tests
+    embeddings: Embedding generation tests
+    security: Security and vulnerability tests
+    load: Load testing
     e2e: End-to-end workflow tests
-    slow: Tests that take >1 second
+asyncio_mode = auto
 ```
 
 ### Test Database Setup
@@ -129,15 +143,18 @@ Integration tests require a separate PostgreSQL database:
 createdb dataforge_test
 
 # Run migrations against test DB
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
   alembic upgrade head
 
 # Run integration tests
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
   pytest tests/ -m integration -v
 ```
 
-The test database is fully migrated before each test session. Individual test functions use transactions that are rolled back after each test (no persistent state leaks between tests).
+The live validation run on 2026-03-01 used Supabase Postgres for the database-backed suite.
+Some tests still skip by design when optional infrastructure is absent (for example, pgvector-
+specific raw SQL tests on SQLite fixtures, k6 load tests unless `RUN_LOAD_TESTS=1`, and local
+NeuroForge-dependent infrastructure checks).
 
 ### Fixtures
 
@@ -173,6 +190,21 @@ def run_token():
     """Returns a valid scoped run_token for test run."""
     # ... generates run_token with test run_id
 ```
+
+## Latest Validation Snapshot
+
+Validated on 2026-03-01:
+
+- `alembic upgrade head` passed
+- `alembic downgrade -1` passed
+- `alembic upgrade head` passed again
+- `pytest -q --maxfail=1` completed with `513 passed, 16 skipped`
+
+Skipped tests in that run were environmental, not failing assertions:
+
+- `tests/test_experience.py` requires real `pgvector` for raw `<=>` SQL coverage
+- `tests/load/test_k6_load.py` is opt-in and requires `RUN_LOAD_TESTS=1`
+- `tests/test_integration/test_infrastructure_health.py` skips PostgreSQL-only or NeuroForge-only checks when those dependencies are not present
 
 ## Coverage Targets
 
@@ -219,7 +251,7 @@ Preflight runs only tests that work without live infrastructure. The following d
 | `tests/test_security/` | Security tests (live DB + Redis) |
 | `tests/load/` | k6 load tests (running server) |
 
-### Preflight Results (Feb 2026)
+### Preflight Results (Mar 2026)
 
 | Metric | Value |
 |--------|-------|

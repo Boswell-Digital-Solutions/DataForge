@@ -1,6 +1,6 @@
 # Priority 2 Task 1: Quick Reference Card
 
-## Status: ✅ 100% COMPLETE
+## Status: Updated for the 2026-03-01 runtime
 
 ---
 
@@ -34,15 +34,19 @@
 ### Run Integration Tests
 
 ```bash
-pytest tests/test_integration/test_api_endpoints.py -v
-pytest tests/test_integration/test_e2e_workflows.py -v
-pytest tests/test_integration/test_infrastructure_health.py -v
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q tests/test_integration/test_api_endpoints.py
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q tests/test_integration/test_e2e_workflows.py
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q tests/test_integration/test_infrastructure_health.py
 ```
 
 ### Run Security Tests
 
 ```bash
-pytest tests/test_security/test_vulnerability_scanning.py -v
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q tests/test_security/test_vulnerability_scanning.py
 ```
 
 ### Run Load Tests
@@ -50,7 +54,8 @@ pytest tests/test_security/test_vulnerability_scanning.py -v
 **Python/pytest (no external tools):**
 
 ```bash
-pytest tests/load/test_k6_load.py -v
+RUN_LOAD_TESTS=1 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q tests/load/test_k6_load.py
 ```
 
 **K6 native (high concurrency):**
@@ -62,20 +67,28 @@ k6 run tests/load/k6_test.js --vus 50 --duration 5m
 **Locust web UI:**
 
 ```bash
-locust -f tests/load/locustfile.py --host=http://localhost:8001
+locust -f tests/load/locustfile.py --host=http://localhost:8788
 ```
 
 ### Run All Tests
 
 ```bash
-pytest tests/ -v --tb=short
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
 ```
 
 ### Generate Coverage Report
 
 ```bash
-pytest tests/ --cov=app --cov-report=html
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest --cov=app tests/ --cov-report=html
 open htmlcov/index.html
+```
+
+### Latest Verified Suite Result
+
+```text
+513 passed, 16 skipped
 ```
 
 ---
@@ -153,8 +166,8 @@ Expected: < 1000ms avg, > 90% success
 
 ## Next Steps
 
-1. Run all test suites: `pytest tests/ -v`
-2. Review coverage: `pytest tests/ --cov=app --cov-report=html`
+1. Run all test suites: `DATAFORGE_DATABASE_URL=... .venv/bin/pytest -q`
+2. Review coverage: `DATAFORGE_DATABASE_URL=... .venv/bin/pytest --cov=app tests/ --cov-report=html`
 3. Run load tests: `k6 run tests/load/k6_test.js`
 4. Integrate into CI/CD pipeline
 5. Monitor performance trends

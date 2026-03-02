@@ -168,7 +168,7 @@ The Locust framework provides web-based control and real-time monitoring:
 
 ```bash
 # Start Locust web UI
-locust -f tests/load/locustfile.py --host=http://localhost:8001
+locust -f tests/load/locustfile.py --host=http://localhost:8788
 
 # Then open http://localhost:8089 in your browser
 ```
@@ -184,7 +184,7 @@ locust -f tests/load/locustfile.py --host=http://localhost:8001
 
 ```bash
 locust -f tests/load/locustfile.py \
-  --host=http://localhost:8001 \
+  --host=http://localhost:8788 \
   --users 50 \
   --spawn-rate 5 \
   --run-time 5m \
@@ -222,7 +222,7 @@ locust -f tests/load/locustfile.py \
 
 ```bash
 # Ensure API is running
-curl http://localhost:8001/health
+curl http://localhost:8788/health
 
 # If not running, start it
 docker-compose up
@@ -296,7 +296,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Start API
-        run: python -m uvicorn app.main:app --port 8001 &
+        run: python -m uvicorn app.main:app --port 8788 &
 
       - name: Run load tests
         run: k6 run tests/load/k6_test.js --vus 25 --duration 60s
@@ -357,7 +357,7 @@ python scripts/compare_load_tests.py results/baseline.json results/current.json
 
 ```bash
 # With prometheus metrics
-uvicorn app.main:app --port 8001 &
+uvicorn app.main:app --port 8788 &
 ```
 
 ### Terminal 2: Watch system metrics

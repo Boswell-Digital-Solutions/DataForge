@@ -6,12 +6,12 @@ All configuration is injected via environment variables. There are no config fil
 
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
-| `DATABASE_URL` | str | — | YES | Full PostgreSQL DSN: `postgresql://user:pass@host:port/db` |
-| `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string; database index 0 |
+| `DATAFORGE_DATABASE_URL` | str | `postgresql://postgres:postgres@localhost:5432/dataforge` | YES | Canonical PostgreSQL DSN used by the app |
+| `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string for derived cache/state |
 
 **Example:**
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -36,13 +36,13 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
-| `PORT` | int | `8001` | NO | Listen port. Must not conflict with other Forge services |
+| `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
 
 **Example:**
 ```
 HOST=127.0.0.1
-PORT=8001
+PORT=8788
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
@@ -52,14 +52,17 @@ In production, `ALLOWED_ORIGINS` must list exact origins. Wildcards are not perm
 
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
-| `VOYAGE_API_KEY` | str | — | YES | Primary embedding provider (voyage.ai) |
-| `OPENAI_API_KEY` | str | — | NO | Fallback embedding provider |
-| `COHERE_API_KEY` | str | — | NO | Secondary fallback embedding provider |
+| `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | NO | Preferred embedding/inference gateway |
+| `VOYAGE_API_KEY` | str | — | NO | Legacy direct embedding fallback |
+| `OPENAI_API_KEY` | str | — | NO | Legacy fallback provider |
+| `COHERE_API_KEY` | str | — | NO | Legacy fallback provider |
 | `EMBEDDING_MODEL` | str | `voyage-large-2` | NO | Voyage AI model name; 1536-dim output |
 
-**Provider fallback order:** Voyage AI → OpenAI → Cohere
+**Current runtime posture:** NeuroForge-first. Direct provider keys remain for backward
+compatibility and emergency fallback paths.
 
-If `VOYAGE_API_KEY` is not set, the application will start but embedding generation will fail. All three keys should be configured in production for full resilience.
+If no legacy provider keys are set, the application still starts. Direct embedding fallback
+is unavailable until at least one provider key is configured.
 
 ## Chunking Parameters
 
@@ -97,10 +100,23 @@ OAuth2 providers are optional. If not configured, those auth flows are unavailab
 
 | Variable | Type | Default | Notes |
 |----------|------|---------|-------|
-| `RATE_LIMIT_REQUESTS` | int | `100` | Requests per window per user |
-| `RATE_LIMIT_WINDOW_SECONDS` | int | `60` | Rate limit window duration |
+| `RATE_LIMIT_SEARCH` | str | `20/minute` | Search endpoint policy |
+| `RATE_LIMIT_ADMIN` | str | `100/minute` | Admin endpoint policy |
 
-Rate limits are enforced via Redis token bucket. Global limits apply across all instances.
+Redis TTL for rate-limit records is derived as `window_length + 60s`. On Redis outage, the
+rate-limit path fails closed and denies the request rather than silently allowing more traffic.
+
+## Cache Governance
+
+| Variable | Type | Default | Notes |
+|----------|------|---------|-------|
+| `DOC_FETCH_CACHE_TTL` | int | `600` | Document cache TTL |
+| `SEARCH_RESULTS_CACHE_TTL` | int | `300` | Retrieval/search result cache TTL |
+| `EMBEDDING_RESULTS_CACHE_TTL` | int | `86400` | Embedding cache TTL |
+| `SESSION_OAUTH_TOTP_CACHE_TTL` | int | `900` | OAuth/TOTP and auth-adjacent short-lived cache TTL |
+| `CORPUS_CURRENT_VERSION_CACHE_TTL` | int | `60` | `corpus_version:current` cache TTL |
+
+All Redis writes must set TTL at write time. There are no persistent cache keys by design.
 
 ## Compliance & Encryption
 
@@ -111,16 +127,11 @@ Rate limits are enforced via Redis token bucket. Global limits apply across all 
 
 ## NeuroForge Integration
 
-These fields are defined in `app/neuroforge/config.py` (`NeuroForgeSettings`) and control the DataForgeClient's resilience behavior when calling NeuroForge.
+The app-level config currently exposes:
 
 | Variable | Type | Default | Notes |
 |----------|------|---------|-------|
-| `NEUROFORGE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS` | int | `1` | Max trial calls allowed in half-open state |
-| `NEUROFORGE_RETRY_MAX_ATTEMPTS` | int | `3` | Max retry attempts for transient failures |
-| `NEUROFORGE_RETRY_INITIAL_DELAY` | float | `0.5` | Initial retry delay in seconds |
-| `NEUROFORGE_RETRY_BACKOFF_BASE` | float | `2.0` | Exponential backoff base multiplier |
-
-These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`, `NEUROFORGE_TIMEOUT`, circuit breaker thresholds).
+| `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | Base URL for NeuroForge embedding/inference integration |
 
 ---
 
@@ -128,7 +139,7 @@ These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`
 
 ```dotenv
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 
 # Security
@@ -139,10 +150,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # Server
 HOST=127.0.0.1
-PORT=8001
+PORT=8788
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 # AI Providers
+NEUROFORGE_URL=http://127.0.0.1:8000
 VOYAGE_API_KEY=<from voyage.ai dashboard>
 OPENAI_API_KEY=<fallback only>
 COHERE_API_KEY=<fallback only>
@@ -155,6 +167,13 @@ MAX_EMBEDDING_INPUT_LENGTH=8000
 
 # Logging
 LOG_LEVEL=INFO
+
+# Cache Governance
+DOC_FETCH_CACHE_TTL=600
+SEARCH_RESULTS_CACHE_TTL=300
+EMBEDDING_RESULTS_CACHE_TTL=86400
+SESSION_OAUTH_TOTP_CACHE_TTL=900
+CORPUS_CURRENT_VERSION_CACHE_TTL=60
 ```
 
 ## Secrets Management

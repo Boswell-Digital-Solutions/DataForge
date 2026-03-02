@@ -7,11 +7,12 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 13 migration version files
+│   └── versions/                     # Migration version files
 │       ├── 0001_initial_schema.py
 │       ├── ...
 │       ├── 0012_multi_provider_tables.py
-│       └── 0013_sentinel_tables.py
+│       ├── 0013_sentinel_tables.py
+│       └── corpus_governance_001.py  # corpus_state + corpus_versions
 │
 ├── app/                              # Main application package
 │   ├── main.py                       # FastAPI app + lifespan + router registration
@@ -41,7 +42,9 @@ DataForge/
 │   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
 │   │
 │   └── utils/
-│       ├── embeddings.py             # Text chunking + Voyage AI embedding generation
+│       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
+│       ├── corpus_versioning.py      # Atomic corpus version bump + current-version cache
+│       ├── embeddings.py             # Text chunking + embedding generation/cache
 │       └── auth.py                   # JWT creation/validation + bcrypt helpers
 │
 ├── scripts/
@@ -53,7 +56,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 32 test files, 296 tests, 82% coverage
+├── tests/                            # 31 test files, 529 collected tests as of 2026-03-01
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -98,7 +101,7 @@ def get_db():
 ```
 
 ### `app/models/models.py`
-Contains all 31+ SQLAlchemy ORM model classes. Key models:
+Contains the core SQLAlchemy ORM model classes. Key models:
 
 | Model | Table | Purpose |
 |-------|-------|---------|
@@ -106,6 +109,8 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 | `Domain` | `domains` | Knowledge organization hierarchy |
 | `Document` | `documents` | Content storage + publication state + metadata JSONB |
 | `Chunk` | `chunks` | Text segments + pgvector embedding + TSVECTOR |
+| `CorpusState` | `corpus_state` | Single-row current retrieval corpus version |
+| `CorpusVersion` | `corpus_versions` | Append-only audit trail of corpus version bumps |
 | `Tag` | `tags` | Labels; many-to-many via `document_tags` |
 | `ExecutionIndex` | `execution_index` | Fast run status lookups (run_id PK, denormalized) |
 | `RunEvidence` | `run_evidence` | Full JSONB evidence blobs |
@@ -153,15 +158,27 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
 
 ### `app/api/crud.py`
-Raw database operations. No business logic. Each function takes a `db: Session` parameter and returns ORM model instances. CRUD functions never raise HTTP exceptions — they return `None` on not-found; routers handle HTTP responses.
+Document/domain/tag CRUD plus document-processing orchestration. Document writes perform
+chunking, embedding generation, document-cache invalidation, and corpus version bumps for
+insert, reindex, and delete flows.
 
 ### `app/api/search.py`
 Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
 
+### `app/utils/cache_governance.py`
+Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
+writes, cache invalidation logging, and fail-closed authority fallbacks.
+
+### `app/utils/corpus_versioning.py`
+Implements the atomic `UPDATE ... RETURNING` corpus bump, append-only audit insert, and
+short-lived caching of `corpus_version:current`.
+
 ### `app/utils/embeddings.py`
 `chunk_text(text, chunk_size, overlap)` — token-aware splitter.
-`generate_embedding(text)` — calls Voyage AI with fallback to OpenAI/Cohere.
-`process_document(document_id, db)` — orchestrates chunk creation and embedding for a document.
+`generate_embedding(text)` / batch helpers — NeuroForge-first embedding flow plus
+Redis-backed derived caching.
 
 ### `alembic/versions/`
-13 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns, multi-provider pipeline tables, and Sentinel health sweep tables. Always run `alembic upgrade head` after pulling new code.
+Migration files covering the base schema plus later domain additions, pgvector support,
+pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
+Always run `alembic upgrade head` after pulling new code.

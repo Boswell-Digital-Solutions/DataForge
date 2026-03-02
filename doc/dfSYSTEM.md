@@ -23,7 +23,7 @@
 bash doc/system/BUILD.sh   # Assembles all parts into doc/dfSYSTEM.md
 ```
 
-*Last updated: 2026-02-25*
+*Last updated: 2026-03-01*
 
 ---
 
@@ -126,10 +126,10 @@ Prometheus metrics at `/metrics`, OpenTelemetry distributed tracing, structured 
 ## Component Map
 
 ```
-DataForge (port 8001)
+DataForge (default port 8788)
 │
 ├── FastAPI Application Layer
-│   ├── 29 API routers
+│   ├── Router-based API surface
 │   ├── Lifespan handler (CORS, startup/shutdown)
 │   ├── Static file serving
 │   └── Admin UI (Jinja2 template)
@@ -147,9 +147,9 @@ DataForge (port 8001)
 │   └── Session dependency (app/database.py)
 │
 └── Storage Layer
-    ├── PostgreSQL 13+ — primary relational store
+    ├── PostgreSQL 13+ — canonical relational store and authority boundary
     ├── pgvector extension — ANN index (IVFFlat, cosine)
-    └── Redis 6+ — cache, rate limiting, session data
+    └── Redis / Redis Cloud — derived cache only (disposable, TTL-bound)
 ```
 
 ## Hybrid Search Architecture
@@ -282,31 +282,79 @@ This two-layer pattern keeps status queries sub-millisecond while preserving ful
 
 ## Cache Architecture (Redis)
 
-Redis serves three purposes:
-
-1. **Response cache** — frequently read documents and search results
-2. **Rate limiting** — distributed token bucket, per-user and global
-3. **Session data** — OAuth state parameters, TOTP challenges
+Redis is treated as derived state, never as authority. The governing rule is:
 
 ```
-Redis Sentinel
-├── Primary node (writes)
-└── Replica nodes (reads)
-    └── Automated failover < 10 seconds
+Postgres/Supabase = source of truth
+Redis = disposable acceleration layer
 ```
 
-The `/cache` and `/cache-replication` routers manage cache sync and failover signaling.
+Current Redis responsibilities:
+
+1. **Document cache** — `doc:{id}` with explicit TTL
+2. **Retrieval cache** — version-aware result keys that include corpus version
+3. **Embedding cache** — hash-addressed embedding results with explicit TTL
+4. **Short-lived auth-adjacent state** — OAuth/TOTP/session helper records
+5. **Rate limiting and token revocation** — fast-path enforcement, but never allow-on-miss
+6. **Corpus current-version cache** — `corpus_version:current` with a 60-second TTL
+
+### Deterministic Retrieval Keys
+
+Retrieval keys include all inputs required to avoid stale or cross-scope reuse:
+
+```
+retrieval:v{corpus_version}:{embed_model}:{rrf_hash}:{top_k}:{scope}:{query_hash}
+```
+
+Where:
+- `query_hash` is derived from a canonicalized query string
+- `rrf_hash` is derived from sorted JSON config
+- `scope` is `domain_id` or `global`
+- `corpus_version` is mandatory
+
+### TTL Governance
+
+No Redis write is allowed without TTL. The shared wrapper in
+`app/utils/cache_governance.py` rejects writes where `ttl_seconds <= 0`.
+
+### Authority Boundary
+
+Cache lookups may accelerate reads, but authority-adjacent decisions always fall back
+to the canonical database path. Redis errors are logged as degraded operation, then the
+request re-checks the authoritative source.
+
+## Corpus Versioning
+
+Corpus freshness is tracked with two tables:
+
+1. `corpus_state` — single-row current version (`id = 1`)
+2. `corpus_versions` — append-only audit trail of bumps
+
+Every successful document/chunk insert, delete, or reindex bumps the corpus version
+atomically with:
+
+```sql
+UPDATE corpus_state
+SET current_version = current_version + 1,
+    updated_at = now()
+WHERE id = 1
+RETURNING current_version;
+```
+
+The returned version is then inserted into `corpus_versions`, and
+`corpus_version:current` is invalidated in Redis. Retrieval caches naturally age out
+because the version is part of the key.
 
 ## Resilience Architecture
 
 | Layer | Strategy | Recovery Time |
 |-------|----------|--------------|
 | PostgreSQL | Primary-replica + automated failover | < 30s |
-| Redis | Sentinel-managed failover | < 10s |
+| Redis | Cache degradation only; authority checks fall back to DB and rate limiting denies on outage | < 10s |
 | API | Load balancer + health checks + graceful shutdown | < 5s |
 | Downstream calls | Circuit breaker (fail-fast) | Configurable |
 | Async tasks | Celery + DLQ, exponential backoff | 3 retries, 60s max |
-| Rate limiting | Distributed Redis token bucket | Per-user + global |
+| Rate limiting | Redis-backed sliding window with fail-closed deny on Redis outage | Per-user + global |
 
 ## Admin UI
 
@@ -432,11 +480,12 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 13 migration version files
+│   └── versions/                     # Migration version files
 │       ├── 0001_initial_schema.py
 │       ├── ...
 │       ├── 0012_multi_provider_tables.py
-│       └── 0013_sentinel_tables.py
+│       ├── 0013_sentinel_tables.py
+│       └── corpus_governance_001.py  # corpus_state + corpus_versions
 │
 ├── app/                              # Main application package
 │   ├── main.py                       # FastAPI app + lifespan + router registration
@@ -466,7 +515,9 @@ DataForge/
 │   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
 │   │
 │   └── utils/
-│       ├── embeddings.py             # Text chunking + Voyage AI embedding generation
+│       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
+│       ├── corpus_versioning.py      # Atomic corpus version bump + current-version cache
+│       ├── embeddings.py             # Text chunking + embedding generation/cache
 │       └── auth.py                   # JWT creation/validation + bcrypt helpers
 │
 ├── scripts/
@@ -478,7 +529,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 32 test files, 296 tests, 82% coverage
+├── tests/                            # 31 test files, 529 collected tests as of 2026-03-01
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -523,7 +574,7 @@ def get_db():
 ```
 
 ### `app/models/models.py`
-Contains all 31+ SQLAlchemy ORM model classes. Key models:
+Contains the core SQLAlchemy ORM model classes. Key models:
 
 | Model | Table | Purpose |
 |-------|-------|---------|
@@ -531,6 +582,8 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 | `Domain` | `domains` | Knowledge organization hierarchy |
 | `Document` | `documents` | Content storage + publication state + metadata JSONB |
 | `Chunk` | `chunks` | Text segments + pgvector embedding + TSVECTOR |
+| `CorpusState` | `corpus_state` | Single-row current retrieval corpus version |
+| `CorpusVersion` | `corpus_versions` | Append-only audit trail of corpus version bumps |
 | `Tag` | `tags` | Labels; many-to-many via `document_tags` |
 | `ExecutionIndex` | `execution_index` | Fast run status lookups (run_id PK, denormalized) |
 | `RunEvidence` | `run_evidence` | Full JSONB evidence blobs |
@@ -578,18 +631,30 @@ Contains all 31+ SQLAlchemy ORM model classes. Key models:
 Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
 
 ### `app/api/crud.py`
-Raw database operations. No business logic. Each function takes a `db: Session` parameter and returns ORM model instances. CRUD functions never raise HTTP exceptions — they return `None` on not-found; routers handle HTTP responses.
+Document/domain/tag CRUD plus document-processing orchestration. Document writes perform
+chunking, embedding generation, document-cache invalidation, and corpus version bumps for
+insert, reindex, and delete flows.
 
 ### `app/api/search.py`
 Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
 
+### `app/utils/cache_governance.py`
+Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
+writes, cache invalidation logging, and fail-closed authority fallbacks.
+
+### `app/utils/corpus_versioning.py`
+Implements the atomic `UPDATE ... RETURNING` corpus bump, append-only audit insert, and
+short-lived caching of `corpus_version:current`.
+
 ### `app/utils/embeddings.py`
 `chunk_text(text, chunk_size, overlap)` — token-aware splitter.
-`generate_embedding(text)` — calls Voyage AI with fallback to OpenAI/Cohere.
-`process_document(document_id, db)` — orchestrates chunk creation and embedding for a document.
+`generate_embedding(text)` / batch helpers — NeuroForge-first embedding flow plus
+Redis-backed derived caching.
 
 ### `alembic/versions/`
-13 migration files covering: initial schema, pgvector extension enablement, each major domain addition, field encryption columns, composite indexes, JSONB columns, multi-provider pipeline tables, and Sentinel health sweep tables. Always run `alembic upgrade head` after pulling new code.
+Migration files covering the base schema plus later domain additions, pgvector support,
+pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
+Always run `alembic upgrade head` after pulling new code.
 
 ---
 
@@ -601,12 +666,12 @@ All configuration is injected via environment variables. There are no config fil
 
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
-| `DATABASE_URL` | str | — | YES | Full PostgreSQL DSN: `postgresql://user:pass@host:port/db` |
-| `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string; database index 0 |
+| `DATAFORGE_DATABASE_URL` | str | `postgresql://postgres:postgres@localhost:5432/dataforge` | YES | Canonical PostgreSQL DSN used by the app |
+| `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string for derived cache/state |
 
 **Example:**
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -631,13 +696,13 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
-| `PORT` | int | `8001` | NO | Listen port. Must not conflict with other Forge services |
+| `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
 
 **Example:**
 ```
 HOST=127.0.0.1
-PORT=8001
+PORT=8788
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
@@ -647,14 +712,17 @@ In production, `ALLOWED_ORIGINS` must list exact origins. Wildcards are not perm
 
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
-| `VOYAGE_API_KEY` | str | — | YES | Primary embedding provider (voyage.ai) |
-| `OPENAI_API_KEY` | str | — | NO | Fallback embedding provider |
-| `COHERE_API_KEY` | str | — | NO | Secondary fallback embedding provider |
+| `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | NO | Preferred embedding/inference gateway |
+| `VOYAGE_API_KEY` | str | — | NO | Legacy direct embedding fallback |
+| `OPENAI_API_KEY` | str | — | NO | Legacy fallback provider |
+| `COHERE_API_KEY` | str | — | NO | Legacy fallback provider |
 | `EMBEDDING_MODEL` | str | `voyage-large-2` | NO | Voyage AI model name; 1536-dim output |
 
-**Provider fallback order:** Voyage AI → OpenAI → Cohere
+**Current runtime posture:** NeuroForge-first. Direct provider keys remain for backward
+compatibility and emergency fallback paths.
 
-If `VOYAGE_API_KEY` is not set, the application will start but embedding generation will fail. All three keys should be configured in production for full resilience.
+If no legacy provider keys are set, the application still starts. Direct embedding fallback
+is unavailable until at least one provider key is configured.
 
 ## Chunking Parameters
 
@@ -692,10 +760,23 @@ OAuth2 providers are optional. If not configured, those auth flows are unavailab
 
 | Variable | Type | Default | Notes |
 |----------|------|---------|-------|
-| `RATE_LIMIT_REQUESTS` | int | `100` | Requests per window per user |
-| `RATE_LIMIT_WINDOW_SECONDS` | int | `60` | Rate limit window duration |
+| `RATE_LIMIT_SEARCH` | str | `20/minute` | Search endpoint policy |
+| `RATE_LIMIT_ADMIN` | str | `100/minute` | Admin endpoint policy |
 
-Rate limits are enforced via Redis token bucket. Global limits apply across all instances.
+Redis TTL for rate-limit records is derived as `window_length + 60s`. On Redis outage, the
+rate-limit path fails closed and denies the request rather than silently allowing more traffic.
+
+## Cache Governance
+
+| Variable | Type | Default | Notes |
+|----------|------|---------|-------|
+| `DOC_FETCH_CACHE_TTL` | int | `600` | Document cache TTL |
+| `SEARCH_RESULTS_CACHE_TTL` | int | `300` | Retrieval/search result cache TTL |
+| `EMBEDDING_RESULTS_CACHE_TTL` | int | `86400` | Embedding cache TTL |
+| `SESSION_OAUTH_TOTP_CACHE_TTL` | int | `900` | OAuth/TOTP and auth-adjacent short-lived cache TTL |
+| `CORPUS_CURRENT_VERSION_CACHE_TTL` | int | `60` | `corpus_version:current` cache TTL |
+
+All Redis writes must set TTL at write time. There are no persistent cache keys by design.
 
 ## Compliance & Encryption
 
@@ -706,16 +787,11 @@ Rate limits are enforced via Redis token bucket. Global limits apply across all 
 
 ## NeuroForge Integration
 
-These fields are defined in `app/neuroforge/config.py` (`NeuroForgeSettings`) and control the DataForgeClient's resilience behavior when calling NeuroForge.
+The app-level config currently exposes:
 
 | Variable | Type | Default | Notes |
 |----------|------|---------|-------|
-| `NEUROFORGE_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS` | int | `1` | Max trial calls allowed in half-open state |
-| `NEUROFORGE_RETRY_MAX_ATTEMPTS` | int | `3` | Max retry attempts for transient failures |
-| `NEUROFORGE_RETRY_INITIAL_DELAY` | float | `0.5` | Initial retry delay in seconds |
-| `NEUROFORGE_RETRY_BACKOFF_BASE` | float | `2.0` | Exponential backoff base multiplier |
-
-These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`, `NEUROFORGE_TIMEOUT`, circuit breaker thresholds).
+| `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | Base URL for NeuroForge embedding/inference integration |
 
 ---
 
@@ -723,7 +799,7 @@ These complement the existing `NeuroForgeSettings` fields (`NEUROFORGE_BASE_URL`
 
 ```dotenv
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 
 # Security
@@ -734,10 +810,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # Server
 HOST=127.0.0.1
-PORT=8001
+PORT=8788
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 # AI Providers
+NEUROFORGE_URL=http://127.0.0.1:8000
 VOYAGE_API_KEY=<from voyage.ai dashboard>
 OPENAI_API_KEY=<fallback only>
 COHERE_API_KEY=<fallback only>
@@ -750,6 +827,13 @@ MAX_EMBEDDING_INPUT_LENGTH=8000
 
 # Logging
 LOG_LEVEL=INFO
+
+# Cache Governance
+DOC_FETCH_CACHE_TTL=600
+SEARCH_RESULTS_CACHE_TTL=300
+EMBEDDING_RESULTS_CACHE_TTL=86400
+SESSION_OAUTH_TOTP_CACHE_TTL=900
+CORPUS_CURRENT_VERSION_CACHE_TTL=60
 ```
 
 ## Secrets Management
@@ -1199,7 +1283,9 @@ async def generate_embedding(text: str) -> list[float]:
             return response.embeddings[0]
 ```
 
-Embeddings are generated synchronously per chunk during document processing. For batch operations (bulk import), chunks are embedded in parallel up to the provider's rate limit.
+Embeddings are generated during document processing and cached as derived Redis state using
+hash-addressed keys (`embed:{model}:{text_hash}`) with an explicit TTL. The preferred runtime
+path is NeuroForge-first, with direct provider fallbacks retained for compatibility.
 
 ### Auto-Processing Trigger
 
@@ -1268,22 +1354,52 @@ Each detection type runs as an async check after the primary auth validation suc
 
 ---
 
+## Memory Governance
+
+DataForge now enforces a hard cache-governance boundary:
+
+1. Postgres/Supabase is authoritative
+2. Redis is derived and disposable
+3. Redis writes require TTL at write time
+4. Cache keys must be deterministic and version-aware
+5. Redis failures must never widen access
+
+### Shared Helpers
+
+`app/utils/cache_governance.py` provides:
+
+- `redis_set_with_ttl()` / `redis_set_with_ttl_sync()` for TTL enforcement
+- `canonicalize_query()` for order-insensitive query normalization
+- `build_retrieval_cache_key()` for version-aware retrieval keys
+- `require_authoritative_source()` helpers for fail-closed authority reads
+- cache invalidation helpers that log every explicit invalidation
+
+### Corpus Versioning
+
+`app/utils/corpus_versioning.py` maintains monotonic corpus freshness:
+
+- `corpus_state.current_version` is bumped atomically
+- `corpus_versions` records the triggering event (`doc_insert`, `chunk_insert`, `reindex`, `doc_delete`, `initial`)
+- `corpus_version:current` is cached for 60 seconds and deleted on every bump
+
+Because retrieval keys include corpus version, version bumps invalidate old retrieval caches
+without needing a mass delete.
+
 ## Rate Limiting
 
-DataForge uses a distributed Redis token bucket:
+DataForge uses a Redis-backed sliding-window limiter for distributed enforcement.
 
 ```
 Per request:
-  1. GET rate_limit:{user_id} from Redis
-  2. If tokens < 1: return 429 Too Many Requests
-  3. Decrement token count
-  4. Set expiry if key is new (window reset)
-
-Refill:
-  Background task refills tokens at RATE_LIMIT_REQUESTS / RATE_LIMIT_WINDOW_SECONDS
+  1. Remove timestamps older than the active window
+  2. Count remaining requests in the Redis sorted set
+  3. If count >= limit: return 429
+  4. Add the current request timestamp
+  5. Set TTL to window_length + 60 seconds
 ```
 
-Global limits apply across all DataForge instances. A single user cannot circumvent limits by hitting different instances.
+On Redis outage, the limiter fails closed and denies the request. This is intentional: a cache
+or Redis failure must never expand access.
 
 ---
 
@@ -1878,11 +1994,11 @@ DataForge does not degrade silently. When dependencies are unavailable:
 | Dependency | Behavior |
 |-----------|---------|
 | PostgreSQL down | All endpoints return 503; liveness probe returns 503 |
-| Redis down | Rate limiting disabled (safe fail-open); cache misses on all reads; Redis-dependent endpoints return 503 |
+| Redis down | Cache reads degrade to DB or miss; authority-adjacent checks fall back to DB; rate limiting and token revocation fail closed (deny) |
 | Embedding provider down | Document write returns 202 (accepted); chunking queued for retry; search returns existing results without new document |
 | Celery down | Async tasks queued in DLQ; synchronous path used as fallback where possible |
 
-**Safe fail-open exceptions:** Rate limiting only. All auth checks fail-closed (deny if auth dependency is unavailable).
+**Safe fail-open exceptions:** None for authority or access control. Cache may degrade performance, but it never widens permissions or bypasses revocation/rate-limit decisions.
 
 ---
 
@@ -1906,10 +2022,10 @@ The compliance test suite (`tests/test_compliance_gdpr.py`) verifies this full f
 
 | Metric | Value |
 |--------|-------|
-| Total test files | 32 |
-| Total tests | 296 |
-| Passing | 296/296 (100%) |
-| Coverage | 82% |
+| Total test files | 31 |
+| Total tests collected | 529 |
+| Latest verified result | 513 passed, 16 skipped |
+| Coverage config | branch coverage enabled via `pytest.ini` |
 
 ## Test Pyramid
 
@@ -1980,12 +2096,14 @@ Full workflow tests that exercise multiple routers in sequence, simulating real 
 
 ### All Tests
 ```bash
-pytest tests/ -v
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
 ```
 
 ### With Coverage
 ```bash
-pytest --cov=app tests/ --cov-report=term-missing
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest --cov=app tests/ --cov-report=term-missing
 ```
 
 ### Specific Domain
@@ -2011,15 +2129,27 @@ pytest tests/test_compliance_gdpr.py tests/test_audit_log.py -v
 ```ini
 [pytest]
 testpaths = tests
-asyncio_mode = auto
-addopts = --strict-markers -q
+addopts =
+    -v
+    --strict-markers
+    --tb=short
+    --cov=app
+    --cov-report=term-missing
+    --cov-report=html
+    --cov-branch
 markers =
-    unit: Unit tests (no external dependencies)
-    integration: Integration tests (requires PostgreSQL + Redis)
-    security: Security and auth tests
-    compliance: Compliance and audit tests
+    unit: Unit tests (fast, no external dependencies)
+    integration: Integration tests (database required)
+    infrastructure: Infrastructure and connectivity tests
+    slow: Slow tests
+    auth: Authentication tests
+    search: Search functionality tests
+    admin: Admin API tests
+    embeddings: Embedding generation tests
+    security: Security and vulnerability tests
+    load: Load testing
     e2e: End-to-end workflow tests
-    slow: Tests that take >1 second
+asyncio_mode = auto
 ```
 
 ### Test Database Setup
@@ -2031,15 +2161,18 @@ Integration tests require a separate PostgreSQL database:
 createdb dataforge_test
 
 # Run migrations against test DB
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
   alembic upgrade head
 
 # Run integration tests
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge_test \
   pytest tests/ -m integration -v
 ```
 
-The test database is fully migrated before each test session. Individual test functions use transactions that are rolled back after each test (no persistent state leaks between tests).
+The live validation run on 2026-03-01 used Supabase Postgres for the database-backed suite.
+Some tests still skip by design when optional infrastructure is absent (for example, pgvector-
+specific raw SQL tests on SQLite fixtures, k6 load tests unless `RUN_LOAD_TESTS=1`, and local
+NeuroForge-dependent infrastructure checks).
 
 ### Fixtures
 
@@ -2075,6 +2208,21 @@ def run_token():
     """Returns a valid scoped run_token for test run."""
     # ... generates run_token with test run_id
 ```
+
+## Latest Validation Snapshot
+
+Validated on 2026-03-01:
+
+- `alembic upgrade head` passed
+- `alembic downgrade -1` passed
+- `alembic upgrade head` passed again
+- `pytest -q --maxfail=1` completed with `513 passed, 16 skipped`
+
+Skipped tests in that run were environmental, not failing assertions:
+
+- `tests/test_experience.py` requires real `pgvector` for raw `<=>` SQL coverage
+- `tests/load/test_k6_load.py` is opt-in and requires `RUN_LOAD_TESTS=1`
+- `tests/test_integration/test_infrastructure_health.py` skips PostgreSQL-only or NeuroForge-only checks when those dependencies are not present
 
 ## Coverage Targets
 
@@ -2121,7 +2269,7 @@ Preflight runs only tests that work without live infrastructure. The following d
 | `tests/test_security/` | Security tests (live DB + Redis) |
 | `tests/load/` | k6 load tests (running server) |
 
-### Preflight Results (Feb 2026)
+### Preflight Results (Mar 2026)
 
 | Metric | Value |
 |--------|-------|
@@ -2159,30 +2307,51 @@ These are architectural invariants, not guidelines. Violating them causes data l
 
 ### 1. DataForge Is the Only Source of Truth
 
-No service maintains authoritative state outside DataForge. There is no "eventually consistent" model. There is no "local cache that syncs later." If DataForge is unavailable, the operation does not happen. Period.
+No service maintains authoritative state outside DataForge/Postgres. There is no "eventually
+consistent" model. There is no "local cache that syncs later." If the authoritative write fails,
+the operation fails. Period.
 
 ```
 WRONG: Service stores finding in local DB, syncs to DataForge later
 RIGHT: Service attempts DataForge write; if it fails, the operation fails
 ```
 
-### 2. run_token Scope Cannot Be Widened
+Redis is explicitly derived state only. It can accelerate reads, but it cannot own authority.
+
+### 2. Cache Must Never Decide Authority
+
+Auth, permission, revocation, and rate-limit outcomes must always be derivable from the
+authoritative database path or signed evidence. Redis misses and Redis errors must never turn
+into "allow".
+
+### 3. No Redis Writes Without TTL
+
+Every Redis write must include TTL at write time. If a record needs to outlive TTL semantics,
+it belongs in Postgres instead.
+
+### 4. Corpus Versioning Must Stay Monotonic and Atomic
+
+Retrieval cache invalidation depends on `corpus_state.current_version`. Bumps must remain a
+single `UPDATE ... RETURNING` plus append-only audit insert. Do not replace this with a scan,
+`SELECT MAX(version)`, or any non-atomic pattern.
+
+### 5. run_token Scope Cannot Be Widened
 
 A run_token issued for `run_id=abc` cannot be used to write findings to `run_id=xyz`. The DataForge API validates the `run_id` claim in the token against the path parameter on every request. Do not attempt to "share" tokens across runs.
 
-### 3. Lifecycle Transitions Are One-Way (With One Exception)
+### 6. Lifecycle Transitions Are One-Way (With One Exception)
 
 Once a finding reaches a terminal state (`CLOSED` or `DISMISSED`), no further transitions are possible. The only "reset" path is to re-run BugCheck — which produces new findings, not new states on old ones.
 
-### 4. The Audit Log Is Append-Only Forever
+### 7. The Audit Log Is Append-Only Forever
 
 There is no admin endpoint to delete audit log entries. There is no SQL DELETE on the events table in any migration. If you find code attempting to DELETE from the audit log, treat it as a security incident.
 
-### 5. After FINALIZED, Run Records Are Immutable
+### 8. After FINALIZED, Run Records Are Immutable
 
 The `status = "finalized"` transition is one-way. ForgeCommand sets it; nothing can unset it. Attempts to write findings to a finalized run return 409. This is by design — finalization is a commitment to the record.
 
-### 6. Field Encryption Key Rotation Requires a Migration
+### 9. Field Encryption Key Rotation Requires a Migration
 
 Changing `SECRET_KEY` (and thus the derived Fernet key) without a migration script will make all existing encrypted field values unreadable. Never rotate the secret key without running the re-encryption migration first. The migration script is at `scripts/rotate_encryption_key.py`.
 
@@ -2214,23 +2383,36 @@ After pulling new DataForge code:
 ```bash
 cd /home/charlie/Forge/ecosystem/DataForge
 
-# 1. Activate virtualenv
-source venv/bin/activate
+# 1. Install any new dependencies
+.venv/bin/pip install -r requirements.txt
 
-# 2. Install any new dependencies
-pip install -r requirements.txt
+# 2. Run migrations
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
 
-# 3. Run migrations
-alembic upgrade head
+# 3. Verify migrations applied cleanly
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic current
 
-# 4. Verify migrations applied cleanly
-alembic current
+# 4. Run tests to confirm nothing broke
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
 
-# 5. Run tests to confirm nothing broken
-pytest tests/ -v --tb=short
+# 5. Start service
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8788 --reload
+```
 
-# 6. Start service
-uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+For migration-sensitive changes, the preferred validation loop is:
+
+```bash
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic downgrade -1
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
 ```
 
 ### Creating a New Migration
@@ -2299,10 +2481,10 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong-password> ADMIN_EMAIL=admin@forge.lo
 
 - [ ] PostgreSQL running on localhost:5432
 - [ ] Redis running on localhost:6379
-- [ ] `DATABASE_URL` set in `.env`
+- [ ] `DATAFORGE_DATABASE_URL` set in `.env`
 - [ ] `REDIS_URL` set in `.env`
 - [ ] `SECRET_KEY` set to a 32-char hex value
-- [ ] `VOYAGE_API_KEY` set
+- [ ] `NEUROFORGE_URL` reachable
 - [ ] `alembic upgrade head` run
 - [ ] Admin user created via `scripts/create_admin.py`
 - [ ] `GET /health` returns 200
@@ -2361,7 +2543,9 @@ The run_token's `run_id` claim does not match the path parameter `run_id`. Verif
 
 ### Redis connection refused
 
-Check Redis is running: `redis-cli ping`. If using Redis Sentinel, verify `REDIS_URL` uses the sentinel URL format, not the node URL.
+Check Redis is running: `redis-cli ping`. Expect performance degradation, cache-miss behavior,
+and explicit degradation logs. Do not "fix" the issue by allowing cache-dependent security
+decisions to bypass the authoritative DB path.
 
 ---
 

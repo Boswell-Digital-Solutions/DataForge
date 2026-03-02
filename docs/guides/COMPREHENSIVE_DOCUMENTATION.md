@@ -1,8 +1,11 @@
 # DataForge: Comprehensive Documentation & Architecture Guide
 
-**Last Updated:** November 21, 2025  
-**Version:** 5.1 (Documentation Phase)  
-**Status:** Production-Ready
+**Last Updated:** March 1, 2026  
+**Version:** 5.2  
+**Status:** Active, validated against the current runtime
+
+> Canonical system/runtime details live in `doc/system/` and `doc/dfSYSTEM.md`. This guide is
+> a higher-level operational overview and has been updated to match the current app contract.
 
 ---
 
@@ -32,7 +35,7 @@ DataForge is a production-grade platform providing:
 ✅ **Reliability**: 99.99% uptime with automatic failover  
 ✅ **Security**: End-to-end encryption, OAuth2/OIDC, MFA, audit logging  
 ✅ **Compliance**: GDPR, CCPA, HIPAA, SOC2, PCI-DSS ready  
-✅ **Performance**: Sub-millisecond latency with intelligent caching  
+✅ **Performance**: Fast retrieval with deterministic, TTL-governed caching  
 ✅ **Observability**: Distributed tracing, metrics, and anomaly detection  
 ✅ **Resilience**: Circuit breakers, rate limiting, retry policies, DLQ
 
@@ -41,8 +44,8 @@ DataForge is a production-grade platform providing:
 | Metric                    | Value                    |
 | ------------------------- | ------------------------ |
 | **Total Code**            | 20,247 lines             |
-| **Test Coverage**         | 296 tests (100% passing) |
-| **Completed Phases**      | 16 of 18 (89%)           |
+| **Latest Validation**     | 513 passed, 16 skipped   |
+| **Completed Phases**      | Active platform with memory governance in place |
 | **External Dependencies** | 0 new (all stdlib)       |
 | **Git Commits**           | 9 major phases           |
 | **Documentation**         | 50+ pages                |
@@ -53,7 +56,7 @@ DataForge is a production-grade platform providing:
 - **Phase 2.1-2.4**: Fault tolerance (circuit breakers, retries, rate limiting)
 - **Phase 3.1-3.4**: High availability (replication, failover, monitoring)
 - **Phase 4.1-4.3**: Security (authentication, encryption, audit, compliance)
-- **Phase 5.1-5.2**: Operations (documentation, comprehensive testing)
+- **Phase 5.1-5.2**: Operations (documentation, comprehensive testing, governance hardening)
 
 ---
 
@@ -93,11 +96,11 @@ DataForge is a production-grade platform providing:
 │    Primary Database         │  │    Cache Layer               │
 │    (PostgreSQL)             │  │    (Redis)                   │
 ├─────────────────────────────┤  ├──────────────────────────────┤
-│ • Encrypted fields          │  │ • Session data               │
-│ • Data replication          │  │ • Frequently accessed data   │
+│ • Encrypted fields          │  │ • Derived cache entries      │
+│ • Data replication          │  │ • Session/OAuth helper state │
 │ • Automated failover        │  │ • Rate limit counters        │
-│ • Automated backups         │  │ • Sentinel failover          │
-│ • Point-in-time recovery    │  │ • Multi-region replication   │
+│ • Automated backups         │  │ • Revocation records         │
+│ • Point-in-time recovery    │  │ • TTL-governed version cache │
 └──────────┬──────────────────┘  └────────┬──────────────────────┘
            │                              │
            └──────────────┬───────────────┘
@@ -123,7 +126,7 @@ DataForge is a production-grade platform providing:
 │ Authentication     │ OAuth2, MFA, Token Revocation, Logging  │
 │ Data Encryption    │ Key Storage, PII Detection              │
 │ Database Layer     │ Replication, Failover, Backups          │
-│ Cache Layer        │ Failover, Sentinel, Replication         │
+│ Cache Layer        │ Derived state, TTL governance, DB fallback |
 │ Circuit Breaker    │ Monitoring, Metrics                     │
 │ Retry/DLQ          │ Logging, Metrics                        │
 │ Rate Limiting      │ Redis, Metrics                          │
@@ -209,7 +212,7 @@ DataForge is a production-grade platform providing:
 - Distributed rate limiting
 - Per-user and global limits
 - Custom rate limit rules
-- Graceful degradation
+- Fail-closed behavior on Redis outage
 
 ### PHASE 3: High Availability
 
@@ -224,7 +227,7 @@ DataForge is a production-grade platform providing:
 
 **3.2 Cache HA**
 
-- Redis Sentinel
+- Redis / Redis Cloud with TTL-governed derived state
 - Automatic failover
 - Data persistence
 - Cluster support
@@ -270,23 +273,24 @@ DataForge is a production-grade platform providing:
 - GDPR/CCPA/HIPAA compliance tracking
 - SOC2 and PCI-DSS reporting
 
-### PHASE 5: Operations (Current)
+### PHASE 5: Operations
 
 **Goal:** Comprehensive documentation and testing
 
-**5.1 Documentation** (Current Phase)
+**5.1 Documentation**
 
 - Complete architecture documentation
 - API reference and usage examples
 - Deployment procedures
 - Best practices and patterns
 
-**5.2 Testing & QA** (Next)
+**5.2 Testing & QA**
 
 - End-to-end testing
 - Performance testing
 - Security testing
 - Compliance validation
+- Cache authority boundaries and memory governance
 
 ---
 
@@ -302,7 +306,7 @@ DataForge is a production-grade platform providing:
 ### Data Storage
 
 - **PostgreSQL 13+** - Primary database
-- **Redis 6+** - Caching and sessions
+- **Redis / Redis Cloud** - Derived cache, revocation, rate limiting, short-lived auth state
 - **JSON** - Data serialization
 
 ### Resilience & Performance
@@ -349,7 +353,7 @@ DataForge is a production-grade platform providing:
 ```
 Layer 1: Network Security
 ├─ DDoS Protection (WAF)
-├─ Rate Limiting (per-user, per-IP)
+├─ Rate Limiting (per-user, per-IP, fail-closed)
 └─ HTTPS/TLS enforcement
 
 Layer 2: Application Security
@@ -367,7 +371,7 @@ Layer 3: Data Security
 Layer 4: Access Control
 ├─ Role-Based Access Control (RBAC)
 ├─ Audit Logging (Immutable)
-├─ Permission Verification
+├─ Permission Verification (authoritative DB fallback)
 └─ API Authorization
 
 Layer 5: Monitoring & Response
@@ -395,6 +399,20 @@ Layer 5: Monitoring & Response
 ---
 
 ## High Availability & Resilience
+
+### Memory Governance
+
+DataForge now enforces a hard boundary between authoritative and derived state:
+
+- Postgres/Supabase is the source of truth
+- Redis is disposable, derived state only
+- Redis writes require TTL at write time
+- Retrieval cache keys include corpus version
+- Redis errors may degrade performance, but never widen access
+
+The corpus version is tracked by `corpus_state` and `corpus_versions`. Successful document or
+chunk mutations atomically bump the version and invalidate `corpus_version:current`, while
+retrieval caches naturally miss because corpus version is embedded in the cache key.
 
 ### Uptime SLA
 
@@ -652,11 +670,16 @@ cp .env.example .env
 Key environment variables:
 
 ```bash
-DATABASE_URL=postgresql://user:password@localhost/dataforge
-REDIS_URL=redis://localhost:6379
+DATAFORGE_DATABASE_URL=postgresql://user:password@localhost/dataforge
+REDIS_URL=redis://localhost:6379/0
 SECRET_KEY=your-secret-key-here
 ENCRYPTION_KEY=your-encryption-key-here
-MASTER_PASSWORD=your-master-password-here
+NEUROFORGE_URL=http://127.0.0.1:8000
+DOC_FETCH_CACHE_TTL=600
+SEARCH_RESULTS_CACHE_TTL=300
+EMBEDDING_RESULTS_CACHE_TTL=86400
+SESSION_OAUTH_TOTP_CACHE_TTL=900
+CORPUS_CURRENT_VERSION_CACHE_TTL=60
 ```
 
 #### 5. Start Services
@@ -669,7 +692,7 @@ sudo systemctl start postgresql
 sudo systemctl start redis-server
 
 # Application
-gunicorn app.main:app --workers 4 --bind 0.0.0.0:8000
+gunicorn app.main:app --workers 4 --bind 0.0.0.0:8788
 
 # Celery worker (in separate terminal)
 celery -A app.tasks.celery worker --loglevel=info
@@ -682,10 +705,10 @@ sudo systemctl start nginx
 
 ```bash
 # Health check
-curl http://localhost/health
+curl http://localhost:8788/health
 
 # Authentication test
-curl -X POST http://localhost/auth/login \
+curl -X POST http://localhost:8788/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "password"}'
 ```
@@ -706,17 +729,17 @@ sudo apt-get install postgresql-13
 
 ```bash
 # Install and configure same as single-node
-# Point DATABASE_URL to primary
-# All point to same Redis instance
+# Point DATAFORGE_DATABASE_URL to primary
+# All point to the same Redis instance or Redis Cloud deployment
 ```
 
 #### Load Balancer (Nginx)
 
 ```nginx
 upstream app_servers {
-    server app1.example.com:8000;
-    server app2.example.com:8000;
-    server app3.example.com:8000;
+    server app1.example.com:8788;
+    server app2.example.com:8788;
+    server app3.example.com:8788;
 }
 
 server {
@@ -798,10 +821,8 @@ redis-cli ping
 # 2. If down, restart
 sudo systemctl restart redis-server
 
-# 3. Invalidate cache
-redis-cli FLUSHDB
-
-# 4. Application will repopulate cache
+# 3. Expect cache degradation logs and fail-closed rate-limit / revocation behavior
+# 4. Restore Redis; derived cache state will repopulate automatically
 ```
 
 #### High Load / DDoS
@@ -831,7 +852,7 @@ tail -f /var/log/nginx/access.log | grep "429"
 **Steps:**
 
 1. Verify PostgreSQL running: `sudo systemctl status postgresql`
-2. Check connection string: `echo $DATABASE_URL`
+2. Check connection string: `echo $DATAFORGE_DATABASE_URL`
 3. Verify database exists: `psql -l`
 4. Check credentials in `.env`
 5. Test connection: `psql postgresql://user:pass@localhost/dataforge`
@@ -874,9 +895,9 @@ tail -f /var/log/nginx/access.log | grep "429"
 **Solutions:**
 
 - Restart Redis: `sudo systemctl restart redis-server`
-- Increase Redis memory: `maxmemory` setting
-- Enable persistence: `appendonly yes`
-- Debug cache decorator in code
+- Verify cache TTL settings and Redis connectivity
+- Check for degradation warnings in application logs
+- Do not change authority-adjacent paths to allow-on-miss behavior
 
 ---
 

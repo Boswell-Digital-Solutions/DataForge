@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 from uuid import uuid4
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,7 +35,7 @@ def _build_token_response(user: models.User) -> dict[str, str]:
 
 
 def _validate_registration_payload(payload: schemas.UserCreate) -> None:
-    if "@" not in payload.email or "." not in payload.email.split("@")[-1]:
+    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", payload.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email address",

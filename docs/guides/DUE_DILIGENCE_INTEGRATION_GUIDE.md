@@ -115,14 +115,14 @@ python app/main.py
 # Or with the start script
 ./run_server.sh
 
-# The server should start on http://localhost:8001
+# The server should start on http://localhost:8788
 ```
 
 ## Step 5: Access the Dashboard
 
 Open your browser and navigate to:
 
-**Dashboard:** http://localhost:8001/diligence
+**Dashboard:** http://localhost:8788/diligence
 
 You should see the empty dashboard with the option to create your first project.
 
@@ -131,7 +131,7 @@ You should see the empty dashboard with the option to create your first project.
 ### Test 1: Create a Project via API
 
 ```bash
-curl -X POST http://localhost:8001/api/diligence/projects \
+curl -X POST http://localhost:8788/api/diligence/projects \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Project",
@@ -146,7 +146,7 @@ Expected response: JSON with project details including `id`.
 
 ### Test 2: Create a Review with AI Report
 
-1. Navigate to http://localhost:8001/diligence/new
+1. Navigate to http://localhost:8788/diligence/new
 2. Click "AI Review (Bulk Paste)" tab
 3. Select the project you just created
 4. Paste the sample report (see below)
@@ -213,22 +213,22 @@ Test all API endpoints:
 
 ```bash
 # List all projects
-curl http://localhost:8001/api/diligence/projects
+curl http://localhost:8788/api/diligence/projects
 
 # Get specific project
-curl http://localhost:8001/api/diligence/projects/1
+curl http://localhost:8788/api/diligence/projects/1
 
 # List reviews for a project
-curl http://localhost:8001/api/diligence/reviews?project_id=1
+curl http://localhost:8788/api/diligence/reviews?project_id=1
 
 # Get specific review with findings
-curl http://localhost:8001/api/diligence/reviews/1
+curl http://localhost:8788/api/diligence/reviews/1
 
 # List all findings
-curl http://localhost:8001/api/diligence/findings
+curl http://localhost:8788/api/diligence/findings
 
 # Update finding status
-curl -X PUT http://localhost:8001/api/diligence/findings/1 \
+curl -X PUT http://localhost:8788/api/diligence/findings/1 \
   -H "Content-Type: application/json" \
   -d '{"status": "resolved", "resolved_by": "Admin"}'
 ```
@@ -394,7 +394,7 @@ def _infer_rating_from_scores(parsed: ParsedAIReport) -> OverallRatingEnum:
 If you prefer SQLite instead of PostgreSQL, the models will work with minimal changes. Update [app/database.py](app/database.py):
 
 ```python
-DATABASE_URL = "sqlite:///./dataforge.db"
+DATAFORGE_DATABASE_URL = "sqlite:///./dataforge.db"
 ```
 
 Note: JSON columns work in SQLite 3.9+. Enum types will be stored as strings.
@@ -427,7 +427,7 @@ from app.utils.auth import get_current_user
 ## Support
 
 For issues or questions:
-- Check the API documentation: http://localhost:8001/docs
+- Check the API documentation: http://localhost:8788/docs
 - Review the code in `app/api/diligence_router.py`
 - Check database with: `psql -d dataforge -c "\dt diligence_*"`
 

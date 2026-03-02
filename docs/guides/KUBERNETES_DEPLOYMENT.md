@@ -210,7 +210,7 @@ kubectl exec -it -n dataforge deployment/postgres -- psql -U postgres -c "\l"
 kubectl port-forward -n dataforge svc/postgres 5432:5432 &
 
 # Run Alembic migrations
-DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@localhost:5432/dataforge" \
+DATAFORGE_DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@localhost:5432/dataforge" \
 alembic upgrade head
 
 # Kill port forward

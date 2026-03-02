@@ -206,11 +206,11 @@ DataForge does not degrade silently. When dependencies are unavailable:
 | Dependency | Behavior |
 |-----------|---------|
 | PostgreSQL down | All endpoints return 503; liveness probe returns 503 |
-| Redis down | Rate limiting disabled (safe fail-open); cache misses on all reads; Redis-dependent endpoints return 503 |
+| Redis down | Cache reads degrade to DB or miss; authority-adjacent checks fall back to DB; rate limiting and token revocation fail closed (deny) |
 | Embedding provider down | Document write returns 202 (accepted); chunking queued for retry; search returns existing results without new document |
 | Celery down | Async tasks queued in DLQ; synchronous path used as fallback where possible |
 
-**Safe fail-open exceptions:** Rate limiting only. All auth checks fail-closed (deny if auth dependency is unavailable).
+**Safe fail-open exceptions:** None for authority or access control. Cache may degrade performance, but it never widens permissions or bypasses revocation/rate-limit decisions.
 
 ---
 

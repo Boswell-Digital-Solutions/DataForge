@@ -2,6 +2,9 @@
 
 This guide documents the complete SQL integration between AuthorForge and DataForge's PostgreSQL database.
 
+> Runtime note: DataForge's current database env var is `DATAFORGE_DATABASE_URL`, and the
+> default local API port is `8788`.
+
 ## Overview
 
 AuthorForge now uses DataForge's PostgreSQL database for persistent storage of:
@@ -112,7 +115,7 @@ class Settings(BaseSettings):
     )
 
     # DataForge API for semantic search
-    DATAFORGE_API_URL: str = os.getenv("DATAFORGE_API_URL", "http://localhost:8001")
+    DATAFORGE_API_URL: str = os.getenv("DATAFORGE_API_URL", "http://localhost:8788")
 
     # Claude API
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
@@ -133,7 +136,7 @@ settings = Settings()
 ```bash
 # AuthorForge/.env
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/dataforge
-DATAFORGE_API_URL=http://localhost:8001
+DATAFORGE_API_URL=http://localhost:8788
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 SECRET_KEY=your_jwt_secret_key_here  # Must match DataForge's secret key
 ```
@@ -183,7 +186,7 @@ import sys
 sys.path.append("/home/charles/projects/Coding2025/Forge/DataForge")
 from app.models.models import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://localhost:8001/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://localhost:8788/api/auth/login")
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -290,7 +293,7 @@ Update `AuthorForge_Solid_new/.env`:
 
 ```bash
 # Use DataForge for project storage
-VITE_DATAFORGE_API_URL=http://localhost:8001
+VITE_DATAFORGE_API_URL=http://localhost:8788
 VITE_AUTHORFORGE_API_URL=http://localhost:8000
 
 # Authentication
@@ -303,7 +306,7 @@ Update project hooks to use DataForge API:
 
 ```typescript
 // src/hooks/useProjects.ts
-const DATAFORGE_API_URL = import.meta.env.VITE_DATAFORGE_API_URL || "http://localhost:8001";
+const DATAFORGE_API_URL = import.meta.env.VITE_DATAFORGE_API_URL || "http://localhost:8788";
 
 export function useProjects() {
   const [projects, setProjects] = createSignal<Project[]>([]);
@@ -406,16 +409,16 @@ psql -U postgres -d dataforge -c "SELECT tablename FROM pg_tables WHERE tablenam
 ### 2. Backend Testing
 
 ```bash
-# Start DataForge (port 8001)
+# Start DataForge (port 8788)
 cd /home/charles/projects/Coding2025/Forge/DataForge
-uvicorn app.main:app --reload --port 8001
+uvicorn app.main:app --reload --port 8788
 
 # Start AuthorForge (port 8000)
 cd /home/charles/projects/Coding2025/Forge/AuthorForge
 uvicorn app.main:app --reload --port 8000
 
 # Test API docs
-# DataForge: http://localhost:8001/docs
+# DataForge: http://localhost:8788/docs
 # AuthorForge: http://localhost:8000/docs
 ```
 
@@ -423,13 +426,13 @@ uvicorn app.main:app --reload --port 8000
 
 ```bash
 # 1. Login to get token
-TOKEN=$(curl -X POST http://localhost:8001/api/auth/login \
+TOKEN=$(curl -X POST http://localhost:8788/api/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=testuser&password=testpass" \
   | jq -r .access_token)
 
 # 2. Create a project
-curl -X POST http://localhost:8001/api/projects \
+curl -X POST http://localhost:8788/api/projects \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -440,11 +443,11 @@ curl -X POST http://localhost:8001/api/projects \
   }'
 
 # 3. List projects
-curl -X GET http://localhost:8001/api/projects \
+curl -X GET http://localhost:8788/api/projects \
   -H "Authorization: Bearer $TOKEN"
 
 # 4. Create a manuscript
-curl -X POST http://localhost:8001/api/projects/manuscripts \
+curl -X POST http://localhost:8788/api/projects/manuscripts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -455,7 +458,7 @@ curl -X POST http://localhost:8001/api/projects/manuscripts \
   }'
 
 # 5. Create a character
-curl -X POST http://localhost:8001/api/projects/characters \
+curl -X POST http://localhost:8788/api/projects/characters \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

@@ -1,7 +1,7 @@
 # DataForge Deployment Guide
 
-**Version:** 5.1  
-**Last Updated:** November 21, 2025
+**Version:** 5.2  
+**Last Updated:** March 1, 2026
 
 ---
 
@@ -224,11 +224,11 @@ python3 -c "import fastapi; print('FastAPI installed')"
 # Create .env file
 cat > .env << 'EOF'
 # Database
-DATABASE_URL=postgresql://dataforge_user:secure_password_here@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://dataforge_user:secure_password_here@localhost:5432/dataforge
 SQLALCHEMY_ECHO=False
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:6379/0
 
 # Security
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
@@ -239,7 +239,7 @@ MASTER_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 DEBUG=False
 LOG_LEVEL=INFO
 HOST=0.0.0.0
-PORT=8000
+PORT=8788
 
 # OAuth2 (configure with your providers)
 GOOGLE_CLIENT_ID=your_client_id

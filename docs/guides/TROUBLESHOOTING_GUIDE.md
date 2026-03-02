@@ -38,17 +38,17 @@ sudo journalctl -u dataforge -n 50 --no-pager
 
 ### Root Cause Checklist
 
-#### 1. Port Already in Use (Port 8000)
+#### 1. Port Already in Use (Port 8788)
 
 ```bash
 # Check if port is in use
-sudo lsof -i :8000
+sudo lsof -i :8788
 
 # If port is in use, kill process
 sudo kill -9 <PID>
 
 # Or change port in /etc/systemd/system/dataforge.service
-# ExecStart=...gunicorn --bind 127.0.0.1:8001...
+# ExecStart=...gunicorn --bind 127.0.0.1:8788...
 
 # Reload and restart
 sudo systemctl daemon-reload
@@ -62,11 +62,11 @@ sudo systemctl start dataforge
 ls -la /home/dataforge/DataForge/DataForge/.env
 
 # Verify critical variables are set
-grep -E "DATABASE_URL|SECRET_KEY|ENCRYPTION_KEY" .env | wc -l
+grep -E "DATAFORGE_DATABASE_URL|SECRET_KEY|ENCRYPTION_KEY" .env | wc -l
 # Should return 3+
 
 # If missing, add them
-echo "DATABASE_URL=postgresql://dataforge_user:password@localhost:5432/dataforge" >> .env
+echo "DATAFORGE_DATABASE_URL=postgresql://dataforge_user:password@localhost:5432/dataforge" >> .env
 echo "SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')" >> .env
 
 # Restart
@@ -84,7 +84,7 @@ psql -U dataforge_user -h localhost -d dataforge -c "SELECT 1"
 sudo systemctl status postgresql
 
 # - Check credentials in .env
-grep DATABASE_URL .env
+grep DATAFORGE_DATABASE_URL .env
 
 # - Verify user exists in PostgreSQL
 sudo -i -u postgres

@@ -471,16 +471,22 @@ class PreferenceService:
         db_pref.last_used_at = datetime.utcnow()
         
         # Update project types
-        if project_type.value not in db_pref.project_types_used_in:
-            db_pref.project_types_used_in.append(project_type.value)
+        project_types_used_in = list(db_pref.project_types_used_in or [])
+        if project_type.value not in project_types_used_in:
+            project_types_used_in.append(project_type.value)
+        db_pref.project_types_used_in = project_types_used_in
         
         # Update language pairings
+        paired_with_languages = dict(db_pref.paired_with_languages or {})
         for lang in paired_languages:
             if lang != language_id:
-                db_pref.paired_with_languages[lang] = db_pref.paired_with_languages.get(lang, 0) + 1
+                paired_with_languages[lang] = paired_with_languages.get(lang, 0) + 1
+        db_pref.paired_with_languages = paired_with_languages
         
         # Update stack pairings
-        db_pref.paired_with_stacks[stack_id] = db_pref.paired_with_stacks.get(stack_id, 0) + 1
+        paired_with_stacks = dict(db_pref.paired_with_stacks or {})
+        paired_with_stacks[stack_id] = paired_with_stacks.get(stack_id, 0) + 1
+        db_pref.paired_with_stacks = paired_with_stacks
         
         db.commit()
         db.refresh(db_pref)

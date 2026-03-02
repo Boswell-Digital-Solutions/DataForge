@@ -98,7 +98,9 @@ async def generate_embedding(text: str) -> list[float]:
             return response.embeddings[0]
 ```
 
-Embeddings are generated synchronously per chunk during document processing. For batch operations (bulk import), chunks are embedded in parallel up to the provider's rate limit.
+Embeddings are generated during document processing and cached as derived Redis state using
+hash-addressed keys (`embed:{model}:{text_hash}`) with an explicit TTL. The preferred runtime
+path is NeuroForge-first, with direct provider fallbacks retained for compatibility.
 
 ### Auto-Processing Trigger
 
@@ -167,22 +169,52 @@ Each detection type runs as an async check after the primary auth validation suc
 
 ---
 
+## Memory Governance
+
+DataForge now enforces a hard cache-governance boundary:
+
+1. Postgres/Supabase is authoritative
+2. Redis is derived and disposable
+3. Redis writes require TTL at write time
+4. Cache keys must be deterministic and version-aware
+5. Redis failures must never widen access
+
+### Shared Helpers
+
+`app/utils/cache_governance.py` provides:
+
+- `redis_set_with_ttl()` / `redis_set_with_ttl_sync()` for TTL enforcement
+- `canonicalize_query()` for order-insensitive query normalization
+- `build_retrieval_cache_key()` for version-aware retrieval keys
+- `require_authoritative_source()` helpers for fail-closed authority reads
+- cache invalidation helpers that log every explicit invalidation
+
+### Corpus Versioning
+
+`app/utils/corpus_versioning.py` maintains monotonic corpus freshness:
+
+- `corpus_state.current_version` is bumped atomically
+- `corpus_versions` records the triggering event (`doc_insert`, `chunk_insert`, `reindex`, `doc_delete`, `initial`)
+- `corpus_version:current` is cached for 60 seconds and deleted on every bump
+
+Because retrieval keys include corpus version, version bumps invalidate old retrieval caches
+without needing a mass delete.
+
 ## Rate Limiting
 
-DataForge uses a distributed Redis token bucket:
+DataForge uses a Redis-backed sliding-window limiter for distributed enforcement.
 
 ```
 Per request:
-  1. GET rate_limit:{user_id} from Redis
-  2. If tokens < 1: return 429 Too Many Requests
-  3. Decrement token count
-  4. Set expiry if key is new (window reset)
-
-Refill:
-  Background task refills tokens at RATE_LIMIT_REQUESTS / RATE_LIMIT_WINDOW_SECONDS
+  1. Remove timestamps older than the active window
+  2. Count remaining requests in the Redis sorted set
+  3. If count >= limit: return 429
+  4. Add the current request timestamp
+  5. Set TTL to window_length + 60 seconds
 ```
 
-Global limits apply across all DataForge instances. A single user cannot circumvent limits by hitting different instances.
+On Redis outage, the limiter fails closed and denies the request. This is intentional: a cache
+or Redis failure must never expand access.
 
 ---
 

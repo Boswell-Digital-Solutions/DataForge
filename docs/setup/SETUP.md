@@ -6,11 +6,12 @@ Complete setup instructions for getting DataForge up and running.
 
 - Python 3.11+ OR Docker & Docker Compose
 - PostgreSQL 14+ with pgvector extension (if running without Docker)
-- An API key for your chosen embedding provider:
-  - OpenAI (recommended)
+- A reachable PostgreSQL instance and, for full performance, Redis
+- NeuroForge is the preferred embedding/inference gateway
+- Optional direct provider key for fallback compatibility:
   - Voyage AI
+  - OpenAI
   - Cohere
-  - Or use local models
 
 ## Quick Start with Docker (Recommended)
 
@@ -25,17 +26,13 @@ cp .env.example .env
 
 ### 2. Configure Environment Variables
 
-Edit `.env` and set your embedding provider API key:
+Edit `.env` and set the core runtime variables:
 
 ```bash
-# For OpenAI (recommended)
-OPENAI_API_KEY=sk-your-key-here
-
-# OR for Voyage AI
-# VOYAGE_API_KEY=your-key-here
-
-# OR for Cohere
-# COHERE_API_KEY=your-key-here
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
+SECRET_KEY=replace-me
+NEUROFORGE_URL=http://127.0.0.1:8000
+REDIS_URL=redis://localhost:6379/0
 ```
 
 ### 3. Start DataForge
@@ -59,9 +56,9 @@ Follow the prompts to create your admin user.
 
 ### 5. Access DataForge
 
-- **Admin UI**: http://localhost:8001/admin-ui
-- **API Docs**: http://localhost:8001/docs
-- **Health Check**: http://localhost:8001/health
+- **Admin UI**: http://localhost:8788/admin-ui
+- **API Docs**: http://localhost:8788/docs
+- **Health Check**: http://localhost:8788/health
 
 You're ready to go! 🚀
 
@@ -117,38 +114,23 @@ cp .env.example .env
 ```
 
 Edit `.env` and configure:
-- `DATABASE_URL` - Your PostgreSQL connection string
+- `DATAFORGE_DATABASE_URL` - Your PostgreSQL connection string
 - `SECRET_KEY` - Generate a secure random key
-- `OPENAI_API_KEY` (or other provider) - Your embedding provider API key
+- `NEUROFORGE_URL` - Preferred embedding/inference gateway
+- `REDIS_URL` - Redis connection string for derived state
 
 Example `.env`:
 ```bash
-DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/dataforge
+DATAFORGE_DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/dataforge
 SECRET_KEY=generate-a-very-secure-random-key-here
-OPENAI_API_KEY=sk-your-openai-key-here
+NEUROFORGE_URL=http://127.0.0.1:8000
+REDIS_URL=redis://localhost:6379/0
 ```
 
 ### 5. Configure Embedding Provider
 
-Edit `app/utils/embeddings.py` and uncomment your chosen provider.
-
-By default, OpenAI is configured. For other providers:
-
-**Voyage AI:**
-```python
-import voyageai
-vo = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
-result = vo.embed([text], model="voyage-2")
-return result.embeddings[0]
-```
-
-**Cohere:**
-```python
-import cohere
-co = cohere.Client(os.getenv("COHERE_API_KEY"))
-response = co.embed(texts=[text], model="embed-english-v3.0")
-return response.embeddings[0]
-```
+Preferred runtime path is NeuroForge via `NEUROFORGE_URL`. Direct provider keys such as
+`VOYAGE_API_KEY`, `OPENAI_API_KEY`, and `COHERE_API_KEY` remain optional fallback inputs.
 
 ### 6. Run Database Migrations
 
@@ -168,15 +150,15 @@ python scripts/create_admin.py
 
 ```bash
 # Development mode (with auto-reload)
-uvicorn app.main:app --reload --port 8001
+.venv/bin/uvicorn app.main:app --reload --port 8788
 
 # Production mode
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8788 --workers 4
 ```
 
 ### 9. Verify Installation
 
-Visit http://localhost:8001/health - you should see:
+Visit http://localhost:8788/health - you should see:
 ```json
 {
   "status": "healthy",
@@ -192,7 +174,7 @@ Visit http://localhost:8001/health - you should see:
 
 ### 1. Login to Admin UI
 
-1. Go to http://localhost:8001/admin-ui
+1. Go to http://localhost:8788/admin-ui
 2. Login with your admin credentials
 3. You'll see the dashboard
 
@@ -213,7 +195,7 @@ Domains organize your knowledge base. Examples:
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:8001/admin/domains \
+curl -X POST http://localhost:8788/admin/domains \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -243,7 +225,7 @@ The document will be automatically:
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:8001/admin/documents \
+curl -X POST http://localhost:8788/admin/documents \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -265,7 +247,7 @@ curl -X POST http://localhost:8001/admin/documents \
 
 **Via API (No Authentication Required):**
 ```bash
-curl -X POST http://localhost:8001/api/search \
+curl -X POST http://localhost:8788/api/search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "How do I write compelling dialogue?",
@@ -288,7 +270,7 @@ import httpx
 async def search_knowledge_base(query: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "http://localhost:8001/api/search",
+            "http://localhost:8788/api/search",
             json={
                 "query": query,
                 "domain_id": "writing_craft",  # optional
@@ -308,7 +290,7 @@ for chunk in results['chunks']:
 
 ```javascript
 async function searchDataForge(query) {
-  const response = await fetch('http://localhost:8001/api/search', {
+  const response = await fetch('http://localhost:8788/api/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -407,7 +389,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:8001;
+        proxy_pass http://localhost:8788;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -430,7 +412,7 @@ Type=simple
 User=your-user
 WorkingDirectory=/path/to/DataForge
 Environment="PATH=/path/to/DataForge/venv/bin"
-ExecStart=/path/to/DataForge/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
+ExecStart=/path/to/DataForge/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8788 --workers 4
 Restart=always
 
 [Install]
@@ -456,7 +438,7 @@ sudo systemctl status dataforge
 
 ## Getting Help
 
-- **API Documentation**: http://localhost:8001/docs
+- **API Documentation**: http://localhost:8788/docs
 - **GitHub Issues**: Report bugs or request features
 - **README**: See README.md for architecture details
 

@@ -6,30 +6,51 @@ These are architectural invariants, not guidelines. Violating them causes data l
 
 ### 1. DataForge Is the Only Source of Truth
 
-No service maintains authoritative state outside DataForge. There is no "eventually consistent" model. There is no "local cache that syncs later." If DataForge is unavailable, the operation does not happen. Period.
+No service maintains authoritative state outside DataForge/Postgres. There is no "eventually
+consistent" model. There is no "local cache that syncs later." If the authoritative write fails,
+the operation fails. Period.
 
 ```
 WRONG: Service stores finding in local DB, syncs to DataForge later
 RIGHT: Service attempts DataForge write; if it fails, the operation fails
 ```
 
-### 2. run_token Scope Cannot Be Widened
+Redis is explicitly derived state only. It can accelerate reads, but it cannot own authority.
+
+### 2. Cache Must Never Decide Authority
+
+Auth, permission, revocation, and rate-limit outcomes must always be derivable from the
+authoritative database path or signed evidence. Redis misses and Redis errors must never turn
+into "allow".
+
+### 3. No Redis Writes Without TTL
+
+Every Redis write must include TTL at write time. If a record needs to outlive TTL semantics,
+it belongs in Postgres instead.
+
+### 4. Corpus Versioning Must Stay Monotonic and Atomic
+
+Retrieval cache invalidation depends on `corpus_state.current_version`. Bumps must remain a
+single `UPDATE ... RETURNING` plus append-only audit insert. Do not replace this with a scan,
+`SELECT MAX(version)`, or any non-atomic pattern.
+
+### 5. run_token Scope Cannot Be Widened
 
 A run_token issued for `run_id=abc` cannot be used to write findings to `run_id=xyz`. The DataForge API validates the `run_id` claim in the token against the path parameter on every request. Do not attempt to "share" tokens across runs.
 
-### 3. Lifecycle Transitions Are One-Way (With One Exception)
+### 6. Lifecycle Transitions Are One-Way (With One Exception)
 
 Once a finding reaches a terminal state (`CLOSED` or `DISMISSED`), no further transitions are possible. The only "reset" path is to re-run BugCheck — which produces new findings, not new states on old ones.
 
-### 4. The Audit Log Is Append-Only Forever
+### 7. The Audit Log Is Append-Only Forever
 
 There is no admin endpoint to delete audit log entries. There is no SQL DELETE on the events table in any migration. If you find code attempting to DELETE from the audit log, treat it as a security incident.
 
-### 5. After FINALIZED, Run Records Are Immutable
+### 8. After FINALIZED, Run Records Are Immutable
 
 The `status = "finalized"` transition is one-way. ForgeCommand sets it; nothing can unset it. Attempts to write findings to a finalized run return 409. This is by design — finalization is a commitment to the record.
 
-### 6. Field Encryption Key Rotation Requires a Migration
+### 9. Field Encryption Key Rotation Requires a Migration
 
 Changing `SECRET_KEY` (and thus the derived Fernet key) without a migration script will make all existing encrypted field values unreadable. Never rotate the secret key without running the re-encryption migration first. The migration script is at `scripts/rotate_encryption_key.py`.
 
@@ -61,23 +82,36 @@ After pulling new DataForge code:
 ```bash
 cd /home/charlie/Forge/ecosystem/DataForge
 
-# 1. Activate virtualenv
-source venv/bin/activate
+# 1. Install any new dependencies
+.venv/bin/pip install -r requirements.txt
 
-# 2. Install any new dependencies
-pip install -r requirements.txt
+# 2. Run migrations
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
 
-# 3. Run migrations
-alembic upgrade head
+# 3. Verify migrations applied cleanly
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic current
 
-# 4. Verify migrations applied cleanly
-alembic current
+# 4. Run tests to confirm nothing broke
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
 
-# 5. Run tests to confirm nothing broken
-pytest tests/ -v --tb=short
+# 5. Start service
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8788 --reload
+```
 
-# 6. Start service
-uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+For migration-sensitive changes, the preferred validation loop is:
+
+```bash
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/pytest -q
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic downgrade -1
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/alembic upgrade head
 ```
 
 ### Creating a New Migration
@@ -146,10 +180,10 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong-password> ADMIN_EMAIL=admin@forge.lo
 
 - [ ] PostgreSQL running on localhost:5432
 - [ ] Redis running on localhost:6379
-- [ ] `DATABASE_URL` set in `.env`
+- [ ] `DATAFORGE_DATABASE_URL` set in `.env`
 - [ ] `REDIS_URL` set in `.env`
 - [ ] `SECRET_KEY` set to a 32-char hex value
-- [ ] `VOYAGE_API_KEY` set
+- [ ] `NEUROFORGE_URL` reachable
 - [ ] `alembic upgrade head` run
 - [ ] Admin user created via `scripts/create_admin.py`
 - [ ] `GET /health` returns 200
@@ -208,7 +242,9 @@ The run_token's `run_id` claim does not match the path parameter `run_id`. Verif
 
 ### Redis connection refused
 
-Check Redis is running: `redis-cli ping`. If using Redis Sentinel, verify `REDIS_URL` uses the sentinel URL format, not the node URL.
+Check Redis is running: `redis-cli ping`. Expect performance degradation, cache-miss behavior,
+and explicit degradation logs. Do not "fix" the issue by allowing cache-dependent security
+decisions to bypass the authoritative DB path.
 
 ---
 
