@@ -28,6 +28,9 @@ bcrypt==4.1.2
 # Environment
 python-dotenv==1.0.0
 
+# Redis (corpus versioning cache, async utilities)
+redis>=5.0.0
+
 # HTTP client
 httpx==0.26.0
 
