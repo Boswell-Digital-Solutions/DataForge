@@ -156,6 +156,10 @@ Some tests still skip by design when optional infrastructure is absent (for exam
 specific raw SQL tests on SQLite fixtures, k6 load tests unless `RUN_LOAD_TESTS=1`, and local
 NeuroForge-dependent infrastructure checks).
 
+The policy envelope router tests call the handler functions directly with a real SQLAlchemy
+session fixture. Those handlers are intentionally synchronous, matching the production FastAPI
+configuration that runs sync ORM work in a threadpool instead of on the event loop.
+
 ### Fixtures
 
 Key fixtures in `tests/conftest.py`:

@@ -1223,6 +1223,9 @@ Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the eve
 ### `GET /api/v1/agents`
 ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.
 
+### `GET /api/v1/policy-routing/bandit-states/{tenant_id}/{policy_key}`
+Slice 2 routing-state lookup endpoint used by ForgeAgents before and after governed LLM calls. Like the agent registry route, the policy envelope router uses threadpool-backed sync handlers for synchronous SQLAlchemy access so bandit-state fetches, ledger appends, and run finalization do not wedge the event loop under slow database conditions.
+
 ---
 
 # §7 — Backend Internals
@@ -1442,6 +1445,28 @@ Per request:
 
 On Redis outage, the limiter fails closed and denies the request. This is intentional: a cache
 or Redis failure must never expand access.
+
+---
+
+## Governed LLM Policy Persistence
+
+`app/api/policy_envelope_router.py` backs the Slice 1 and Slice 2 governance records used by
+ForgeAgents:
+
+- policy envelopes
+- per-call ledger entries
+- run finalization records
+- bandit state partitions
+- reward records and atomic outcome writes
+
+These routes intentionally use synchronous FastAPI handlers because the implementation is built
+on the synchronous SQLAlchemy session from `app/database.py`. Keeping the handler itself sync
+pushes the ORM work into FastAPI's threadpool, which prevents long-running governance reads or
+writes from blocking the event loop and starving `/health`.
+
+This matters most for `GET /api/v1/policy-routing/bandit-states/...` and
+`POST /api/v1/policy-runs/finalize`, because ForgeAgents calls them inline during governed
+execution and shutdown of policy runs.
 
 ---
 
@@ -2220,6 +2245,10 @@ The live validation run on 2026-03-01 used Supabase Postgres for the database-ba
 Some tests still skip by design when optional infrastructure is absent (for example, pgvector-
 specific raw SQL tests on SQLite fixtures, k6 load tests unless `RUN_LOAD_TESTS=1`, and local
 NeuroForge-dependent infrastructure checks).
+
+The policy envelope router tests call the handler functions directly with a real SQLAlchemy
+session fixture. Those handlers are intentionally synchronous, matching the production FastAPI
+configuration that runs sync ORM work in a threadpool instead of on the event loop.
 
 ### Fixtures
 

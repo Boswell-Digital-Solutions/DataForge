@@ -218,6 +218,28 @@ or Redis failure must never expand access.
 
 ---
 
+## Governed LLM Policy Persistence
+
+`app/api/policy_envelope_router.py` backs the Slice 1 and Slice 2 governance records used by
+ForgeAgents:
+
+- policy envelopes
+- per-call ledger entries
+- run finalization records
+- bandit state partitions
+- reward records and atomic outcome writes
+
+These routes intentionally use synchronous FastAPI handlers because the implementation is built
+on the synchronous SQLAlchemy session from `app/database.py`. Keeping the handler itself sync
+pushes the ORM work into FastAPI's threadpool, which prevents long-running governance reads or
+writes from blocking the event loop and starving `/health`.
+
+This matters most for `GET /api/v1/policy-routing/bandit-states/...` and
+`POST /api/v1/policy-runs/finalize`, because ForgeAgents calls them inline during governed
+execution and shutdown of policy runs.
+
+---
+
 ## Audit Log
 
 Every significant event — auth successes, failures, anomaly detections, lifecycle transitions, admin operations — is written to the audit log:

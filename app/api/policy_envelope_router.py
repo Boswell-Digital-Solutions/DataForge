@@ -43,7 +43,7 @@ router = APIRouter(prefix="/api/v1", tags=["llm-policy"])
     response_model=PolicyEnvelopeRecordResponse,
     summary="Create or update a deterministic policy envelope",
 )
-async def upsert_policy_envelope(
+def upsert_policy_envelope(
     policy_key: str,
     envelope: PolicyEnvelopeV1,
     db: Session = Depends(get_db),
@@ -81,7 +81,7 @@ async def upsert_policy_envelope(
     response_model=PolicyEnvelopeRecordResponse,
     summary="Fetch a deterministic policy envelope",
 )
-async def get_policy_envelope(
+def get_policy_envelope(
     policy_key: str,
     db: Session = Depends(get_db),
 ) -> PolicyEnvelopeRecordResponse:
@@ -106,7 +106,7 @@ async def get_policy_envelope(
     response_model=PolicyRunStateEnvelope,
     summary="Fetch ledger aggregate and finalization state for a run",
 )
-async def get_policy_run_state(
+def get_policy_run_state(
     run_id: str,
     db: Session = Depends(get_db),
 ) -> PolicyRunStateEnvelope:
@@ -157,7 +157,7 @@ async def get_policy_run_state(
     status_code=201,
     summary="Append an immutable per-call ledger entry",
 )
-async def append_policy_run_ledger_entry(
+def append_policy_run_ledger_entry(
     entry: LedgerEntryV1,
     db: Session = Depends(get_db),
 ) -> LedgerAppendResponse:
@@ -207,7 +207,7 @@ async def append_policy_run_ledger_entry(
     status_code=201,
     summary="Finalize a run exactly once",
 )
-async def finalize_policy_run(
+def finalize_policy_run(
     finalization: RunFinalizationV1,
     db: Session = Depends(get_db),
 ) -> RunFinalizationResponse:
@@ -254,7 +254,7 @@ async def finalize_policy_run(
     response_model=BanditStateEnvelope,
     summary="Fetch a tenant-scoped Slice 2 bandit state partition",
 )
-async def get_bandit_state(
+def get_bandit_state(
     tenant_id: str,
     policy_key: str,
     partition_key: str,
@@ -281,7 +281,7 @@ async def get_bandit_state(
     response_model=BanditStateUpsertResponse,
     summary="Create or replace a tenant-scoped Slice 2 bandit state partition",
 )
-async def upsert_bandit_state(
+def upsert_bandit_state(
     tenant_id: str,
     policy_key: str,
     state: BanditStateV1,
@@ -330,7 +330,7 @@ async def upsert_bandit_state(
     status_code=201,
     summary="Append an immutable Slice 2 reward record",
 )
-async def append_reward_record(
+def append_reward_record(
     reward: RewardRecordV1,
     db: Session = Depends(get_db),
 ) -> RewardRecordResponse:
@@ -378,7 +378,7 @@ async def append_reward_record(
     status_code=201,
     summary="Atomically update Slice 2 bandit state and append reward record",
 )
-async def record_bandit_outcome(
+def record_bandit_outcome(
     outcome: BanditOutcomeV1,
     db: Session = Depends(get_db),
 ) -> BanditOutcomeResponse:

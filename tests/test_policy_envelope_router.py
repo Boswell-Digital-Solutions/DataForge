@@ -232,27 +232,25 @@ def make_reward_record(*, call_id: str) -> RewardRecordV1:
     )
 
 
-@pytest.mark.asyncio
-async def test_policy_envelope_can_be_upserted_and_fetched(db):
-    upserted = await upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
+def test_policy_envelope_can_be_upserted_and_fetched(db):
+    upserted = upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
     assert upserted.policy_key == "forgeagents.test.v1"
 
-    fetched = await get_policy_envelope("forgeagents.test.v1", db)
+    fetched = get_policy_envelope("forgeagents.test.v1", db)
     assert fetched.policy_version == "v1"
     assert fetched.model_whitelist == ["allowed-model"]
 
 
-@pytest.mark.asyncio
-async def test_policy_run_state_aggregates_ledger_and_finalization(db):
-    await upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
-    await append_policy_run_ledger_entry(make_ledger_entry("run-state", 1), db)
-    await append_policy_run_ledger_entry(make_ledger_entry("run-state", 2), db)
-    await finalize_policy_run(
+def test_policy_run_state_aggregates_ledger_and_finalization(db):
+    upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
+    append_policy_run_ledger_entry(make_ledger_entry("run-state", 1), db)
+    append_policy_run_ledger_entry(make_ledger_entry("run-state", 2), db)
+    finalize_policy_run(
         make_finalization("run-state", termination_reason="max_calls_per_run_reached"),
         db,
     )
 
-    state = await get_policy_run_state("run-state", db)
+    state = get_policy_run_state("run-state", db)
     assert state.state.exists is True
     assert state.state.finalized is True
     assert state.state.total_calls == 2
@@ -263,27 +261,25 @@ async def test_policy_run_state_aggregates_ledger_and_finalization(db):
     assert state.state.finalization.termination_reason == "max_calls_per_run_reached"
 
 
-@pytest.mark.asyncio
-async def test_finalized_run_rejects_additional_ledger_writes(db):
-    await upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
-    await append_policy_run_ledger_entry(make_ledger_entry("run-finalized", 1), db)
-    await finalize_policy_run(make_finalization("run-finalized"), db)
+def test_finalized_run_rejects_additional_ledger_writes(db):
+    upsert_policy_envelope("forgeagents.test.v1", make_policy(), db)
+    append_policy_run_ledger_entry(make_ledger_entry("run-finalized", 1), db)
+    finalize_policy_run(make_finalization("run-finalized"), db)
 
     with pytest.raises(HTTPException) as exc_info:
-        await append_policy_run_ledger_entry(make_ledger_entry("run-finalized", 2), db)
+        append_policy_run_ledger_entry(make_ledger_entry("run-finalized", 2), db)
 
     assert exc_info.value.status_code == 409
     assert "rejects additional ledger writes" in exc_info.value.detail
 
 
-@pytest.mark.asyncio
-async def test_bandit_state_can_be_upserted_and_fetched(db):
+def test_bandit_state_can_be_upserted_and_fetched(db):
     state = make_bandit_state(state_version=0)
 
-    created = await upsert_bandit_state("tenant-1", "forgeagents.assist.v1", state, db)
+    created = upsert_bandit_state("tenant-1", "forgeagents.assist.v1", state, db)
     assert created.status == "created"
 
-    fetched = await get_bandit_state(
+    fetched = get_bandit_state(
         "tenant-1",
         "forgeagents.assist.v1",
         partition_key=state.partition_key,
@@ -293,18 +289,16 @@ async def test_bandit_state_can_be_upserted_and_fetched(db):
     assert fetched.state.bandit_policy_id == "ts_v1"
 
 
-@pytest.mark.asyncio
-async def test_reward_record_can_be_appended(db):
+def test_reward_record_can_be_appended(db):
     reward = make_reward_record(call_id="call-1")
 
-    response = await append_reward_record(reward, db)
+    response = append_reward_record(reward, db)
 
     assert response.status == "created"
     assert response.reward.call_id == "call-1"
 
 
-@pytest.mark.asyncio
-async def test_bandit_outcome_records_state_and_reward_atomically(db):
+def test_bandit_outcome_records_state_and_reward_atomically(db):
     initial_state = make_bandit_state(state_version=1, reward_mean=0.60)
     reward = make_reward_record(call_id="call-atomic-1")
     outcome = BanditOutcomeV1.model_validate(
@@ -314,7 +308,7 @@ async def test_bandit_outcome_records_state_and_reward_atomically(db):
         }
     )
 
-    recorded = await record_bandit_outcome(outcome, db)
+    recorded = record_bandit_outcome(outcome, db)
 
     assert recorded.status == "recorded"
     assert recorded.state.state_version == 1
@@ -332,11 +326,10 @@ async def test_bandit_outcome_records_state_and_reward_atomically(db):
     )
 
 
-@pytest.mark.asyncio
-async def test_bandit_outcome_conflict_rolls_back_reward_write(db):
+def test_bandit_outcome_conflict_rolls_back_reward_write(db):
     initial_state = make_bandit_state(state_version=1, reward_mean=0.55)
     reward = make_reward_record(call_id="call-atomic-2")
-    await record_bandit_outcome(
+    record_bandit_outcome(
         BanditOutcomeV1.model_validate(
             {
                 "state": initial_state.model_dump(mode="json"),
@@ -350,7 +343,7 @@ async def test_bandit_outcome_conflict_rolls_back_reward_write(db):
     conflicting_reward = make_reward_record(call_id="call-atomic-3")
 
     with pytest.raises(HTTPException) as exc_info:
-        await record_bandit_outcome(
+        record_bandit_outcome(
             BanditOutcomeV1.model_validate(
                 {
                     "state": conflicting_state.model_dump(mode="json"),
@@ -361,7 +354,7 @@ async def test_bandit_outcome_conflict_rolls_back_reward_write(db):
         )
 
     assert exc_info.value.status_code == 409
-    stored_state = await get_bandit_state(
+    stored_state = get_bandit_state(
         "tenant-1",
         "forgeagents.assist.v1",
         partition_key=initial_state.partition_key,

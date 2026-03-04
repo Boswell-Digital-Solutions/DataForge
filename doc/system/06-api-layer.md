@@ -363,3 +363,6 @@ Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the eve
 
 ### `GET /api/v1/agents`
 ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.
+
+### `GET /api/v1/policy-routing/bandit-states/{tenant_id}/{policy_key}`
+Slice 2 routing-state lookup endpoint used by ForgeAgents before and after governed LLM calls. Like the agent registry route, the policy envelope router uses threadpool-backed sync handlers for synchronous SQLAlchemy access so bandit-state fetches, ledger appends, and run finalization do not wedge the event loop under slow database conditions.
