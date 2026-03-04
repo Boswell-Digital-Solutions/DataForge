@@ -10,14 +10,19 @@ Idempotent: skips models that already exist, updates pricing for existing ones.
 """
 
 import sys
-from pathlib import Path
 from decimal import Decimal
+from pathlib import Path
 
 # Add project root to path for direct invocation
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import SessionLocal
 from app.models.multi_provider_models import ModelCatalog
+
+RETIRED_MODEL_IDENTIFIERS = {
+    "grok-4",
+    "grok-4.1-fast",
+}
 
 MODEL_CATALOG = [
     # ── Budget Tier ───────────────────────────────────────────────
@@ -64,9 +69,9 @@ MODEL_CATALOG = [
         "tier": "budget",
     },
     {
-        "model_key": "grok-4.1-fast",
+        "model_key": "grok-4-1-fast-non-reasoning",
         "provider": "xai",
-        "model_id": "grok-4.1-fast",
+        "model_id": "grok-4-1-fast-non-reasoning",
         "input_cost_per_mtok": Decimal("0.20"),
         "output_cost_per_mtok": Decimal("0.50"),
         "batch_input_cost": Decimal("0.10"),
@@ -117,6 +122,20 @@ MODEL_CATALOG = [
         "batch_output_cost": Decimal("1.00"),
         "max_context": 128_000,
         "cache_read_discount": Decimal("0.10"),
+        "supports_batch": True,
+        "supports_structured_output": True,
+        "tier": "workhorse",
+    },
+    {
+        "model_key": "grok-4-1-fast-reasoning",
+        "provider": "xai",
+        "model_id": "grok-4-1-fast-reasoning",
+        "input_cost_per_mtok": Decimal("0.20"),
+        "output_cost_per_mtok": Decimal("0.50"),
+        "batch_input_cost": Decimal("0.10"),
+        "batch_output_cost": Decimal("0.25"),
+        "max_context": 2_000_000,
+        "cache_read_discount": Decimal("0.00"),
         "supports_batch": True,
         "supports_structured_output": True,
         "tier": "workhorse",
@@ -179,21 +198,6 @@ MODEL_CATALOG = [
         "supports_structured_output": True,
         "tier": "flagship",
     },
-    {
-        "model_key": "grok-4",
-        "provider": "xai",
-        "model_id": "grok-4",
-        "input_cost_per_mtok": Decimal("3.00"),
-        "output_cost_per_mtok": Decimal("15.00"),
-        "batch_input_cost": Decimal("1.50"),
-        "batch_output_cost": Decimal("7.50"),
-        "max_context": 256_000,
-        "cache_read_discount": Decimal("0.00"),
-        "supports_batch": True,
-        "supports_structured_output": True,
-        "tier": "flagship",
-    },
-
     # ── Additional Models (14-model canonical catalog) ─────────────
     {
         "model_key": "gpt-4.1-mini",
@@ -226,13 +230,33 @@ MODEL_CATALOG = [
 ]
 
 
-def seed(update_existing: bool = True) -> None:
+def _retire_replaced_models(db) -> int:
+    retired = 0
+    for row in (
+        db.query(ModelCatalog)
+        .filter(ModelCatalog.provider == "xai", ModelCatalog.is_active.is_(True))
+        .all()
+    ):
+        if (
+            row.model_key not in RETIRED_MODEL_IDENTIFIERS
+            and row.model_id not in RETIRED_MODEL_IDENTIFIERS
+        ):
+            continue
+        row.is_active = False
+        row.updated_by = "seed_script_retired"
+        retired += 1
+    return retired
+
+
+def seed(update_existing: bool = True, db=None) -> tuple[int, int, int, int]:
     """Seed model catalog. If update_existing=True, refreshes pricing for existing models."""
-    db = SessionLocal()
+    owns_session = db is None
+    db = db or SessionLocal()
     try:
         created = 0
         updated = 0
         skipped = 0
+        retired = 0
 
         for model_data in MODEL_CATALOG:
             existing = db.query(ModelCatalog).filter(
@@ -252,12 +276,20 @@ def seed(update_existing: bool = True) -> None:
                 db.add(row)
                 created += 1
 
+        if update_existing:
+            retired = _retire_replaced_models(db)
+
         db.commit()
-        print(f"Model catalog seed complete: {created} created, {updated} updated, {skipped} skipped")
+        print(
+            "Model catalog seed complete: "
+            f"{created} created, {updated} updated, {skipped} skipped, {retired} retired"
+        )
         print(f"Total models in catalog: {db.query(ModelCatalog).count()}")
+        return created, updated, skipped, retired
 
     finally:
-        db.close()
+        if owns_session:
+            db.close()
 
 
 if __name__ == "__main__":

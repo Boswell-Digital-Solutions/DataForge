@@ -34,9 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Seed Script**:
 
 - `scripts/seed_model_catalog.py` — Seeds all 14 models:
-  - Budget: gpt-5-nano, gpt-4.1-nano, gemini-2.5-flash-lite, grok-4.1-fast
-  - Workhorse: gemini-2.5-flash, gemini-3-flash, gpt-5-mini, gpt-4.1-mini, claude-haiku-4.5
-  - Flagship: gemini-2.5-pro, gemini-3-pro, claude-sonnet-4.5, claude-opus-4.5, grok-4
+  - Budget: gpt-5-nano, gpt-4.1-nano, gemini-2.5-flash-lite, grok-4-1-fast-non-reasoning
+  - Workhorse: gemini-2.5-flash, gemini-3-flash, gpt-5-mini, gpt-4.1-mini, grok-4-1-fast-reasoning, claude-haiku-4.5
+  - Flagship: gemini-2.5-pro, gemini-3-pro, claude-sonnet-4.5, claude-opus-4.5
 - All cost fields use `Decimal` precision
 - Includes per-model capabilities: `supports_batch`, `supports_structured_output`, `cache_read_discount`, `max_context`
 
