@@ -676,6 +676,7 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_MAX_OVERFLOW` | int | `10` | NO | SQLAlchemy overflow connection cap |
 | `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
+| `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 
 **Example:**
 ```
@@ -684,6 +685,8 @@ REDIS_URL=redis://localhost:6379/0
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
+
+`DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
 
 ## Security & JWT
 
@@ -1214,11 +1217,13 @@ Dependency-free liveness probe. Returns quickly if the process and event loop ar
 Render-oriented service probe. Returns service status plus Redis reachability. This route is richer than `/health`, but Render itself should continue to probe `/health`.
 
 ### `GET /ready`
-Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the event loop via a threadpool helper so readiness failures do not wedge the worker.
+Readiness probe. Checks PostgreSQL and Redis.
 
 - `200` when status is `ok`
 - `200` when status is `degraded`
 - `503` when a critical dependency is `down`
+
+Startup pgvector initialization is best-effort. If Supabase/Postgres is temporarily unavailable during boot, the process still starts and `/ready` remains the contract surface that reports the database/pgvector failure.
 
 ### `GET /api/v1/agents`
 ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.
@@ -1467,6 +1472,18 @@ writes from blocking the event loop and starving `/health`.
 This matters most for `GET /api/v1/policy-routing/bandit-states/...` and
 `POST /api/v1/policy-runs/finalize`, because ForgeAgents calls them inline during governed
 execution and shutdown of policy runs.
+
+---
+
+## Startup Dependency Handling
+
+`app/main.py` performs a best-effort `CREATE EXTENSION IF NOT EXISTS vector` during startup.
+That step is advisory, not a boot gate. If Supabase/Postgres is temporarily unavailable, the
+process now continues to start, exposes `/health`, and leaves `/ready` to report the database
+or pgvector failure until connectivity recovers.
+
+`DATAFORGE_SKIP_STARTUP_DB_INIT=1` remains available for tests and controlled operational
+workarounds when startup DB initialization should be bypassed entirely.
 
 ---
 
@@ -2116,6 +2133,7 @@ Target individual functions and classes with no database or network I/O. Use `py
 | `test_fingerprint.py` | Fingerprint stability across equivalent inputs |
 | `test_lifecycle.py` | State machine transitions (valid + invalid) |
 | `test_schemas.py` | Pydantic schema validation, edge cases |
+| `test_unit/test_main_startup.py` | Lifespan regression for non-fatal pgvector startup failure |
 
 ### Integration Tests
 
@@ -2595,6 +2613,8 @@ This starts PostgreSQL, Redis, and DataForge. Migrations run automatically via t
 - [ ] Prometheus scrape job configured for `/metrics`
 - [ ] Grafana dashboards imported
 - [ ] Backup schedule confirmed (daily/weekly/monthly + PITR)
+
+If Postgres or the pgvector extension is unreachable during a deploy, `DataForge` should still boot and bind a port. Treat `/ready` as the authoritative signal for database/pgvector availability; do not revert to a startup path that exits the worker before `/health` can respond.
 - [ ] `alembic upgrade head` run against production DB before traffic cutover
 - [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/login`, `POST /api/search`
 

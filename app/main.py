@@ -85,6 +85,8 @@ async def lifespan(app: FastAPI):
     """
     # Startup: Validate configuration
     main_logger.info("🚀 Starting DataForge...")
+    app.state.pgvector_startup_ok = None
+    app.state.pgvector_startup_error = None
 
     try:
         validate_config()
@@ -133,13 +135,20 @@ async def lifespan(app: FastAPI):
                     main_logger.info(f"   Retrying in {_delay}s...")
                     _time.sleep(_delay)
         if not _pgvector_ok:
+            startup_error = "Failed to enable pgvector extension after 3 retries"
+            app.state.pgvector_startup_ok = False
+            app.state.pgvector_startup_error = startup_error
             main_logger.error("❌ Failed to enable pgvector after 3 attempts")
             log_security_event(
                 main_logger,
                 "EXTENSION_INIT_FAILURE",
-                "Failed to enable pgvector extension after 3 retries"
+                startup_error
             )
-            sys.exit(1)
+            main_logger.warning(
+                "⚠️  Continuing startup without pgvector. /ready will report the dependency failure until the database recovers."
+            )
+        else:
+            app.state.pgvector_startup_ok = True
 
     # Database migrations run in Render build phase for free-tier deploys.
     # Keep app startup focused on serving traffic quickly.

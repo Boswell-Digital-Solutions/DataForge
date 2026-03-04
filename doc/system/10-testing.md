@@ -26,6 +26,7 @@ Target individual functions and classes with no database or network I/O. Use `py
 | `test_fingerprint.py` | Fingerprint stability across equivalent inputs |
 | `test_lifecycle.py` | State machine transitions (valid + invalid) |
 | `test_schemas.py` | Pydantic schema validation, edge cases |
+| `test_unit/test_main_startup.py` | Lifespan regression for non-fatal pgvector startup failure |
 
 ### Integration Tests
 

@@ -355,11 +355,13 @@ Dependency-free liveness probe. Returns quickly if the process and event loop ar
 Render-oriented service probe. Returns service status plus Redis reachability. This route is richer than `/health`, but Render itself should continue to probe `/health`.
 
 ### `GET /ready`
-Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the event loop via a threadpool helper so readiness failures do not wedge the worker.
+Readiness probe. Checks PostgreSQL and Redis.
 
 - `200` when status is `ok`
 - `200` when status is `degraded`
 - `503` when a critical dependency is `down`
+
+Startup pgvector initialization is best-effort. If Supabase/Postgres is temporarily unavailable during boot, the process still starts and `/ready` remains the contract surface that reports the database/pgvector failure.
 
 ### `GET /api/v1/agents`
 ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.

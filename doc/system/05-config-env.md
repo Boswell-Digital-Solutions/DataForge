@@ -16,6 +16,7 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_MAX_OVERFLOW` | int | `10` | NO | SQLAlchemy overflow connection cap |
 | `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
+| `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 
 **Example:**
 ```
@@ -24,6 +25,8 @@ REDIS_URL=redis://localhost:6379/0
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
+
+`DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
 
 ## Security & JWT
 

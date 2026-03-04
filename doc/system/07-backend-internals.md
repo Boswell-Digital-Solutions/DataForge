@@ -240,6 +240,18 @@ execution and shutdown of policy runs.
 
 ---
 
+## Startup Dependency Handling
+
+`app/main.py` performs a best-effort `CREATE EXTENSION IF NOT EXISTS vector` during startup.
+That step is advisory, not a boot gate. If Supabase/Postgres is temporarily unavailable, the
+process now continues to start, exposes `/health`, and leaves `/ready` to report the database
+or pgvector failure until connectivity recovers.
+
+`DATAFORGE_SKIP_STARTUP_DB_INIT=1` remains available for tests and controlled operational
+workarounds when startup DB initialization should be bypassed entirely.
+
+---
+
 ## Audit Log
 
 Every significant event — auth successes, failures, anomaly detections, lifecycle transitions, admin operations — is written to the audit log:

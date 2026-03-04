@@ -218,6 +218,8 @@ This starts PostgreSQL, Redis, and DataForge. Migrations run automatically via t
 - [ ] Prometheus scrape job configured for `/metrics`
 - [ ] Grafana dashboards imported
 - [ ] Backup schedule confirmed (daily/weekly/monthly + PITR)
+
+If Postgres or the pgvector extension is unreachable during a deploy, `DataForge` should still boot and bind a port. Treat `/ready` as the authoritative signal for database/pgvector availability; do not revert to a startup path that exits the worker before `/health` can respond.
 - [ ] `alembic upgrade head` run against production DB before traffic cutover
 - [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/login`, `POST /api/search`
 
