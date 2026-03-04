@@ -6,6 +6,7 @@ FastAPI application entry point.
 import os
 import logging
 import sys
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler as fastapi_request_validation_exception_handler
@@ -40,6 +41,7 @@ from app.api.press_router import router as press_router  # PressForge: journalis
 from app.api.private_source_router import router as private_source_router  # PSIM: private source profiles
 from app.api.policy_envelope_router import router as policy_envelope_router  # Deterministic LLM policy envelopes + ledgers
 from app.middleware.correlation import CorrelationIDMiddleware
+from app.middleware.request_timeout import RequestTimeoutMiddleware
 try:
     from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
     _HAS_COMPRESSION = True
@@ -58,6 +60,7 @@ from app.config import (
     FORGECOMMAND_COMPRESSION_URL,
     COMPRESSION_MIN_SIZE,
     COMPRESSION_POLL_INTERVAL,
+    REQUEST_TIMEOUT_SECONDS,
 )
 from app.security_config import configure_security_headers
 from app.logging_config import initialize_logging, get_logger, log_security_event
@@ -103,35 +106,40 @@ async def lifespan(app: FastAPI):
     else:
         main_logger.warning("⚠️  No embedding provider configured")
 
+    skip_startup_db_init = os.getenv("DATAFORGE_SKIP_STARTUP_DB_INIT", "").lower() in {"1", "true", "yes"}
+
     # Enable pgvector extension (retry on transient connection failures)
-    main_logger.info("📦 Enabling pgvector extension...")
-    import time as _time
-    _pgvector_ok = False
-    for _attempt in range(1, 4):
-        try:
-            from sqlalchemy import text
-            with engine.connect() as conn:
-                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                conn.commit()
-            main_logger.info("✅ pgvector extension enabled")
-            _pgvector_ok = True
-            break
-        except Exception as e:
-            main_logger.warning(
-                f"⚠️  pgvector init attempt {_attempt}/3 failed: {e}"
+    if skip_startup_db_init:
+        main_logger.info("⏭️  Skipping pgvector startup init due to DATAFORGE_SKIP_STARTUP_DB_INIT")
+    else:
+        main_logger.info("📦 Enabling pgvector extension...")
+        import time as _time
+        _pgvector_ok = False
+        for _attempt in range(1, 4):
+            try:
+                from sqlalchemy import text
+                with engine.connect() as conn:
+                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                    conn.commit()
+                main_logger.info("✅ pgvector extension enabled")
+                _pgvector_ok = True
+                break
+            except Exception as e:
+                main_logger.warning(
+                    f"⚠️  pgvector init attempt {_attempt}/3 failed: {e}"
+                )
+                if _attempt < 3:
+                    _delay = 5 * _attempt  # 5s, 10s
+                    main_logger.info(f"   Retrying in {_delay}s...")
+                    _time.sleep(_delay)
+        if not _pgvector_ok:
+            main_logger.error("❌ Failed to enable pgvector after 3 attempts")
+            log_security_event(
+                main_logger,
+                "EXTENSION_INIT_FAILURE",
+                "Failed to enable pgvector extension after 3 retries"
             )
-            if _attempt < 3:
-                _delay = 5 * _attempt  # 5s, 10s
-                main_logger.info(f"   Retrying in {_delay}s...")
-                _time.sleep(_delay)
-    if not _pgvector_ok:
-        main_logger.error("❌ Failed to enable pgvector after 3 attempts")
-        log_security_event(
-            main_logger,
-            "EXTENSION_INIT_FAILURE",
-            "Failed to enable pgvector extension after 3 retries"
-        )
-        sys.exit(1)
+            sys.exit(1)
 
     # Database migrations run in Render build phase for free-tier deploys.
     # Keep app startup focused on serving traffic quickly.
@@ -165,6 +173,14 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
 # Configure security headers middleware (must be added before CORS)
 main_logger.info("Adding security headers middleware...")
 configure_security_headers(app)
+
+# Add request timeout middleware before correlation tracing so completion logs
+# still emit around a timed-out request instead of disappearing mid-flight.
+main_logger.info("Adding request timeout middleware...")
+app.add_middleware(
+    RequestTimeoutMiddleware,
+    timeout_seconds=REQUEST_TIMEOUT_SECONDS,
+)
 
 # Add correlation ID middleware (FPVS Phase 1)
 main_logger.info("Adding correlation ID middleware...")
@@ -291,33 +307,16 @@ async def root(request: Request):
 @app.get("/health", tags=["info"])
 async def health_check():
     """
-    Health check endpoint.
+    Lightweight liveness endpoint.
 
-    Returns the health status of the application and database connectivity.
+    This route intentionally avoids database, Redis, filesystem, and external
+    dependency access so Render health checks only verify that the process and
+    event loop are alive.
     """
-    from sqlalchemy import text
-    from app.database import SessionLocal
-
-    # Check database connectivity
-    db_status = "healthy"
-    schema_version = None
-    try:
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        row = db.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
-        if row:
-            schema_version = row[0]
-        db.close()
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        db_status = f"unhealthy: {str(e)}"
-
     return {
-        "status": "healthy" if db_status == "healthy" else "degraded",
+        "status": "ok",
         "service": "DataForge",
         "version": "1.0.0",
-        "database": db_status,
-        "schema": schema_version
     }
 
 
@@ -352,9 +351,7 @@ async def readiness_check():
     Returns structured dependency health following the Forge verification contract.
     Used by Forge Command to verify service readiness with dependency details.
     """
-    import time
     from sqlalchemy import text
-    from app.database import SessionLocal
 
     dependencies = []
     overall_status = "ok"
@@ -368,12 +365,18 @@ async def readiness_check():
         "message": None,
         "error_class": None
     }
-    try:
+    def _check_postgres() -> int:
+        from app.database import SessionLocal
+
         start = time.perf_counter()
-        db = SessionLocal()
-        db.execute(text("SELECT 1"))
-        db.close()
-        postgres_dep["latency_ms"] = int((time.perf_counter() - start) * 1000)
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        return int((time.perf_counter() - start) * 1000)
+
+    try:
+        from starlette.concurrency import run_in_threadpool
+
+        postgres_dep["latency_ms"] = await run_in_threadpool(_check_postgres)
     except Exception as e:
         postgres_dep["status"] = "down"
         postgres_dep["message"] = str(e)

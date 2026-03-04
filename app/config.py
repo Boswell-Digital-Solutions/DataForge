@@ -51,6 +51,14 @@ RATE_LIMIT_ADMIN = "100/minute"  # 100 admin operations per minute
 # Database Configuration
 # ============================================
 DATABASE_URL = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
+DB_CONNECT_TIMEOUT_SECONDS = int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "5"))
+DB_STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "10000"))
+DB_LOCK_TIMEOUT_MS = int(os.getenv("DB_LOCK_TIMEOUT_MS", "5000"))
+DB_IDLE_IN_TX_TIMEOUT_MS = int(os.getenv("DB_IDLE_IN_TX_TIMEOUT_MS", "15000"))
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
+DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+DB_POOL_TIMEOUT_SECONDS = int(os.getenv("DB_POOL_TIMEOUT_SECONDS", "10"))
+DB_POOL_RECYCLE_SECONDS = int(os.getenv("DB_POOL_RECYCLE_SECONDS", "1800"))
 
 # ============================================
 # Redis Configuration (Caching)
@@ -102,6 +110,7 @@ CORS_ALLOW_HEADERS = ["*"]
 # Logging Configuration
 # ============================================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
 
 # ============================================
 # Compression Configuration (Phase 3)
@@ -210,6 +219,14 @@ def get_settings():
     normalized_provider = (provider or "voyage-ai").replace("-ai", "")
     return SimpleNamespace(
         DATABASE_URL=DATABASE_URL,
+        DB_CONNECT_TIMEOUT_SECONDS=DB_CONNECT_TIMEOUT_SECONDS,
+        DB_STATEMENT_TIMEOUT_MS=DB_STATEMENT_TIMEOUT_MS,
+        DB_LOCK_TIMEOUT_MS=DB_LOCK_TIMEOUT_MS,
+        DB_IDLE_IN_TX_TIMEOUT_MS=DB_IDLE_IN_TX_TIMEOUT_MS,
+        DB_POOL_SIZE=DB_POOL_SIZE,
+        DB_MAX_OVERFLOW=DB_MAX_OVERFLOW,
+        DB_POOL_TIMEOUT_SECONDS=DB_POOL_TIMEOUT_SECONDS,
+        DB_POOL_RECYCLE_SECONDS=DB_POOL_RECYCLE_SECONDS,
         REDIS_URL=REDIS_URL,
         SECRET_KEY=SECRET_KEY,
         ALGORITHM=ALGORITHM,
@@ -220,6 +237,7 @@ def get_settings():
         HOST=HOST,
         PORT=PORT,
         LOG_LEVEL=LOG_LEVEL,
+        REQUEST_TIMEOUT_SECONDS=REQUEST_TIMEOUT_SECONDS,
     )
 
 

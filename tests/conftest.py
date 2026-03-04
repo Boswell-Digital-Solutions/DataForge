@@ -12,7 +12,11 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from pgvector.sqlalchemy import Vector
 
-from app.database import Base, get_db
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+os.environ.setdefault("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
+os.environ.setdefault("DATAFORGE_SKIP_STARTUP_DB_INIT", "1")
+
+from app.database import Base, get_db, get_session_factory
 from app.main import app
 from app.models import models
 from app.utils.auth import get_password_hash
@@ -28,10 +32,6 @@ from tests.conftest_security import (
     test_jwt_secret,
     weak_passwords,
 )
-
-# Use in-memory SQLite for testing
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
-
 
 @compiles(JSONB, "sqlite")
 def _compile_jsonb_sqlite(_type, _compiler, **_kwargs):
@@ -101,8 +101,12 @@ def client(db: Session) -> Generator[TestClient, None, None]:
             yield db
         finally:
             pass
+
+    def override_get_session_factory():
+        return TestingSessionLocal
     
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_session_factory] = override_get_session_factory
     
     with TestClient(app) as test_client:
         yield test_client
