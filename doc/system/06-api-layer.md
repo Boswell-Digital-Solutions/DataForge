@@ -10,7 +10,7 @@ DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return J
 | API Key header | Service-to-service calls (NeuroForge, BugCheck, etc.) |
 | run_token | BugCheck finding writes, enrichment writes |
 | user_token | BugCheck lifecycle transitions (triage, approve, dismiss) |
-| No auth | `/health`, `/`, `/metrics` |
+| No auth | `/health`, `/health/render`, `/ready`, `/`, `/metrics` |
 
 ## Router Index
 
@@ -19,7 +19,7 @@ DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return J
 | Router | Prefix | Key Endpoints |
 |--------|--------|--------------|
 | Root | `/` | `GET /` — service info and version |
-| Health | `/health` | `GET /health` — liveness probe; checks DB + Redis connectivity |
+| Health | `/health` | `GET /health` — dependency-free liveness probe |
 | Metrics | `/metrics` | `GET /metrics` — Prometheus metrics endpoint |
 
 ---
@@ -330,3 +330,31 @@ CRUD endpoints for operator-curated private source configurations. Each profile 
 
 #### `/admin-ui` — Admin Interface
 `GET /admin-ui` serves the Jinja2-rendered admin HTML template. Provides a browser-based interface for document management, search testing, and domain administration. No JavaScript framework required.
+
+---
+
+## Health Endpoints
+
+### `GET /health`
+Dependency-free liveness probe. Returns quickly if the process and event loop are alive.
+
+```json
+{
+  "status": "ok",
+  "service": "DataForge",
+  "version": "1.0.0"
+}
+```
+
+### `GET /health/render`
+Render-oriented service probe. Returns service status plus Redis reachability. This route is richer than `/health`, but Render itself should continue to probe `/health`.
+
+### `GET /ready`
+Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the event loop via a threadpool helper so readiness failures do not wedge the worker.
+
+- `200` when status is `ok`
+- `200` when status is `degraded`
+- `503` when a critical dependency is `down`
+
+### `GET /api/v1/agents`
+ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.

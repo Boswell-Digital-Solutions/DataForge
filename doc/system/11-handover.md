@@ -187,6 +187,7 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong-password> ADMIN_EMAIL=admin@forge.lo
 - [ ] `alembic upgrade head` run
 - [ ] Admin user created via `scripts/create_admin.py`
 - [ ] `GET /health` returns 200
+- [ ] `GET /ready` returns 200 before running dependent-service smoke tests
 
 ### Docker Compose (Local)
 
@@ -204,13 +205,13 @@ This starts PostgreSQL, Redis, and DataForge. Migrations run automatically via t
 - [ ] `VOYAGE_API_KEY`, `OPENAI_API_KEY`, `COHERE_API_KEY` in vault
 - [ ] `ALLOWED_ORIGINS` lists only production frontend origins (no wildcards)
 - [ ] `LOG_LEVEL=INFO` (not DEBUG)
-- [ ] nginx or load balancer configured in front of uvicorn
-- [ ] Health check endpoint registered with load balancer
+- [ ] Production start command uses Gunicorn with Uvicorn workers
+- [ ] Health check endpoint registered with load balancer / Render as `/health`
 - [ ] Prometheus scrape job configured for `/metrics`
 - [ ] Grafana dashboards imported
 - [ ] Backup schedule confirmed (daily/weekly/monthly + PITR)
 - [ ] `alembic upgrade head` run against production DB before traffic cutover
-- [ ] Smoke test: `GET /health`, `POST /auth/login`, `POST /api/search`
+- [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/login`, `POST /api/search`
 
 ---
 

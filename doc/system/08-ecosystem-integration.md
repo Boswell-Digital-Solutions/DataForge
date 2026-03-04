@@ -282,7 +282,7 @@ Every service that starts a long-running operation MUST verify DataForge availab
 async def check_dataforge_health() -> bool:
     try:
         response = await http_client.get(
-            "http://localhost:8001/health",
+            "http://localhost:8001/ready",
             timeout=5.0
         )
         return response.status_code == 200
@@ -290,7 +290,7 @@ async def check_dataforge_health() -> bool:
         return False
 
 if not await check_dataforge_health():
-    raise DataForgeUnavailableError("DataForge health check failed; run aborted")
+    raise DataForgeUnavailableError("DataForge readiness check failed; run aborted")
 ```
 
 ### Structured Error Handling

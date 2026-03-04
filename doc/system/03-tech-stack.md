@@ -6,7 +6,8 @@
 |-----------|---------|-------|
 | Python | 3.11+ | Type hints mandatory, async/await throughout |
 | FastAPI | 0.109.0 | ASGI framework; lifespan for startup/shutdown |
-| uvicorn | 0.27.0 | ASGI server; production behind nginx/load balancer |
+| uvicorn | 0.27.0 | ASGI worker server used behind Gunicorn in production |
+| gunicorn | 21.2.0 | Production process manager for multiple Uvicorn workers |
 
 ## Databases
 
@@ -20,7 +21,7 @@
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| SQLAlchemy | 2.0.36 | Core ORM; 2.x async session style |
+| SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
 | Alembic | 1.13.1 | Schema migrations; 11 version files |
 
@@ -63,7 +64,8 @@
 | Component | Version | Notes |
 |-----------|---------|-------|
 | httpx | 0.26.0 | Async HTTP client (tests + internal calls) |
-| uvicorn | 0.27.0 | ASGI server |
+| uvicorn | 0.27.0 | ASGI worker implementation |
+| gunicorn | 21.2.0 | Multi-worker production entrypoint on Render |
 
 ## Observability
 

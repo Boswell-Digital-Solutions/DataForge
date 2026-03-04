@@ -376,7 +376,8 @@ No JavaScript framework dependency; the admin UI is a single-file template.
 |-----------|---------|-------|
 | Python | 3.11+ | Type hints mandatory, async/await throughout |
 | FastAPI | 0.109.0 | ASGI framework; lifespan for startup/shutdown |
-| uvicorn | 0.27.0 | ASGI server; production behind nginx/load balancer |
+| uvicorn | 0.27.0 | ASGI worker server used behind Gunicorn in production |
+| gunicorn | 21.2.0 | Production process manager for multiple Uvicorn workers |
 
 ## Databases
 
@@ -390,7 +391,7 @@ No JavaScript framework dependency; the admin UI is a single-file template.
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| SQLAlchemy | 2.0.36 | Core ORM; 2.x async session style |
+| SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
 | Alembic | 1.13.1 | Schema migrations; 11 version files |
 
@@ -433,7 +434,8 @@ No JavaScript framework dependency; the admin UI is a single-file template.
 | Component | Version | Notes |
 |-----------|---------|-------|
 | httpx | 0.26.0 | Async HTTP client (tests + internal calls) |
-| uvicorn | 0.27.0 | ASGI server |
+| uvicorn | 0.27.0 | ASGI worker implementation |
+| gunicorn | 21.2.0 | Multi-worker production entrypoint on Render |
 
 ## Observability
 
@@ -557,12 +559,12 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (startup database checks, shutdown cleanup). Registers all 34 routers with their prefixes. Configures CORS middleware with `ALLOWED_ORIGINS`. Mounts `static/` directory. Registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers all routers with their prefixes. Configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware.
 
 ### `app/database.py`
-Creates the SQLAlchemy `engine` from `DATABASE_URL`. Provides `SessionLocal` for synchronous sessions and `get_db()` as a FastAPI dependency. Also initializes the pgvector extension on first connection.
+Creates the SQLAlchemy `engine` from `DATAFORGE_DATABASE_URL`. Provides `SessionLocal` for synchronous sessions and `get_db()` as a FastAPI dependency. The engine applies connect, pool, statement, lock, and idle-in-transaction timeouts. pgvector extension initialization is handled during startup in `app/main.py`, not in `database.py`.
 
 ```python
 def get_db():
@@ -668,6 +670,14 @@ All configuration is injected via environment variables. There are no config fil
 |----------|------|---------|----------|-------|
 | `DATAFORGE_DATABASE_URL` | str | `postgresql://postgres:postgres@localhost:5432/dataforge` | YES | Canonical PostgreSQL DSN used by the app |
 | `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string for derived cache/state |
+| `DB_CONNECT_TIMEOUT_SECONDS` | int | `5` | NO | PostgreSQL connect timeout applied by SQLAlchemy |
+| `DB_STATEMENT_TIMEOUT_MS` | int | `10000` | NO | PostgreSQL statement timeout applied to each session |
+| `DB_LOCK_TIMEOUT_MS` | int | `5000` | NO | PostgreSQL lock wait timeout |
+| `DB_IDLE_IN_TX_TIMEOUT_MS` | int | `15000` | NO | PostgreSQL idle-in-transaction timeout |
+| `DB_POOL_SIZE` | int | `5` | NO | SQLAlchemy pool size for non-SQLite backends |
+| `DB_MAX_OVERFLOW` | int | `10` | NO | SQLAlchemy overflow connection cap |
+| `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
+| `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 
 **Example:**
 ```
@@ -698,6 +708,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
 | `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
+| `REQUEST_TIMEOUT_SECONDS` | float | `30` | NO | ASGI request timeout guard; requests exceeding this return `504` |
 
 **Example:**
 ```
@@ -860,7 +871,7 @@ DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return J
 | API Key header | Service-to-service calls (NeuroForge, BugCheck, etc.) |
 | run_token | BugCheck finding writes, enrichment writes |
 | user_token | BugCheck lifecycle transitions (triage, approve, dismiss) |
-| No auth | `/health`, `/`, `/metrics` |
+| No auth | `/health`, `/health/render`, `/ready`, `/`, `/metrics` |
 
 ## Router Index
 
@@ -869,7 +880,7 @@ DataForge exposes 34 API routers covering 100+ endpoints. All endpoints return J
 | Router | Prefix | Key Endpoints |
 |--------|--------|--------------|
 | Root | `/` | `GET /` — service info and version |
-| Health | `/health` | `GET /health` — liveness probe; checks DB + Redis connectivity |
+| Health | `/health` | `GET /health` — dependency-free liveness probe |
 | Metrics | `/metrics` | `GET /metrics` — Prometheus metrics endpoint |
 
 ---
@@ -1180,6 +1191,34 @@ CRUD endpoints for operator-curated private source configurations. Each profile 
 
 #### `/admin-ui` — Admin Interface
 `GET /admin-ui` serves the Jinja2-rendered admin HTML template. Provides a browser-based interface for document management, search testing, and domain administration. No JavaScript framework required.
+
+---
+
+## Health Endpoints
+
+### `GET /health`
+Dependency-free liveness probe. Returns quickly if the process and event loop are alive.
+
+```json
+{
+  "status": "ok",
+  "service": "DataForge",
+  "version": "1.0.0"
+}
+```
+
+### `GET /health/render`
+Render-oriented service probe. Returns service status plus Redis reachability. This route is richer than `/health`, but Render itself should continue to probe `/health`.
+
+### `GET /ready`
+Readiness probe. Checks PostgreSQL and Redis. PostgreSQL is executed off the event loop via a threadpool helper so readiness failures do not wedge the worker.
+
+- `200` when status is `ok`
+- `200` when status is `degraded`
+- `503` when a critical dependency is `down`
+
+### `GET /api/v1/agents`
+ForgeAgents agent registry persistence endpoint. The route performs synchronous SQLAlchemy work in a threadpool-backed sync handler and now emits timing logs around count/query/serialization boundaries to make stalls diagnosable.
 
 ---
 
@@ -1739,7 +1778,7 @@ Every service that starts a long-running operation MUST verify DataForge availab
 async def check_dataforge_health() -> bool:
     try:
         response = await http_client.get(
-            "http://localhost:8001/health",
+            "http://localhost:8001/ready",
             timeout=5.0
         )
         return response.status_code == 200
@@ -1747,7 +1786,7 @@ async def check_dataforge_health() -> bool:
         return False
 
 if not await check_dataforge_health():
-    raise DataForgeUnavailableError("DataForge health check failed; run aborted")
+    raise DataForgeUnavailableError("DataForge readiness check failed; run aborted")
 ```
 
 ### Structured Error Handling
@@ -2488,6 +2527,7 @@ ADMIN_USERNAME=admin ADMIN_PASSWORD=<strong-password> ADMIN_EMAIL=admin@forge.lo
 - [ ] `alembic upgrade head` run
 - [ ] Admin user created via `scripts/create_admin.py`
 - [ ] `GET /health` returns 200
+- [ ] `GET /ready` returns 200 before running dependent-service smoke tests
 
 ### Docker Compose (Local)
 
@@ -2505,13 +2545,13 @@ This starts PostgreSQL, Redis, and DataForge. Migrations run automatically via t
 - [ ] `VOYAGE_API_KEY`, `OPENAI_API_KEY`, `COHERE_API_KEY` in vault
 - [ ] `ALLOWED_ORIGINS` lists only production frontend origins (no wildcards)
 - [ ] `LOG_LEVEL=INFO` (not DEBUG)
-- [ ] nginx or load balancer configured in front of uvicorn
-- [ ] Health check endpoint registered with load balancer
+- [ ] Production start command uses Gunicorn with Uvicorn workers
+- [ ] Health check endpoint registered with load balancer / Render as `/health`
 - [ ] Prometheus scrape job configured for `/metrics`
 - [ ] Grafana dashboards imported
 - [ ] Backup schedule confirmed (daily/weekly/monthly + PITR)
 - [ ] `alembic upgrade head` run against production DB before traffic cutover
-- [ ] Smoke test: `GET /health`, `POST /auth/login`, `POST /api/search`
+- [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/login`, `POST /api/search`
 
 ---
 

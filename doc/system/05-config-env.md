@@ -8,6 +8,14 @@ All configuration is injected via environment variables. There are no config fil
 |----------|------|---------|----------|-------|
 | `DATAFORGE_DATABASE_URL` | str | `postgresql://postgres:postgres@localhost:5432/dataforge` | YES | Canonical PostgreSQL DSN used by the app |
 | `REDIS_URL` | str | `redis://localhost:6379/0` | YES | Redis connection string for derived cache/state |
+| `DB_CONNECT_TIMEOUT_SECONDS` | int | `5` | NO | PostgreSQL connect timeout applied by SQLAlchemy |
+| `DB_STATEMENT_TIMEOUT_MS` | int | `10000` | NO | PostgreSQL statement timeout applied to each session |
+| `DB_LOCK_TIMEOUT_MS` | int | `5000` | NO | PostgreSQL lock wait timeout |
+| `DB_IDLE_IN_TX_TIMEOUT_MS` | int | `15000` | NO | PostgreSQL idle-in-transaction timeout |
+| `DB_POOL_SIZE` | int | `5` | NO | SQLAlchemy pool size for non-SQLite backends |
+| `DB_MAX_OVERFLOW` | int | `10` | NO | SQLAlchemy overflow connection cap |
+| `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
+| `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 
 **Example:**
 ```
@@ -38,6 +46,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
 | `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
+| `REQUEST_TIMEOUT_SECONDS` | float | `30` | NO | ASGI request timeout guard; requests exceeding this return `504` |
 
 **Example:**
 ```
