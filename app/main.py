@@ -38,6 +38,7 @@ from app.api.sentinel_router import router as sentinel_router  # Sentinel Agent 
 from app.api.compression_router import router as compression_router  # Dictionary Compression (Phase 2)
 from app.api.press_router import router as press_router  # PressForge: journalist outreach (AuthorForge module)
 from app.api.private_source_router import router as private_source_router  # PSIM: private source profiles
+from app.api.policy_envelope_router import router as policy_envelope_router  # Deterministic LLM policy envelopes + ledgers
 from app.middleware.correlation import CorrelationIDMiddleware
 try:
     from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
@@ -245,6 +246,7 @@ app.include_router(sentinel_router)  # Sentinel Agent: health sweeps, healing ev
 app.include_router(compression_router)  # Dictionary Compression: CRUD for Zstd dictionaries
 app.include_router(press_router)  # PressForge: journalist outreach module
 app.include_router(private_source_router)  # PSIM: private source profile CRUD
+app.include_router(policy_envelope_router)  # Deterministic LLM policy envelopes + run ledgers
 
 # ============================================
 # Health Check & Info Endpoints
