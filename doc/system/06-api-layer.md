@@ -208,15 +208,20 @@ Stores model performance metrics and surfaces improvement recommendations for Ne
 
 Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 signature on each event enables tamper detection.
 
-#### `/api/v1/model-catalog` — Multi-Provider Model Catalog
+#### `/api/v1/models` — Multi-Provider Model Catalog
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/model-catalog` | List all models (filterable by tier, provider) |
-| `GET` | `/api/v1/model-catalog/{model_id}` | Get model details with current pricing |
-| `POST` | `/api/v1/model-catalog` | Register a new model |
-| `PUT` | `/api/v1/model-catalog/{model_id}` | Update model metadata |
-| `DELETE` | `/api/v1/model-catalog/{model_id}` | Remove model from catalog |
+| `GET` | `/api/v1/models` | List all models (filterable by tier, provider, active_only) |
+| `GET` | `/api/v1/models/{model_key}` | Get model details with current pricing |
+| `POST` | `/api/v1/models` | Register a new model |
+| `PUT` | `/api/v1/models/{model_key}` | Update model metadata |
+| `DELETE` | `/api/v1/models/{model_key}` | Remove model from catalog |
+
+The canonical xAI entries are `grok-4-1-fast-non-reasoning` and
+`grok-4-1-fast-reasoning`. `scripts/seed_model_catalog.py` explicitly retires
+legacy `grok-4` and `grok-4.1-fast` aliases so governed callers do not route
+to stale model identifiers.
 
 #### `/api/v1/pricing` — Pricing Monitoring
 
@@ -231,13 +236,13 @@ Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 s
 | `POST` | `/api/v1/pricing/runs` | Record a pricing monitor run |
 | `PATCH` | `/api/v1/pricing/runs/{run_id}` | Update run status |
 
-#### `/api/v1/cost-ledger` — Cost Tracking
+#### `/api/v1/costs` — Cost Tracking
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/v1/cost-ledger` | Record a cost entry (per-inference) |
-| `GET` | `/api/v1/cost-ledger` | Query cost entries (filterable by run, model, provider, date range) |
-| `GET` | `/api/v1/cost-ledger/aggregations` | Aggregated cost data (by provider, by model, by period) |
+| `POST` | `/api/v1/costs/record` | Record a cost entry (per-inference) |
+| `GET` | `/api/v1/costs/entries` | Query cost entries (filterable by run, model, provider, date range) |
+| `GET` | `/api/v1/costs/aggregation` | Aggregated cost data (by provider, by model, by period) |
 
 #### `/api/v1/sentinel` — Sentinel Health Sweeps & Healing
 

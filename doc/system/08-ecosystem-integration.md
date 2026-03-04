@@ -262,13 +262,18 @@ The Pricing Monitor Agent periodically scrapes provider pricing pages and compar
 
 | Operation | DataForge Endpoint |
 |-----------|-------------------|
-| Fetch model catalog | `GET /api/v1/model-catalog` |
+| Fetch model catalog | `GET /api/v1/models` |
 | Store pricing snapshot | `POST /api/v1/pricing/snapshots` |
 | Create pricing alert | `POST /api/v1/pricing/alerts` |
 | Record monitor run | `POST /api/v1/pricing/runs` |
 | Update run status | `PATCH /api/v1/pricing/runs/{run_id}` |
 
 **Auth:** Service API key. Alert types: PRICE_INCREASE, PRICE_DECREASE, NEW_MODEL, MODEL_DEPRECATED, CAPABILITY_CHANGE.
+
+**Catalog note:** The canonical xAI slots are `grok-4-1-fast-non-reasoning`
+and `grok-4-1-fast-reasoning`. When model identifiers change, rerun
+`scripts/seed_model_catalog.py` and `scripts/seed_policy_envelopes.py`
+together so ForgeAgents does not retain stale whitelist or pricing aliases.
 
 ---
 

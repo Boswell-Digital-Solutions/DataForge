@@ -34,9 +34,7 @@ DataForge/
 │   │   ├── auth_router.py            # JWT, OAuth2, TOTP 2FA endpoints
 │   │   ├── crud.py                   # Database operations (no business logic)
 │   │   ├── search.py                 # Hybrid vector + BM25 search logic
-│   │   ├── model_catalog_router.py   # Multi-provider model catalog CRUD
-│   │   ├── pricing_router.py         # Pricing snapshots, alerts, monitor runs
-│   │   ├── cost_ledger_router.py     # Cost ledger entries + aggregations
+│   │   ├── multi_provider_router.py  # /api/v1/models, pricing, costs, batch queue
 │   │   ├── sentinel_router.py        # Sentinel sweeps + healing events CRUD
 │   │   ├── private_source_crud.py   # PSIM: PrivateSourceProfile CRUD ops
 │   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
@@ -49,7 +47,7 @@ DataForge/
 │
 ├── scripts/
 │   ├── create_admin.py               # Interactive CLI: create initial admin user
-│   └── seed_model_catalog.py         # Seed 14-model multi-provider catalog
+│   └── seed_model_catalog.py         # Seed canonical model catalog + retire stale xAI aliases
 │
 ├── templates/
 │   └── admin.html                    # Self-contained Jinja2 admin UI template

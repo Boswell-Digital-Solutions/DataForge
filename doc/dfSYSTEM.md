@@ -509,9 +509,7 @@ DataForge/
 │   │   ├── auth_router.py            # JWT, OAuth2, TOTP 2FA endpoints
 │   │   ├── crud.py                   # Database operations (no business logic)
 │   │   ├── search.py                 # Hybrid vector + BM25 search logic
-│   │   ├── model_catalog_router.py   # Multi-provider model catalog CRUD
-│   │   ├── pricing_router.py         # Pricing snapshots, alerts, monitor runs
-│   │   ├── cost_ledger_router.py     # Cost ledger entries + aggregations
+│   │   ├── multi_provider_router.py  # /api/v1/models, pricing, costs, batch queue
 │   │   ├── sentinel_router.py        # Sentinel sweeps + healing events CRUD
 │   │   ├── private_source_crud.py   # PSIM: PrivateSourceProfile CRUD ops
 │   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
@@ -524,7 +522,7 @@ DataForge/
 │
 ├── scripts/
 │   ├── create_admin.py               # Interactive CLI: create initial admin user
-│   └── seed_model_catalog.py         # Seed 14-model multi-provider catalog
+│   └── seed_model_catalog.py         # Seed canonical model catalog + retire stale xAI aliases
 │
 ├── templates/
 │   └── admin.html                    # Self-contained Jinja2 admin UI template
@@ -1069,15 +1067,20 @@ Stores model performance metrics and surfaces improvement recommendations for Ne
 
 Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 signature on each event enables tamper detection.
 
-#### `/api/v1/model-catalog` — Multi-Provider Model Catalog
+#### `/api/v1/models` — Multi-Provider Model Catalog
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/model-catalog` | List all models (filterable by tier, provider) |
-| `GET` | `/api/v1/model-catalog/{model_id}` | Get model details with current pricing |
-| `POST` | `/api/v1/model-catalog` | Register a new model |
-| `PUT` | `/api/v1/model-catalog/{model_id}` | Update model metadata |
-| `DELETE` | `/api/v1/model-catalog/{model_id}` | Remove model from catalog |
+| `GET` | `/api/v1/models` | List all models (filterable by tier, provider, active_only) |
+| `GET` | `/api/v1/models/{model_key}` | Get model details with current pricing |
+| `POST` | `/api/v1/models` | Register a new model |
+| `PUT` | `/api/v1/models/{model_key}` | Update model metadata |
+| `DELETE` | `/api/v1/models/{model_key}` | Remove model from catalog |
+
+The canonical xAI entries are `grok-4-1-fast-non-reasoning` and
+`grok-4-1-fast-reasoning`. `scripts/seed_model_catalog.py` explicitly retires
+legacy `grok-4` and `grok-4.1-fast` aliases so governed callers do not route
+to stale model identifiers.
 
 #### `/api/v1/pricing` — Pricing Monitoring
 
@@ -1092,13 +1095,13 @@ Events are append-only. There is no update or delete endpoint. The HMAC-SHA256 s
 | `POST` | `/api/v1/pricing/runs` | Record a pricing monitor run |
 | `PATCH` | `/api/v1/pricing/runs/{run_id}` | Update run status |
 
-#### `/api/v1/cost-ledger` — Cost Tracking
+#### `/api/v1/costs` — Cost Tracking
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/v1/cost-ledger` | Record a cost entry (per-inference) |
-| `GET` | `/api/v1/cost-ledger` | Query cost entries (filterable by run, model, provider, date range) |
-| `GET` | `/api/v1/cost-ledger/aggregations` | Aggregated cost data (by provider, by model, by period) |
+| `POST` | `/api/v1/costs/record` | Record a cost entry (per-inference) |
+| `GET` | `/api/v1/costs/entries` | Query cost entries (filterable by run, model, provider, date range) |
+| `GET` | `/api/v1/costs/aggregation` | Aggregated cost data (by provider, by model, by period) |
 
 #### `/api/v1/sentinel` — Sentinel Health Sweeps & Healing
 
@@ -1758,13 +1761,18 @@ The Pricing Monitor Agent periodically scrapes provider pricing pages and compar
 
 | Operation | DataForge Endpoint |
 |-----------|-------------------|
-| Fetch model catalog | `GET /api/v1/model-catalog` |
+| Fetch model catalog | `GET /api/v1/models` |
 | Store pricing snapshot | `POST /api/v1/pricing/snapshots` |
 | Create pricing alert | `POST /api/v1/pricing/alerts` |
 | Record monitor run | `POST /api/v1/pricing/runs` |
 | Update run status | `PATCH /api/v1/pricing/runs/{run_id}` |
 
 **Auth:** Service API key. Alert types: PRICE_INCREASE, PRICE_DECREASE, NEW_MODEL, MODEL_DEPRECATED, CAPABILITY_CHANGE.
+
+**Catalog note:** The canonical xAI slots are `grok-4-1-fast-non-reasoning`
+and `grok-4-1-fast-reasoning`. When model identifiers change, rerun
+`scripts/seed_model_catalog.py` and `scripts/seed_policy_envelopes.py`
+together so ForgeAgents does not retain stale whitelist or pricing aliases.
 
 ---
 
@@ -2429,6 +2437,14 @@ cd /home/charlie/Forge/ecosystem/DataForge
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic upgrade head
 
+# 2a. Refresh the canonical model catalog when model identifiers or pricing change
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/python scripts/seed_model_catalog.py
+
+# 2b. Refresh governed policy whitelists after catalog changes
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/python scripts/seed_policy_envelopes.py
+
 # 3. Verify migrations applied cleanly
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic current
@@ -2639,7 +2655,7 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
-| `/home/charlie/Forge/ecosystem/DataForge/scripts/seed_model_catalog.py` | 14-model catalog seed script |
+| `/home/charlie/Forge/ecosystem/DataForge/scripts/seed_model_catalog.py` | Canonical model catalog seed script; retires stale xAI aliases |
 | `/home/charlie/Forge/ecosystem/DataForge/.env.example` | All env vars documented |
 | `/home/charlie/Forge/ecosystem/DataForge/requirements.txt` | Pinned dependencies |
 

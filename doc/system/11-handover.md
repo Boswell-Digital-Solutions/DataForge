@@ -89,6 +89,14 @@ cd /home/charlie/Forge/ecosystem/DataForge
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic upgrade head
 
+# 2a. Refresh the canonical model catalog when model identifiers or pricing change
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/python scripts/seed_model_catalog.py
+
+# 2b. Refresh governed policy whitelists after catalog changes
+DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
+  .venv/bin/python scripts/seed_policy_envelopes.py
+
 # 3. Verify migrations applied cleanly
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic current
@@ -299,7 +307,7 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
-| `/home/charlie/Forge/ecosystem/DataForge/scripts/seed_model_catalog.py` | 14-model catalog seed script |
+| `/home/charlie/Forge/ecosystem/DataForge/scripts/seed_model_catalog.py` | Canonical model catalog seed script; retires stale xAI aliases |
 | `/home/charlie/Forge/ecosystem/DataForge/.env.example` | All env vars documented |
 | `/home/charlie/Forge/ecosystem/DataForge/requirements.txt` | Pinned dependencies |
 
