@@ -229,6 +229,13 @@ ForgeAgents:
 - bandit state partitions
 - reward records and atomic outcome writes
 
+Slice 4 rollout labeling is persisted in ledger/reward payload schemas as optional strict fields:
+- `policy_mode_used`
+- `policy_id_used`
+- `baseline_policy_id`
+- `is_canary`
+- rollout reason and shadow-evaluation metadata fields
+
 These routes intentionally use synchronous FastAPI handlers because the implementation is built
 on the synchronous SQLAlchemy session from `app/database.py`. Keeping the handler itself sync
 pushes the ORM work into FastAPI's threadpool, which prevents long-running governance reads or

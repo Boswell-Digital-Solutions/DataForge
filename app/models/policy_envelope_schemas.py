@@ -58,6 +58,15 @@ class LedgerEntryV1(BaseModel):
     preference_vector: dict | None = None
     bandit_policy_id: str | None = Field(default=None, max_length=32)
     bandit_state_hash: str | None = Field(default=None, max_length=128)
+    policy_mode_used: str | None = Field(default=None, max_length=16)
+    policy_id_used: str | None = Field(default=None, max_length=128)
+    baseline_policy_id: str | None = Field(default=None, max_length=128)
+    is_canary: bool = False
+    rollout_reason_code: str | None = Field(default=None, max_length=128)
+    trace_id: str | None = Field(default=None, max_length=256)
+    shadow_policy_id: str | None = Field(default=None, max_length=128)
+    shadow_action_id: str | None = Field(default=None, max_length=256)
+    shadow_model: str | None = Field(default=None, max_length=128)
     router_degraded: bool = False
     high_cost_action: bool = False
 
@@ -255,6 +264,11 @@ class RewardRecordV1(BaseModel):
     unit_tests_pass: bool
     router_context: RouterContextV1
     preference_vector: PreferenceVectorV1
+    policy_mode_used: Literal["ACTIVE", "CANARY", "SHADOW", "OFF"]
+    policy_id_used: str = Field(..., min_length=1, max_length=128)
+    baseline_policy_id: str | None = Field(default=None, max_length=128)
+    is_canary: bool
+    rollout_reason_code: str | None = Field(default=None, max_length=128)
     router_degraded: bool = False
     created_at: datetime
 
