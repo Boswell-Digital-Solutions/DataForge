@@ -3,7 +3,7 @@
 ## Component Map
 
 ```
-DataForge (default port 8788)
+DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
 │   ├── Router-based API surface

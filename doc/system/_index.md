@@ -1,6 +1,15 @@
 # DataForge System Documentation
 
-> BDS Documentation Protocol v1.0 — modular reference for AI-assisted development
+**Document version:** 1.0 (2026-03-06) — Normalized to Forge Documentation Protocol v1
+**Protocol:** Forge Documentation Protocol v1
+
+This `doc/system/` tree uses explicit truth classes:
+- Canonical facts define DataForge's durable-truth role, service boundary, port, lifecycle invariants, and auth semantics.
+- Snapshot facts define audit-derived router, endpoint, schema, test, coverage, or inventory totals.
+
+Assembly contract:
+- Command: `bash doc/system/BUILD.sh`
+- Output: `doc/dfSYSTEM.md`
 
 | Part | File | Contents |
 |------|------|----------|
@@ -9,7 +18,7 @@
 | §3 | [03-tech-stack.md](03-tech-stack.md) | Exact dependencies and versions |
 | §4 | [04-project-structure.md](04-project-structure.md) | Directory tree, key files, ORM models |
 | §5 | [05-config-env.md](05-config-env.md) | All environment variables with types and defaults |
-| §6 | [06-api-layer.md](06-api-layer.md) | All 29 routers, 80+ endpoints, auth requirements |
+| §6 | [06-api-layer.md](06-api-layer.md) | API surface, auth requirements, and endpoint registry |
 | §7 | [07-backend-internals.md](07-backend-internals.md) | Vector search, chunking, encryption, anomaly detection |
 | §8 | [08-ecosystem-integration.md](08-ecosystem-integration.md) | Integration contracts per service (BugCheck, NeuroForge, etc.) |
 | §9 | [09-error-handling.md](09-error-handling.md) | Lifecycle state machine, access control matrix, 409 rules |
@@ -23,4 +32,4 @@
 bash doc/system/BUILD.sh   # Assembles all parts into doc/dfSYSTEM.md
 ```
 
-*Last updated: 2026-03-01*
+*Last updated: 2026-03-06*

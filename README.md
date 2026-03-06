@@ -9,8 +9,13 @@
 <h3 align="center">Core Data & Knowledge Engine</h3>
 <h4 align="center">Unified intelligence layer for the Forge Ecosystem</h4>
 
-## Documentation Standard
-This README follows the Forge ecosystem documentation standard: Overview, Status, Usage, Development, Operations, Governance, References. Service-specific details are below.
+## Documentation Contract
+
+- **Repo type:** Resident HTTP service
+- **Authority boundary:** Durable truth ownership, persistence, search, and lifecycle enforcement for the Forge ecosystem
+- **Deep reference:** `doc/system/_index.md`, `doc/dfSYSTEM.md`, `../docs/canonical/ecosystem_canonical.md`
+- **README role:** Service overview and operator entrypoint
+- **Truth note:** Badges, test totals, coverage figures, integration counts, and phase tables in this README are snapshot facts unless explicitly marked as canonical doctrine or target values
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Production%20Ready-brightgreen" />
@@ -33,7 +38,7 @@ This README follows the Forge ecosystem documentation standard: Overview, Status
 ---
 
 > **Ecosystem context**  
-> Service topology, ports, and cross-service status are centralized in `../docs/ECOSYSTEM_CANONICAL.md`.
+> Service topology, canonical ports, and cross-service doctrine are centralized in `../docs/canonical/ecosystem_canonical.md`.
 
 ## 📘 Table of Contents
 
@@ -76,7 +81,7 @@ Built with enterprise security, high availability, and compliance as first-class
 - **🚀 High Availability** – Multi-node replication, automatic failover, 99.99% SLA
 - **⚡ Performance** – Sub-100ms API latency, 1,000+ RPS sustained throughput
 
-### Project Status at a Glance
+### Current Snapshot at a Glance
 
 | Metric                  | Value                         |
 | ----------------------- | ----------------------------- |
@@ -101,7 +106,7 @@ Built with enterprise security, high availability, and compliance as first-class
 
 ## 🌐 Ecosystem Integration
 
-Ecosystem-level topology, ports, and shared status live in `../docs/ECOSYSTEM_CANONICAL.md`. This README focuses on DataForge-specific capabilities, APIs, and operational details.
+Ecosystem-level topology, canonical ports, and shared doctrine live in `../docs/canonical/ecosystem_canonical.md`. This README focuses on DataForge-specific capabilities, APIs, and operational details.
 
 ---
 

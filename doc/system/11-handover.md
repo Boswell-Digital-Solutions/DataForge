@@ -106,7 +106,7 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/pytest -q
 
 # 5. Start service
-.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8788 --reload
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 For migration-sensitive changes, the preferred validation loop is:
@@ -327,4 +327,4 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 
 ---
 
-*BDS Documentation Protocol v1.0 — Last updated: 2026-02-18*
+*Forge Documentation Protocol v1 — Last updated: 2026-02-18*

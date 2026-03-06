@@ -1,6 +1,15 @@
 # DataForge System Documentation
 
-> BDS Documentation Protocol v1.0 — modular reference for AI-assisted development
+**Document version:** 1.0 (2026-03-06) — Normalized to Forge Documentation Protocol v1
+**Protocol:** Forge Documentation Protocol v1
+
+This `doc/system/` tree uses explicit truth classes:
+- Canonical facts define DataForge's durable-truth role, service boundary, port, lifecycle invariants, and auth semantics.
+- Snapshot facts define audit-derived router, endpoint, schema, test, coverage, or inventory totals.
+
+Assembly contract:
+- Command: `bash doc/system/BUILD.sh`
+- Output: `doc/dfSYSTEM.md`
 
 | Part | File | Contents |
 |------|------|----------|
@@ -9,7 +18,7 @@
 | §3 | [03-tech-stack.md](03-tech-stack.md) | Exact dependencies and versions |
 | §4 | [04-project-structure.md](04-project-structure.md) | Directory tree, key files, ORM models |
 | §5 | [05-config-env.md](05-config-env.md) | All environment variables with types and defaults |
-| §6 | [06-api-layer.md](06-api-layer.md) | All 29 routers, 80+ endpoints, auth requirements |
+| §6 | [06-api-layer.md](06-api-layer.md) | API surface, auth requirements, and endpoint registry |
 | §7 | [07-backend-internals.md](07-backend-internals.md) | Vector search, chunking, encryption, anomaly detection |
 | §8 | [08-ecosystem-integration.md](08-ecosystem-integration.md) | Integration contracts per service (BugCheck, NeuroForge, etc.) |
 | §9 | [09-error-handling.md](09-error-handling.md) | Lifecycle state machine, access control matrix, 409 rules |
@@ -23,7 +32,7 @@
 bash doc/system/BUILD.sh   # Assembles all parts into doc/dfSYSTEM.md
 ```
 
-*Last updated: 2026-03-01*
+*Last updated: 2026-03-06*
 
 ---
 
@@ -126,7 +135,7 @@ Prometheus metrics at `/metrics`, OpenTelemetry distributed tracing, structured 
 ## Component Map
 
 ```
-DataForge (default port 8788)
+DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
 │   ├── Router-based API surface
@@ -707,14 +716,14 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
-| `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
+| `PORT` | int | `8001` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
 | `REQUEST_TIMEOUT_SECONDS` | float | `30` | NO | ASGI request timeout guard; requests exceeding this return `504` |
 
 **Example:**
 ```
 HOST=127.0.0.1
-PORT=8788
+PORT=8001
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
@@ -822,7 +831,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # Server
 HOST=127.0.0.1
-PORT=8788
+PORT=8001
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 # AI Providers
@@ -1463,6 +1472,13 @@ ForgeAgents:
 - run finalization records
 - bandit state partitions
 - reward records and atomic outcome writes
+
+Slice 4 rollout labeling is persisted in ledger/reward payload schemas as optional strict fields:
+- `policy_mode_used`
+- `policy_id_used`
+- `baseline_policy_id`
+- `is_canary`
+- rollout reason and shadow-evaluation metadata fields
 
 These routes intentionally use synchronous FastAPI handlers because the implementation is built
 on the synchronous SQLAlchemy session from `app/database.py`. Keeping the handler itself sync
@@ -2501,7 +2517,7 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/pytest -q
 
 # 5. Start service
-.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8788 --reload
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 For migration-sensitive changes, the preferred validation loop is:
@@ -2722,7 +2738,7 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 
 ---
 
-*BDS Documentation Protocol v1.0 — Last updated: 2026-02-18*
+*Forge Documentation Protocol v1 — Last updated: 2026-02-18*
 
 ---
 
@@ -2995,5 +3011,3 @@ After these additions, PressForge uses **21 `pf_*` tables** total:
 - New 11: automation_jobs, automation_runs, automation_alerts, automation_overrides, agent_logs, provider_configs, geo_probes, geo_probe_templates, social_draftsets, prompt_packs, campaign_outcomes
 
 *Added: 2026-02-25*
-
----

@@ -12,7 +12,7 @@
 |---------|------|--------|--------------|
 | **DataForge** | 8788 | ✅ HEALTHY | `curl http://localhost:8788/health` |
 | **NeuroForge** | 8000 | ✅ HEALTHY | `curl http://localhost:8000/health` |
-| **ForgeAgents** | 8787 | ✅ HEALTHY | `curl http://localhost:8787/health` |
+| **ForgeAgents** | 8010 | ✅ HEALTHY | `curl http://localhost:8010/health` |
 | **Rake** | 8002 | ✅ HEALTHY | `curl http://localhost:8002/health` |
 
 ---
@@ -24,7 +24,7 @@
 # Check all services
 curl http://localhost:8788/health  # DataForge
 curl http://localhost:8000/health  # NeuroForge
-curl http://localhost:8787/health  # ForgeAgents
+curl http://localhost:8010/health  # ForgeAgents
 curl http://localhost:8002/health  # Rake
 ```
 
@@ -61,14 +61,14 @@ curl http://localhost:8002/api/v1/jobs
 
 ### ForgeAgents - List Skills
 ```bash
-curl http://localhost:8787/api/v1/bds/skills
+curl http://localhost:8010/api/v1/bds/skills
 ```
 
 **Response**: 120 skills loaded
 
 ### ForgeAgents - Execute Skill
 ```bash
-curl -X POST http://localhost:8787/api/v1/bds/skills/A3/invoke \
+curl -X POST http://localhost:8010/api/v1/bds/skills/A3/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "inputs": {
@@ -114,7 +114,7 @@ curl -X POST http://localhost:8787/api/v1/bds/skills/A3/invoke \
 
 ### Check Running Services
 ```bash
-ps aux | grep uvicorn | grep -E "(8000|8002|8787|8788)"
+ps aux | grep uvicorn | grep -E "(8000|8002|8010|8788)"
 ```
 
 ### Restart Services
@@ -137,8 +137,8 @@ DATABASE_URL=sqlite:///./neuroforge_telemetry.db \
 **ForgeAgents**:
 ```bash
 cd /home/charles/projects/Coding2025/Forge/ForgeAgents
-lsof -ti:8787 | xargs kill -9 2>/dev/null
-venv/bin/python -m uvicorn app.main:app --port 8787 &
+lsof -ti:8010 | xargs kill -9 2>/dev/null
+venv/bin/python -m uvicorn app.main:app --port 8010 &
 ```
 
 **Rake**:
@@ -176,7 +176,7 @@ DATABASE_URL=sqlite:///./neuroforge_telemetry.db
 cd /home/charles/projects/Coding2025/Forge
 
 # Test all health endpoints
-for port in 8788 8000 8787 8002; do
+for port in 8788 8000 8010 8002; do
   curl -s http://localhost:$port/health | jq .
 done
 ```
@@ -256,10 +256,10 @@ curl -X POST http://localhost:8788/api/search \
 ### Execute Agent Skill
 ```bash
 # List all skills
-curl http://localhost:8787/api/v1/bds/skills | jq '.[] | {skill_id, name}'
+curl http://localhost:8010/api/v1/bds/skills | jq '.[] | {skill_id, name}'
 
 # Execute specific skill (e.g., A3: Explain Like I'm 12)
-curl -X POST http://localhost:8787/api/v1/bds/skills/A3/invoke \
+curl -X POST http://localhost:8010/api/v1/bds/skills/A3/invoke \
   -H "Content-Type: application/json" \
   -d '{"inputs":{"topic":"machine learning"}}' \
   | jq .
@@ -288,7 +288,7 @@ ForgeCommand (Frontend)
 ┌───┴────┬─────────┬──────────┐
 │        │         │          │
 DataForge NeuroForge ForgeAgents Rake
-(8788)   (8000)     (8787)     (8002)
+(8788)   (8000)     (8010)     (8002)
 │        │         │          │
 └────┬───┴─────────┴──────────┘
      │

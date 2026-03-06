@@ -47,14 +47,14 @@ python -c "import secrets; print(secrets.token_hex(32))"
 | Variable | Type | Default | Required | Notes |
 |----------|------|---------|----------|-------|
 | `HOST` | str | `127.0.0.1` | NO | Bind address. Use `0.0.0.0` in Docker |
-| `PORT` | int | `8788` | NO | Listen port. Must not conflict with other Forge services |
+| `PORT` | int | `8001` | NO | Listen port. Must not conflict with other Forge services |
 | `ALLOWED_ORIGINS` | str | — | YES | Comma-separated CORS origins |
 | `REQUEST_TIMEOUT_SECONDS` | float | `30` | NO | ASGI request timeout guard; requests exceeding this return `504` |
 
 **Example:**
 ```
 HOST=127.0.0.1
-PORT=8788
+PORT=8001
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
@@ -162,7 +162,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # Server
 HOST=127.0.0.1
-PORT=8788
+PORT=8001
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 # AI Providers
