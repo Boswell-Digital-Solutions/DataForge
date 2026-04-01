@@ -5,7 +5,7 @@ Admin endpoints for monitoring, managing, and recovering from failed tasks.
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import logging
 
 from app.utils.dead_letter_queue import get_dlq, DLQItemStatus
@@ -40,8 +40,8 @@ class DLQItemResponse(BaseModel):
     priority: int
     error_history: List[Dict[str, str]]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class DLQMetricsResponse(BaseModel):

@@ -576,7 +576,7 @@ def test_list_constraints():
             project_id=1,
             stack_id="test",
             project_type=ProjectType.web,
-            languages_used=[],  # min_items=1
+            languages_used=[],  # min_length=1
             outcome_status=OutcomeStatus.success
         )
     

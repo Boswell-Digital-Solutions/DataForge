@@ -11,7 +11,7 @@ import hashlib
 import json
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -46,15 +46,15 @@ class StoredKey:
     key_id: str
     key_material: bytes
     derivation_params: KeyDerivationParams
-    created_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
-    accessed_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    created_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
+    accessed_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     access_count: int = 0
     is_active: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     def record_access(self) -> None:
         """Record key access."""
-        self.accessed_at = datetime.utcnow().timestamp()
+        self.accessed_at = datetime.now(UTC).timestamp()
         self.access_count += 1
 
 

@@ -49,6 +49,10 @@ from .vibeforge_models import VibeForgeProject, ProjectSession, StackOutcome, Mo
 from .diligence_models import DiligenceProject, DiligenceReview, DiligenceFinding  # noqa: F401
 from .tarcie_models import TarcieEvent  # noqa: F401
 from .neuroforge_models import Inference
+from .runtime_promotion_models import RuntimePromotionReceipt
+from .runtime_promotion_candidate_models import (
+    RuntimePromotionCandidate, RuntimePromotionCandidateDecision,
+)
 from .agentic_reasoning_models import (
     ExecutionExperienceModel, SkillNominationModel, GovernedBroadcastModel
 )
@@ -248,6 +252,9 @@ __all__ = [
     "LorePinCreate", "LorePinUpdate", "LorePinResponse",
     "CharacterKnowledgeCreate", "CharacterKnowledgeResponse",
     "JourneyCreate", "JourneyResponse",
+    # Runtime Promotion Models
+    "RuntimePromotionReceipt",
+    "RuntimePromotionCandidate", "RuntimePromotionCandidateDecision",
     # NeuroForge Models & Schemas
     "Inference",
     "InferenceCreate", "InferenceResponse", "InferenceListResponse", "InferenceStats",

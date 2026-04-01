@@ -9,7 +9,7 @@ Total: 53 tests
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, Any
 
 from app.utils.audit_logging import (
@@ -46,7 +46,7 @@ class TestAuditLog:
     def test_audit_log_creation(self):
         """Test creating audit log entry."""
         log = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=AuditEventType.AUTH_LOGIN,
             severity=AuditSeverity.INFO,
             user_id="user123",
@@ -66,7 +66,7 @@ class TestAuditLog:
     def test_audit_log_to_dict(self):
         """Test converting audit log to dictionary."""
         log = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=AuditEventType.DATA_ACCESS,
             severity=AuditSeverity.WARNING,
             user_id="user456",
@@ -94,7 +94,7 @@ class TestInMemoryAuditBackend:
         backend = InMemoryAuditBackend()
         
         log = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=AuditEventType.AUTH_LOGIN,
             severity=AuditSeverity.INFO,
             user_id="user1",
@@ -117,7 +117,7 @@ class TestInMemoryAuditBackend:
         
         # Add logs of different types
         log1 = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=AuditEventType.AUTH_LOGIN,
             severity=AuditSeverity.INFO,
             user_id="user1",
@@ -130,7 +130,7 @@ class TestInMemoryAuditBackend:
         )
         
         log2 = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=AuditEventType.DATA_ACCESS,
             severity=AuditSeverity.INFO,
             user_id="user2",
@@ -245,7 +245,7 @@ class TestUserBehaviorBaseline:
         
         baseline.record_login(
             user_id="user1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             ip_address="192.168.1.1",
             user_agent="Mozilla/5.0",
         )
@@ -260,7 +260,7 @@ class TestUserBehaviorBaseline:
         
         baseline.record_data_access(
             user_id="user1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             resource_id="table1",
             access_size_gb=1.5,
         )
@@ -271,7 +271,7 @@ class TestUserBehaviorBaseline:
     def test_typical_volume_calculation(self):
         """Test calculating typical data access volume."""
         baseline = UserBehaviorBaseline()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Record several accesses
         for i in range(5):
@@ -299,7 +299,7 @@ class TestImpossibleTravelDetector:
             "last_login_location": {"lat": 40.7128, "lon": -74.0060, "country": "US"},
             "current_location": {"lat": 51.5074, "lon": -0.1278, "country": "UK"},
             "time_diff_minutes": 60,  # Only 1 hour passed
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
         }
         
         anomaly = detector.detect(context)
@@ -316,7 +316,7 @@ class TestImpossibleTravelDetector:
             "last_login_location": {"lat": 40.7128, "lon": -74.0060},
             "current_location": {"lat": 40.7500, "lon": -74.0100},
             "time_diff_minutes": 60,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
         }
         
         anomaly = detector.detect(context)
@@ -329,7 +329,7 @@ class TestBruteForceDetector:
     def test_detect_brute_force(self):
         """Test detecting brute force attack."""
         detector = BruteForceDetector(threshold=5, window_minutes=10)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Record 6 failed attempts
         for i in range(6):
@@ -348,7 +348,7 @@ class TestBruteForceDetector:
     def test_no_brute_force_below_threshold(self):
         """Test that low attempt counts don't trigger."""
         detector = BruteForceDetector(threshold=5, window_minutes=10)
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Record 3 failed attempts
         for i in range(3):
@@ -373,12 +373,12 @@ class TestDataExfiltrationDetector:
         detector = DataExfiltrationDetector(baseline)
         
         # Establish baseline
-        baseline.record_data_access("user1", datetime.utcnow(), "table1", 1.0)
+        baseline.record_data_access("user1", datetime.now(UTC), "table1", 1.0)
         
         # Try to access 10x the normal volume
         context = {
             "user_id": "user1",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
             "access_size_gb": 10.0,
             "resource_type": "database",
         }
@@ -398,7 +398,7 @@ class TestSuspiciousPatternDetector:
         context = {
             "user_id": "user1",
             "query": "SELECT * FROM users WHERE id=1; DROP TABLE users;",
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
         }
         
         anomaly = detector.detect(context)
@@ -417,7 +417,7 @@ class TestBulkOperationDetector:
             "user_id": "user1",
             "operation_type": "export",
             "record_count": 5000,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
         }
         
         anomaly = detector.detect(context)
@@ -433,10 +433,10 @@ class TestAnomalyDetectionEngine:
         engine = AnomalyDetectionEngine()
         
         # Record baseline
-        engine.record_login("user1", datetime.utcnow(), ip_address="1.1.1.1")
+        engine.record_login("user1", datetime.now(UTC), ip_address="1.1.1.1")
         
         # Simulate brute force
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         for i in range(6):
             engine.detectors[1].record_failed_attempt("user1", now - timedelta(minutes=i*2))
         
@@ -459,7 +459,7 @@ class TestAnomalyDetectionEngine:
                 anomaly_type=AnomalyType.BRUTE_FORCE,
                 threat_level=ThreatLevel.HIGH,
                 user_id="user1",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 message="Test anomaly",
                 metadata={},
                 confidence_score=0.9,
@@ -497,7 +497,7 @@ class TestGDPRRequest:
             request_id="req1",
             user_id="user1",
             right=GDPRRight.ACCESS,
-            requested_at=datetime.utcnow() - timedelta(days=40),
+            requested_at=datetime.now(UTC) - timedelta(days=40),
             email="user@example.com",
             status="pending",
         )
@@ -507,7 +507,7 @@ class TestGDPRRequest:
     def test_gdpr_report_generation(self):
         """Test generating GDPR compliance report."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Create some requests
         generator.create_gdpr_request("user1", GDPRRight.ACCESS, "user1@example.com")
@@ -542,7 +542,7 @@ class TestCCPARequest:
     def test_ccpa_report_generation(self):
         """Test generating CCPA compliance report."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Create requests
         generator.create_ccpa_request("c1", "know", "c1@example.com")
@@ -573,8 +573,8 @@ class TestComplianceChecker:
     
     def test_is_within_retention_period(self):
         """Test checking retention period."""
-        old_date = datetime.utcnow() - timedelta(days=400)
-        recent_date = datetime.utcnow() - timedelta(days=10)
+        old_date = datetime.now(UTC) - timedelta(days=400)
+        recent_date = datetime.now(UTC) - timedelta(days=10)
         
         assert not ComplianceChecker.is_within_retention_period(old_date, 365)
         assert ComplianceChecker.is_within_retention_period(recent_date, 365)
@@ -599,7 +599,7 @@ class TestReportGeneration:
     def test_hipaa_report_generation(self):
         """Test generating HIPAA report."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         report = generator.generate_hipaa_report(
             period_start=now - timedelta(days=30),
@@ -611,7 +611,7 @@ class TestReportGeneration:
     def test_soc2_report_generation(self):
         """Test generating SOC2 report."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         report = generator.generate_soc2_report(
             period_start=now - timedelta(days=90),
@@ -624,7 +624,7 @@ class TestReportGeneration:
     def test_pci_dss_report_generation(self):
         """Test generating PCI-DSS report."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         report = generator.generate_pci_dss_report(
             period_start=now - timedelta(days=365),
@@ -640,7 +640,7 @@ class TestReportExport:
     def test_export_gdpr_report_json(self):
         """Test exporting GDPR report as JSON."""
         generator = ComplianceReportGenerator()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         report = generator.generate_gdpr_report(
             period_start=now - timedelta(days=1),

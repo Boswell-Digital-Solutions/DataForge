@@ -13,7 +13,7 @@ Architecture:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, Dict, List, Optional, Set
 import logging
 
@@ -169,7 +169,7 @@ class CacheReplicationManager:
                 "status": ReplicationStatus.INITIALIZING,
                 "lag_ms": 0,
                 "offset": 0,
-                "registered_at": datetime.utcnow().isoformat(),
+                "registered_at": datetime.now(UTC).isoformat(),
             }
             return True
         except Exception as e:

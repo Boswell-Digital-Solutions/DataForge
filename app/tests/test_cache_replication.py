@@ -11,7 +11,7 @@ Comprehensive test suite covering:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import MagicMock, patch
 from typing import Any
 
@@ -305,12 +305,12 @@ class TestHealthChecks:
     
     def test_failover_threshold_not_met(self, failover_manager: CacheFailoverManager):
         """Test failover not triggered below threshold."""
-        failover_manager.failure_history = [datetime.utcnow()]
+        failover_manager.failure_history = [datetime.now(UTC)]
         assert not failover_manager.should_failover()
     
     def test_failover_threshold_met(self, failover_manager: CacheFailoverManager):
         """Test failover triggered at threshold."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         failover_manager.failure_history = [
             now,
             now - timedelta(seconds=1),

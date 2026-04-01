@@ -5,7 +5,7 @@ Handles database operations for teams, members, invites, projects, and insights.
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import secrets
 import string
 
@@ -121,7 +121,7 @@ class TeamService:
         for key, value in update_data.items():
             setattr(db_team, key, value)
 
-        db_team.updated_at = datetime.utcnow()
+        db_team.updated_at = datetime.now(UTC)
         db.commit()
         db.refresh(db_team)
         return db_team
@@ -315,7 +315,7 @@ class TeamInviteService:
         """Create a new team invitation."""
         # Generate token and expiration
         token = TeamInviteService._generate_token()
-        expires_at = datetime.utcnow() + timedelta(days=invite.expires_in_days)
+        expires_at = datetime.now(UTC) + timedelta(days=invite.expires_in_days)
 
         db_invite = TeamInvite(
             team_id=invite.team_id,
@@ -354,7 +354,7 @@ class TeamInviteService:
     @staticmethod
     def get_pending_invites(db: Session, team_id: int) -> List[TeamInvite]:
         """Get pending invitations for a team."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return (
             db.query(TeamInvite)
             .filter(
@@ -374,7 +374,7 @@ class TeamInviteService:
             return None
 
         # Check if expired
-        if invite.expires_at < datetime.utcnow():
+        if invite.expires_at < datetime.now(UTC):
             invite.status = InviteStatus.expired
             db.commit()
             return None
@@ -394,7 +394,7 @@ class TeamInviteService:
 
         # Update invite status
         invite.status = InviteStatus.accepted
-        invite.accepted_at = datetime.utcnow()
+        invite.accepted_at = datetime.now(UTC)
         invite.invited_user_id = user_id
         db.commit()
         db.refresh(invite)
@@ -518,7 +518,7 @@ class TeamInsightService:
     @staticmethod
     def get_active_insights(db: Session, team_id: int) -> List[TeamInsight]:
         """Get all active insights for a team."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return (
             db.query(TeamInsight)
             .filter(
@@ -539,7 +539,7 @@ class TeamInsightService:
     @staticmethod
     def get_unread_insights(db: Session, team_id: int) -> List[TeamInsight]:
         """Get unread insights for a team."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return (
             db.query(TeamInsight)
             .filter(
@@ -588,6 +588,6 @@ class TeamInsightService:
             return False
 
         insight.is_active = False
-        insight.dismissed_at = datetime.utcnow()
+        insight.dismissed_at = datetime.now(UTC)
         db.commit()
         return True

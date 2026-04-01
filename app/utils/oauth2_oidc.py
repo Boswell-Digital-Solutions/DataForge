@@ -12,7 +12,7 @@ import hashlib
 import json
 from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 import re
 
@@ -63,7 +63,7 @@ class AuthorizationCode:
     redirect_uri: str
     scope: str
     user_id: Optional[str] = None
-    created_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    created_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     expires_in: int = 600  # 10 minutes
     used: bool = False
     
@@ -71,7 +71,7 @@ class AuthorizationCode:
         """Check if code is still valid."""
         if self.used:
             return False
-        elapsed = datetime.utcnow().timestamp() - self.created_at
+        elapsed = datetime.now(UTC).timestamp() - self.created_at
         return elapsed < self.expires_in
 
 
@@ -82,16 +82,16 @@ class AccessToken:
     token_type: str = "Bearer"
     expires_in: int = 3600  # 1 hour
     scope: str = ""
-    issued_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    issued_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     
     def is_expired(self) -> bool:
         """Check if token is expired."""
-        elapsed = datetime.utcnow().timestamp() - self.issued_at
+        elapsed = datetime.now(UTC).timestamp() - self.issued_at
         return elapsed >= self.expires_in
     
     def remaining_seconds(self) -> int:
         """Get seconds until expiration."""
-        elapsed = datetime.utcnow().timestamp() - self.issued_at
+        elapsed = datetime.now(UTC).timestamp() - self.issued_at
         return max(0, self.expires_in - int(elapsed))
 
 

@@ -13,7 +13,7 @@ Strategies:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict
 import logging
@@ -347,7 +347,7 @@ class LoadBalancer:
             metrics = self.metrics[instance_name]
             instance = self.instances[instance_name]
             
-            metrics.last_health_check = datetime.utcnow()
+            metrics.last_health_check = datetime.now(UTC)
             
             if is_healthy:
                 metrics.consecutive_failures = 0
@@ -465,7 +465,7 @@ class LoadBalancer:
             total_failures = sum(m.failed_requests for m in self.metrics.values())
             
             return {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "strategy": self.strategy.value,
                 "total_instances": total_instances,
                 "healthy_instances": len(healthy),

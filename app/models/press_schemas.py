@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ── Enums ────────────────────────────────────────────────────
@@ -96,8 +96,8 @@ class JournalistResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class JournalistListResponse(BaseModel):
     items: list[JournalistResponse]
@@ -139,8 +139,8 @@ class CampaignResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class CampaignListResponse(BaseModel):
     items: list[CampaignResponse]
@@ -186,8 +186,8 @@ class MatchResultResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class MatchResultListResponse(BaseModel):
     items: list[MatchResultResponse]
@@ -231,8 +231,8 @@ class PitchResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class PitchListResponse(BaseModel):
     items: list[PitchResponse]
@@ -253,8 +253,8 @@ class OutreachEventResponse(BaseModel):
     metadata: dict[str, Any] = Field(validation_alias="event_metadata")
     occurred_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class OutreachEventListResponse(BaseModel):
@@ -280,8 +280,8 @@ class CoverageResponse(BaseModel):
     ai_sentiment_score: float | None
     discovered_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ── Domain reputation schemas ────────────────────────────────
@@ -296,8 +296,8 @@ class DomainReputationResponse(BaseModel):
     bounce_rate: float
     last_checked_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ── AI audit log schemas ────────────────────────────────────
@@ -338,8 +338,8 @@ class AiAuditLogResponse(BaseModel):
     uncited_evidence_ids: list[str] | None = None
     missing_evidence_warnings: list[str] | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ── Evidence Item schemas (EAE) ────────────────────────────
@@ -417,8 +417,8 @@ class EvidenceItemResponse(BaseModel):
     ai_stance: str | None = None
     disclosure_policy: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class EvidenceItemListResponse(BaseModel):
     items: list[EvidenceItemResponse]
@@ -496,8 +496,8 @@ class RetrievalRunResponse(BaseModel):
     bundle_id: UUID
     bundle_hash: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class RetrievalRunListResponse(BaseModel):
     items: list[RetrievalRunResponse]
@@ -585,8 +585,8 @@ class AutomationJobResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AutomationJobListResponse(BaseModel):
     items: list[AutomationJobResponse]
@@ -629,8 +629,8 @@ class AutomationRunResponse(BaseModel):
     provider_latency_ms: int | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AutomationRunListResponse(BaseModel):
     items: list[AutomationRunResponse]
@@ -660,8 +660,8 @@ class AutomationAlertResponse(BaseModel):
     dismissed_at: datetime | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AutomationAlertListResponse(BaseModel):
     items: list[AutomationAlertResponse]
@@ -686,8 +686,8 @@ class AutomationOverrideResponse(BaseModel):
     created_by: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AutomationOverrideListResponse(BaseModel):
     items: list[AutomationOverrideResponse]
@@ -718,8 +718,8 @@ class AgentLogResponse(BaseModel):
     accepted_by: str | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AgentLogUpdateDecision(BaseModel):
     accepted: bool
@@ -779,8 +779,8 @@ class ProviderConfigResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ProviderConfigListResponse(BaseModel):
     items: list[ProviderConfigResponse]
@@ -820,8 +820,8 @@ class GeoProbeResponse(BaseModel):
     probed_at: datetime
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class GeoProbeListResponse(BaseModel):
     items: list[GeoProbeResponse]
@@ -852,8 +852,8 @@ class GeoProbeTemplateResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class GeoProbeTemplateListResponse(BaseModel):
     items: list[GeoProbeTemplateResponse]
@@ -889,8 +889,8 @@ class SocialDraftsetResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SocialDraftsetListResponse(BaseModel):
     items: list[SocialDraftsetResponse]
@@ -933,8 +933,8 @@ class PromptPackResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class PromptPackListResponse(BaseModel):
     items: list[PromptPackResponse]
@@ -964,8 +964,8 @@ class CampaignOutcomeResponse(BaseModel):
     discovered_at: datetime
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class CampaignOutcomeListResponse(BaseModel):
     items: list[CampaignOutcomeResponse]

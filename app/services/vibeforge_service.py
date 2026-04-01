@@ -5,7 +5,7 @@ Handles database operations for projects, sessions, outcomes, performance, and p
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from app.models.vibeforge_models import (
     VibeForgeProject,
@@ -118,7 +118,7 @@ class ProjectService:
     @staticmethod
     def get_recent(db: Session, days: int = 30, limit: int = 100) -> List[VibeForgeProject]:
         """Get recent projects within specified days."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         return (
             db.query(VibeForgeProject)
             .filter(VibeForgeProject.created_at >= cutoff)
@@ -181,7 +181,7 @@ class SessionService:
         if not db_session:
             return None
         
-        db_session.session_completed_at = datetime.utcnow()
+        db_session.session_completed_at = datetime.now(UTC)
         duration = (db_session.session_completed_at - db_session.session_started_at).total_seconds()
         db_session.session_duration_seconds = int(duration)
         
@@ -204,7 +204,7 @@ class SessionService:
     @staticmethod
     def get_abandoned_sessions(db: Session, days: int = 7) -> List[ProjectSession]:
         """Get sessions that appear abandoned (not completed within time window)."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         return (
             db.query(ProjectSession)
             .filter(
@@ -468,7 +468,7 @@ class PreferenceService:
         db_pref = PreferenceService.get_or_create(db, user_id, language_id, language_name)
         
         db_pref.times_selected += 1
-        db_pref.last_used_at = datetime.utcnow()
+        db_pref.last_used_at = datetime.now(UTC)
         
         # Update project types
         project_types_used_in = list(db_pref.project_types_used_in or [])

@@ -9,7 +9,7 @@ protection and metrics collection for the single NeuroForge provider.
 import logging
 import time
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.utils.circuit_breaker import CircuitBreakerRegistry, CircuitBreakerError
 from app.utils.embeddings import generate_embedding, generate_embeddings_batch
@@ -40,7 +40,7 @@ class ProviderMetrics:
         self.total_requests += 1
         self.failed_requests += 1
         self.last_error = error
-        self.last_error_time = datetime.utcnow()
+        self.last_error_time = datetime.now(UTC)
 
     @property
     def success_rate(self) -> float:
@@ -194,7 +194,7 @@ class ResilientEmbeddingService:
         neuroforge_metrics = self.metrics["neuroforge"].to_dict()
 
         health = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "providers": {
                 "neuroforge": {
                     "configured": True,

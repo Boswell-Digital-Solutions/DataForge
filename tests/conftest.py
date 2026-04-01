@@ -2,15 +2,16 @@
 Pytest configuration and shared fixtures for DataForge tests.
 """
 import os
-import pytest
 from typing import Generator
+
+import pytest
 from fastapi.testclient import TestClient
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import ARRAY, create_engine
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from pgvector.sqlalchemy import Vector
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 os.environ.setdefault("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
@@ -19,19 +20,30 @@ os.environ.setdefault("DATAFORGE_SKIP_STARTUP_DB_INIT", "1")
 from app.database import Base, get_db, get_session_factory
 from app.main import app
 from app.models import models
+
+# IMPORTANT:
+# These imports must exist in the test bootstrap path so the runtime-promotion
+# tables are registered in Base.metadata before Base.metadata.create_all(bind=engine).
+from app.models.runtime_promotion_models import RuntimePromotionReceipt
+from app.models.runtime_promotion_candidate_models import (
+    RuntimePromotionCandidate,
+    RuntimePromotionCandidateDecision,
+)
+
 from app.utils.auth import get_password_hash
 from app.utils.rate_limit import rate_limiter as simple_rate_limiter
 from tests.conftest_security import (
     TestCredentials,
-    test_credentials,
-    test_password,
-    test_hashed_password,
     test_api_key,
-    test_secret,
+    test_credentials,
     test_db_credentials,
+    test_hashed_password,
     test_jwt_secret,
+    test_password,
+    test_secret,
     weak_passwords,
 )
+
 
 @compiles(JSONB, "sqlite")
 def _compile_jsonb_sqlite(_type, _compiler, **_kwargs):
@@ -57,6 +69,7 @@ def _compile_uuid_sqlite(_type, _compiler, **_kwargs):
 def _compile_vector_sqlite(_type, _compiler, **_kwargs):
     return "TEXT"
 
+
 # Create test engine with special settings for SQLite
 engine = create_engine(
     SQLALCHEMY_TEST_DATABASE_URL,
@@ -74,15 +87,21 @@ def db() -> Generator[Session, None, None]:
     """
     # Create tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Create session
     session = TestingSessionLocal()
 
     if session.query(models.CorpusState).filter(models.CorpusState.id == 1).first() is None:
         session.add(models.CorpusState(id=1, current_version=1))
-        session.add(models.CorpusVersion(version=1, trigger_event="initial", trigger_entity_id=None))
+        session.add(
+            models.CorpusVersion(
+                version=1,
+                trigger_event="initial",
+                trigger_entity_id=None,
+            )
+        )
         session.commit()
-    
+
     try:
         yield session
     finally:
@@ -96,6 +115,7 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     """
     Create a test client with database dependency override.
     """
+
     def override_get_db():
         try:
             yield db
@@ -104,13 +124,13 @@ def client(db: Session) -> Generator[TestClient, None, None]:
 
     def override_get_session_factory():
         return TestingSessionLocal
-    
+
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_session_factory] = override_get_session_factory
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
 
 
@@ -124,7 +144,7 @@ def test_user(db: Session) -> models.User:
         email="test@example.com",
         hashed_password=get_password_hash("testpassword"),
         is_active=True,
-        is_admin=False
+        is_admin=False,
     )
     db.add(user)
     db.commit()
@@ -142,7 +162,7 @@ def test_admin(db: Session) -> models.User:
         email="admin@example.com",
         hashed_password=get_password_hash("adminpassword"),
         is_active=True,
-        is_admin=True
+        is_admin=True,
     )
     db.add(admin)
     db.commit()
@@ -158,7 +178,7 @@ def test_domain(db: Session) -> models.Domain:
     domain = models.Domain(
         id="test_domain",
         label="Test Domain",
-        description="A test domain for testing"
+        description="A test domain for testing",
     )
     db.add(domain)
     db.commit()
@@ -185,7 +205,7 @@ def auth_headers(client: TestClient, test_admin: models.User) -> dict:
     """
     response = client.post(
         "/auth/token",
-        data={"username": "admin", "password": "adminpassword"}
+        data={"username": "admin", "password": "adminpassword"},
     )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

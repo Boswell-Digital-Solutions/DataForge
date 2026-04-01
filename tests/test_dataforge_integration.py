@@ -13,7 +13,7 @@ Test scenarios:
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.neuroforge.models import (
     InferenceRequest,
@@ -161,7 +161,7 @@ class TestDataForgeClient:
         client = DataForgeClient(settings)
         client.circuit_breaker.metrics.failure_count = settings.circuit_breaker_failure_threshold
         client.circuit_breaker.metrics.state = CircuitBreakerState.OPEN
-        client.circuit_breaker.metrics.opened_at = datetime.utcnow()
+        client.circuit_breaker.metrics.opened_at = datetime.now(UTC)
         
         request = DataForgeContextRequest(
             project_id="proj-1",
@@ -211,7 +211,7 @@ class TestContextBuilder:
             context_pack_id=sample_context_pack.id,
             text_blocks=["snippet 1", "snippet 2"],
             source="dataforge",
-            cached_at=datetime.utcnow(),
+            cached_at=datetime.now(UTC),
             ttl_seconds=300,
         )
         
@@ -227,7 +227,7 @@ class TestContextBuilder:
         """Cache: TTL expiration."""
         import datetime as dt
         
-        past_time = datetime.utcnow() - dt.timedelta(seconds=400)
+        past_time = datetime.now(UTC) - dt.timedelta(seconds=400)
         
         expired_context = BuiltContext(
             context_pack_id="pack-old",
@@ -388,7 +388,7 @@ class TestCircuitBreaker:
         assert cb.state == CircuitBreakerState.OPEN
         
         # Manually move time forward (simulated by setting opened_at)
-        cb.metrics.opened_at = datetime.utcnow() - timedelta(seconds=2)
+        cb.metrics.opened_at = datetime.now(UTC) - timedelta(seconds=2)
         
         # Next call should allow HALF_OPEN trial
         result = await cb.call(flaky_func)

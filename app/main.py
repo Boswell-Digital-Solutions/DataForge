@@ -30,6 +30,8 @@ from app.api.forge_run_router import router as forge_run_router  # ForgeAgents r
 from app.api.agents_registry_router import router as agents_registry_router  # ForgeAgents agent persistence
 from app.api.bugcheck_router import router as bugcheck_router  # BugCheck Agent persistence
 from app.api.experience_router import router as experience_router  # Agentic Reasoning: Experience Store
+from app.api.runtime_promotion_candidate_router import router as runtime_promotion_candidate_router
+from app.api.runtime_promotion_router import router as runtime_promotion_router  # Runtime promotion receipt ingest
 from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
 from app.api.smithy_planning_router import router as smithy_planning_router  # Smithy Planning Sessions
 from app.api.neuroforge_router import router as neuroforge_router  # NeuroForge inference logging
@@ -248,6 +250,8 @@ app.include_router(auth_router.legacy_router)
 app.include_router(projects_router.router)  # AuthorForge projects API
 app.include_router(diligence_router)  # Due Diligence API
 app.include_router(diligence_ui_router)  # Due Diligence UI
+app.include_router(runtime_promotion_router)  # Runtime promotion receipt ingest
+app.include_router(runtime_promotion_candidate_router)  # Runtime promotion candidate management (Phase 3)
 app.include_router(runs_router.router)  # VibeForge runs & analytics
 app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer

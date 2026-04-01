@@ -9,13 +9,13 @@ Provides async HTTP client wrapper for DataForge integration with:
 """
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 from typing import Optional, Any, Dict
 from dataclasses import dataclass, field
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.neuroforge.config import get_settings
 
@@ -55,8 +55,8 @@ class DataForgeContextPack(BaseModel):
     snippets: list[DataForgeSnippet]
     metadata: DataForgeContextMetadata
 
-    class Config:
-        populate_by_name = True  # Allow both 'id' and 'context_pack_id'
+    model_config = ConfigDict(populate_by_name=True)
+  # Allow both 'id' and 'context_pack_id'
 
 
 class DataForgeRouterDecision(BaseModel):
@@ -74,24 +74,8 @@ class DataForgeProvenancePayload(BaseModel):
     latency_ms: int
     extra: Optional[Dict[str, Any]] = None
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "context_pack_id": "context-pack-id",
-                "request_id": "nf-req-id",
-                "answer": "final model answer",
-                "model_name": "gpt-4.1-mini",
-                "latency_ms": 95,
-                "extra": {
-                    "tokens_in": 1024,
-                    "tokens_out": 256,
-                    "router_decision": {
-                        "ensemble": ["model_a", "model_b"],
-                        "winner": "model_b"
-                    }
-                }
-            }
-        }
+    model_config = ConfigDict(json_schema_extra={'example': {'context_pack_id': 'context-pack-id', 'request_id': 'nf-req-id', 'answer': 'final model answer', 'model_name': 'gpt-4.1-mini', 'latency_ms': 95, 'extra': {'tokens_in': 1024, 'tokens_out': 256, 'router_decision': {'ensemble': ['model_a', 'model_b'], 'winner': 'model_b'}}}})
+
 
 
 # ============================================================================
@@ -182,7 +166,7 @@ class CircuitBreaker:
         if self.metrics.state == CircuitBreakerState.OPEN:
             # Check if recovery window has passed
             if (self.metrics.opened_at and 
-                datetime.utcnow() >= self.metrics.opened_at + timedelta(seconds=self.recovery_seconds)):
+                datetime.now(UTC) >= self.metrics.opened_at + timedelta(seconds=self.recovery_seconds)):
                 logger.info(f"{self.name}: Transitioning OPEN → HALF_OPEN")
                 self.metrics.state = CircuitBreakerState.HALF_OPEN
                 self.metrics.half_open_attempt_count = 0
@@ -202,17 +186,17 @@ class CircuitBreaker:
         """Record failed call."""
         async with self._lock:
             self.metrics.failure_count += 1
-            self.metrics.last_failure_time = datetime.utcnow()
+            self.metrics.last_failure_time = datetime.now(UTC)
             
             if self.metrics.state == CircuitBreakerState.HALF_OPEN:
                 logger.warning(f"{self.name}: Failure in HALF_OPEN, transitioning back to OPEN")
                 self.metrics.state = CircuitBreakerState.OPEN
-                self.metrics.opened_at = datetime.utcnow()
+                self.metrics.opened_at = datetime.now(UTC)
                 self.metrics.half_open_attempt_count = 0
             elif self.metrics.failure_count >= self.failure_threshold:
                 logger.error(f"{self.name}: Failure threshold {self.failure_threshold} reached, opening circuit")
                 self.metrics.state = CircuitBreakerState.OPEN
-                self.metrics.opened_at = datetime.utcnow()
+                self.metrics.opened_at = datetime.now(UTC)
 
 
 class CircuitBreakerOpenError(Exception):

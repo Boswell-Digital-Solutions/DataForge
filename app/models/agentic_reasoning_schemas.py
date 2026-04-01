@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ============================================================================
@@ -72,8 +72,8 @@ class ExperienceResponse(BaseModel):
     cost_usd: float | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class ExperienceSearchRequest(BaseModel):
@@ -103,8 +103,8 @@ class ExperienceSearchResult(BaseModel):
     created_at: datetime
     similarity: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -140,8 +140,8 @@ class NominationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class NominationStatusUpdate(BaseModel):
@@ -183,5 +183,5 @@ class BroadcastResponse(BaseModel):
     delivered_to: list[UUID]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+

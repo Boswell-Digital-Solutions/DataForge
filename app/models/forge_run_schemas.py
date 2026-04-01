@@ -6,7 +6,7 @@ endpoints that handle execution persistence from ForgeAgents.
 
 from datetime import datetime
 from typing import Any, Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # =============================================================================
@@ -168,9 +168,8 @@ class ExecutionIndexResponse(BaseModel):
     # Map 'run_metadata' from DB model to 'metadata' in API response
     metadata: dict[str, Any] | None = Field(None, validation_alias="run_metadata")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
 
 
 class RunEvidenceResponse(BaseModel):
@@ -182,8 +181,8 @@ class RunEvidenceResponse(BaseModel):
     evidence: dict[str, Any]
     created_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class RunDetailResponse(BaseModel):

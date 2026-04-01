@@ -13,7 +13,7 @@ import json
 import hmac
 from typing import Any, Dict, Optional, List, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 
 try:
@@ -46,7 +46,7 @@ class EncryptionKey:
     key_id: str
     key_material: bytes
     algorithm: EncryptionAlgorithm
-    created_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    created_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     rotation_policy: KeyRotationPolicy = KeyRotationPolicy.QUARTERLY
     rotated_at: Optional[float] = None
     is_active: bool = True
@@ -58,7 +58,7 @@ class EncryptionKey:
         
         # Calculate days since creation/last rotation
         reference_time = self.rotated_at or self.created_at
-        days_elapsed = (datetime.utcnow().timestamp() - reference_time) / 86400
+        days_elapsed = (datetime.now(UTC).timestamp() - reference_time) / 86400
         
         policy_days = {
             KeyRotationPolicy.YEARLY: 365,
@@ -72,7 +72,7 @@ class EncryptionKey:
     
     def mark_rotated(self) -> None:
         """Mark key as rotated."""
-        self.rotated_at = datetime.utcnow().timestamp()
+        self.rotated_at = datetime.now(UTC).timestamp()
 
 
 @dataclass
@@ -83,7 +83,7 @@ class EncryptedData:
     algorithm: EncryptionAlgorithm
     iv: Optional[str] = None  # Base64-encoded initialization vector
     tag: Optional[str] = None  # Authentication tag for GCM mode
-    timestamp: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    timestamp: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
 
 
 class FieldLevelEncryption:
@@ -258,7 +258,7 @@ class KeyManager:
         old_key = self.keys[key_id]
         
         # Generate new key with same ID (versioned)
-        new_key_id = f"{key_id}_v{int(datetime.utcnow().timestamp())}"
+        new_key_id = f"{key_id}_v{int(datetime.now(UTC).timestamp())}"
         new_key = self.generate_key(
             key_id=new_key_id,
             algorithm=old_key.algorithm,

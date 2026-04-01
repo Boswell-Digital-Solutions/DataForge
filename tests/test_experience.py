@@ -7,7 +7,7 @@ Tests:
 4. Search with outcome filter
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -72,7 +72,7 @@ class TestCreateExperience:
         # Mock the db.add/commit/refresh cycle
         def set_experience_id(obj):
             obj.experience_id = uuid4()
-            obj.created_at = datetime.utcnow()
+            obj.created_at = datetime.now(UTC)
 
         mock_db.refresh.side_effect = set_experience_id
 
@@ -104,7 +104,7 @@ class TestSearchExperiences:
         row.tool_sequence = ["read_file"]
         row.duration_ms = 1000
         row.cost_usd = 0.01
-        row.created_at = datetime.utcnow()
+        row.created_at = datetime.now(UTC)
         row.similarity = similarity
         return row
 

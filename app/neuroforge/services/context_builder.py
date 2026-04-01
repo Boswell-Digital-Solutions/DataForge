@@ -13,7 +13,7 @@ Pipeline Stage 0: Prepare context for inference
 import hashlib
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.neuroforge.models import InferenceRequest, BuiltContext
 from app.neuroforge.services import (
@@ -115,7 +115,7 @@ async def build_context_for_request(
                 "snippet_count": len(context_pack.snippets),
             },
             source="dataforge",
-            cached_at=datetime.utcnow(),
+            cached_at=datetime.now(UTC),
             ttl_seconds=settings.dataforge_cache_ttl,
         )
         

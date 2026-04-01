@@ -8,7 +8,7 @@ audit trails, security event logging, and log rotation.
 import logging
 import logging.handlers
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 import os
 import sys
@@ -21,7 +21,7 @@ class StructuredJSONFormatter(logging.Formatter):
     def format(self, record):
         """Format log record as JSON."""
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(UTC).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'message': record.getMessage(),

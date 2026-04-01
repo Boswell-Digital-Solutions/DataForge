@@ -7,7 +7,7 @@ Matches the TypeScript types in forge-smithy/src/lib/types/agents.ts.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
 
@@ -101,8 +101,8 @@ class PlanningStep(BaseModel):
     dependencies: list[str] = []
     acceptance_criteria: list[str] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class PlanningDeliverable(BaseModel):
@@ -121,8 +121,8 @@ class PlanningDeliverable(BaseModel):
     created_at: datetime
     steps: list[PlanningStep] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class PlanningSession(BaseModel):
@@ -148,8 +148,8 @@ class PlanningSession(BaseModel):
     completed_at: Optional[datetime] = None
     deliverable: Optional[PlanningDeliverable] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class PlanningSessionSummary(BaseModel):
@@ -162,8 +162,8 @@ class PlanningSessionSummary(BaseModel):
     completed_at: Optional[datetime] = None
     has_deliverable: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

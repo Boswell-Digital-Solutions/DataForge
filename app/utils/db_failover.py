@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class FailoverMetrics:
     primary_failures: int = 0
     primary_recoveries: int = 0
     current_state: str = FailoverState.HEALTHY.value
-    state_since: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    state_since: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     last_health_check: Optional[str] = None
     health_check_failures: int = 0
 
@@ -95,7 +95,7 @@ class FailoverManager:
             cursor.close()
             
             self._primary_failure_count = 0
-            self._metrics.last_health_check = datetime.utcnow().isoformat()
+            self._metrics.last_health_check = datetime.now(UTC).isoformat()
             
             return True, None
             
@@ -104,7 +104,7 @@ class FailoverManager:
             logger.warning(f"Primary health check failed: {error_msg}")
             
             self._primary_failure_count += 1
-            self._metrics.last_health_check = datetime.utcnow().isoformat()
+            self._metrics.last_health_check = datetime.now(UTC).isoformat()
             self._metrics.health_check_failures += 1
             
             if self._primary_failure_count >= self.config.primary_unhealthy_threshold:
@@ -205,7 +205,7 @@ class FailoverManager:
                 self._state = FailoverState.FAILOVER_COMPLETE
                 self._metrics.current_state = FailoverState.FAILOVER_COMPLETE.value
                 self._metrics.successful_failovers += 1
-                self._metrics.last_failover_time = datetime.utcnow().isoformat()
+                self._metrics.last_failover_time = datetime.now(UTC).isoformat()
                 self._metrics.last_failover_reason = reason
                 logger.info(f"Failover completed: {candidate} promoted to primary")
                 return True
@@ -238,7 +238,7 @@ class FailoverManager:
                 self._state = FailoverState.FAILOVER_COMPLETE
                 self._metrics.current_state = FailoverState.FAILOVER_COMPLETE.value
                 self._metrics.successful_failovers += 1
-                self._metrics.last_failover_time = datetime.utcnow().isoformat()
+                self._metrics.last_failover_time = datetime.now(UTC).isoformat()
                 logger.info(f"Manual promotion successful: {replica_name} is now primary")
             
             return success

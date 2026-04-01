@@ -1,4 +1,5 @@
 """
+from datetime import datetime, UTC
 LRU Context Cache
 
 Simple LRU (Least Recently Used) cache for BuiltContext.
@@ -61,7 +62,7 @@ class LRUContextCache:
             # Check expiration
             if context.cached_at:
                 import datetime
-                elapsed = (datetime.datetime.utcnow() - context.cached_at).total_seconds()
+                elapsed = (datetime.datetime.now(UTC) - context.cached_at).total_seconds()
                 if elapsed > context.ttl_seconds:
                     logger.debug(f"Cache entry expired: {key}")
                     del self._cache[key]

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, List, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import re
 
 
@@ -33,8 +33,8 @@ class MetricsPayload(BaseModel):
             raise ValueError('profile_hash must be a 64-character hex string')
         return v
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
+
 
 
 class BuildGuardMetricsEventCreate(BaseModel):
@@ -89,8 +89,8 @@ class BuildGuardEventResponse(BaseModel):
     profile_hash: str
     evaluation_duration_ms: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class BuildGuardProfileStatsResponse(BaseModel):
@@ -107,8 +107,8 @@ class BuildGuardProfileStatsResponse(BaseModel):
     first_seen: datetime
     last_seen: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class BuildGuardDashboardStats(BaseModel):

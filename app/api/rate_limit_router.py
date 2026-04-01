@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import logging
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.utils.rate_limiter import (
     get_rate_limiter,
@@ -42,14 +42,8 @@ class RateLimitConfigRequest(BaseModel):
     description: str = Field(default="", description="Human-readable description")
     enabled: bool = Field(default=True, description="Is limit active?")
 
-    class Config:
-        example = {
-            "name": "custom_limit",
-            "scope": "user",
-            "window": "minute",
-            "max_requests": 100,
-            "description": "Custom per-user limit",
-        }
+    model_config = ConfigDict(example={'name': 'custom_limit', 'scope': 'user', 'window': 'minute', 'max_requests': 100, 'description': 'Custom per-user limit'})
+
 
 
 class RateLimitConfigResponse(BaseModel):
@@ -61,15 +55,8 @@ class RateLimitConfigResponse(BaseModel):
     description: str
     enabled: bool
 
-    class Config:
-        example = {
-            "name": "public_api",
-            "scope": "ip",
-            "window": "minute",
-            "max_requests": 60,
-            "description": "Public API: 60 requests per minute per IP",
-            "enabled": True,
-        }
+    model_config = ConfigDict(example={'name': 'public_api', 'scope': 'ip', 'window': 'minute', 'max_requests': 60, 'description': 'Public API: 60 requests per minute per IP', 'enabled': True})
+
 
 
 class RateLimitStatusRequest(BaseModel):
@@ -77,11 +64,8 @@ class RateLimitStatusRequest(BaseModel):
     limit_name: str = Field(..., description="Name of the rate limit")
     identifier: str = Field(..., description="User ID, IP, endpoint, etc.")
 
-    class Config:
-        example = {
-            "limit_name": "authenticated_api",
-            "identifier": "user-123",
-        }
+    model_config = ConfigDict(example={'limit_name': 'authenticated_api', 'identifier': 'user-123'})
+
 
 
 class RateLimitStatusResponse(BaseModel):
@@ -102,11 +86,8 @@ class WhitelistRequest(BaseModel):
     identifier: str = Field(..., description="User ID, IP, or other identifier")
     ttl_hours: int = Field(default=24, ge=0, description="TTL for whitelist entry (0=permanent)")
 
-    class Config:
-        example = {
-            "identifier": "admin-user-1",
-            "ttl_hours": 24,
-        }
+    model_config = ConfigDict(example={'identifier': 'admin-user-1', 'ttl_hours': 24})
+
 
 
 class RateLimitMetricsResponse(BaseModel):
@@ -119,16 +100,8 @@ class RateLimitMetricsResponse(BaseModel):
     active_limits: int = Field(description="Active limit configurations")
     redis_available: bool = Field(description="Is Redis available?")
 
-    class Config:
-        example = {
-            "total_requests": 10000,
-            "rate_limited_requests": 125,
-            "allowed_requests": 9875,
-            "exceeded_by_scope": {"user": 75, "ip": 50},
-            "redis_errors": 0,
-            "active_limits": 5,
-            "redis_available": True,
-        }
+    model_config = ConfigDict(example={'total_requests': 10000, 'rate_limited_requests': 125, 'allowed_requests': 9875, 'exceeded_by_scope': {'user': 75, 'ip': 50}, 'redis_errors': 0, 'active_limits': 5, 'redis_available': True})
+
 
 
 class HealthResponse(BaseModel):

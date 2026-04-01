@@ -1,4 +1,5 @@
 """
+from datetime import datetime, UTC
 Tests for Data Encryption and Key Management (PHASE 4.2)
 
 Comprehensive test suite for encryption, key rotation, and PII protection.
@@ -117,7 +118,7 @@ class TestEncryptionKey:
         # Simulate old key (120 days)
         from datetime import datetime
         key.created_at = (
-            datetime.utcnow().timestamp() - (120 * 86400)
+            datetime.now(UTC).timestamp() - (120 * 86400)
         )
         
         # Should need rotation (>90 days)
@@ -198,7 +199,7 @@ class TestKeyManager:
         # Simulate old key
         from datetime import datetime
         key.created_at = (
-            datetime.utcnow().timestamp() - (120 * 86400)
+            datetime.now(UTC).timestamp() - (120 * 86400)
         )
         
         # Should need rotation now

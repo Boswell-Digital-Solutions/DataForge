@@ -1,4 +1,5 @@
 """
+from datetime import datetime, UTC
 Tests for Security Authentication (PHASE 4.1)
 
 Comprehensive test suite for OAuth2/OIDC and MFA functionality.
@@ -495,7 +496,7 @@ class TestAuthorizationCodeExpiration:
         
         # Simulate expiration
         auth_code.created_at = (
-            datetime.utcnow() - timedelta(minutes=20)
+            datetime.now(UTC) - timedelta(minutes=20)
         ).timestamp()
         
         assert not auth_code.is_valid()

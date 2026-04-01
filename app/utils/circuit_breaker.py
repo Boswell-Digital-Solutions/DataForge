@@ -13,7 +13,7 @@ States:
 import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
 from functools import wraps
@@ -84,7 +84,7 @@ class CircuitBreaker:
         if self._last_failure_time is None:
             return False
 
-        elapsed = (datetime.utcnow() - self._last_failure_time).total_seconds()
+        elapsed = (datetime.now(UTC) - self._last_failure_time).total_seconds()
         return elapsed >= self.recovery_timeout
 
     async def _update_state(self) -> None:
@@ -102,7 +102,7 @@ class CircuitBreaker:
                     # Failure in half-open, reopen with exponential backoff
                     logger.error(f"❌ [{self.name}] Failed during recovery, reopening circuit")
                     self._state = CircuitState.OPEN
-                    self._last_failure_time = datetime.utcnow()
+                    self._last_failure_time = datetime.now(UTC)
                     # Double the recovery timeout on each failure
                     self.recovery_timeout = int(self.recovery_timeout * 1.5)
 
@@ -120,7 +120,7 @@ class CircuitBreaker:
     def record_failure(self) -> None:
         """Record a failed request."""
         self._failure_count += 1
-        self._last_failure_time = datetime.utcnow()
+        self._last_failure_time = datetime.now(UTC)
 
         if self._failure_count >= self.failure_threshold:
             self._state = CircuitState.OPEN

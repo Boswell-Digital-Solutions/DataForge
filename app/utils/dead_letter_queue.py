@@ -6,7 +6,7 @@ persistent storage of permanently failed tasks for manual intervention.
 """
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -40,7 +40,7 @@ class DLQMetrics:
     resolved_items: int = 0
     avg_retry_count: float = 0.0
     avg_wait_time_seconds: float = 0.0
-    last_updated: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -61,7 +61,7 @@ class DLQItem:
     max_retries: int = 3
     retry_strategy: RetryStrategy = RetryStrategy.EXPONENTIAL
     base_delay_seconds: int = 60
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     last_retry_at: Optional[str] = None
     next_retry_at: Optional[str] = None
     error_history: List[Dict[str, str]] = field(default_factory=list)
@@ -82,12 +82,12 @@ class DLQItem:
         else:  # IMMEDIATE
             delay = 0
         
-        return datetime.utcnow() + timedelta(seconds=delay)
+        return datetime.now(UTC) + timedelta(seconds=delay)
 
     def mark_retrying(self):
         """Mark item as retrying and update next retry time."""
         self.status = DLQItemStatus.RETRYING
-        self.last_retry_at = datetime.utcnow().isoformat()
+        self.last_retry_at = datetime.now(UTC).isoformat()
         next_retry = self.calculate_next_retry()
         self.next_retry_at = next_retry.isoformat() if next_retry else None
         self.retry_count += 1
@@ -97,7 +97,7 @@ class DLQItem:
         self.status = DLQItemStatus.PERMANENTLY_FAILED
         self.notes = reason
         self.error_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "permanently_failed",
             "reason": reason
         })
@@ -107,7 +107,7 @@ class DLQItem:
         self.status = DLQItemStatus.RESOLVED
         self.notes = resolution_notes
         self.error_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "resolved",
             "notes": resolution_notes
         })
@@ -115,7 +115,7 @@ class DLQItem:
     def add_error_history(self, error: str):
         """Add error to history."""
         self.error_history.append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "error": error
         })
 
@@ -160,7 +160,7 @@ class DeadLetterQueue:
         """Add a failed task to the DLQ."""
         # Generate unique ID for DLQ item
         item_hash = hashlib.sha256(
-            f"{task_id}-{datetime.utcnow().isoformat()}".encode()
+            f"{task_id}-{datetime.now(UTC).isoformat()}".encode()
         ).hexdigest()[:16]
 
         item = DLQItem(
@@ -199,7 +199,7 @@ class DeadLetterQueue:
 
     def get_items_for_retry(self) -> List[DLQItem]:
         """Get items ready for retry (past next_retry_at)."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         items_to_retry = []
 
         for item in self._queue.values():
@@ -303,7 +303,7 @@ class DeadLetterQueue:
 
     def cleanup_resolved_items(self, days_old: int = 7) -> int:
         """Remove resolved items older than specified days."""
-        cutoff = datetime.utcnow() - timedelta(days=days_old)
+        cutoff = datetime.now(UTC) - timedelta(days=days_old)
         items_to_remove = []
 
         for item_id, item in self._queue.items():
@@ -342,7 +342,7 @@ class DeadLetterQueue:
             permanently_failed_items=perm_failed,
             resolved_items=resolved,
             avg_retry_count=avg_retry,
-            last_updated=datetime.utcnow().isoformat()
+            last_updated=datetime.now(UTC).isoformat()
         )
 
     def __len__(self) -> int:

@@ -12,7 +12,7 @@ import time
 import re
 from typing import List, Optional, Dict, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class TOTPSecret:
     """TOTP secret configuration."""
     secret: str  # Base32 encoded secret
     user_id: str
-    created_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    created_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     verified: bool = False
     backup_codes: List[str] = field(default_factory=list)
     last_used_counter: int = 0
@@ -48,7 +48,7 @@ class VerificationCode:
     code: str
     email: str
     user_id: Optional[str] = None
-    created_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    created_at: float = field(default_factory=lambda: datetime.now(UTC).timestamp())
     expires_in: int = 600  # 10 minutes
     used: bool = False
     verification_type: str = "email_verification"  # or "mfa_setup", "password_reset"
@@ -57,7 +57,7 @@ class VerificationCode:
         """Check if code is still valid."""
         if self.used:
             return False
-        elapsed = datetime.utcnow().timestamp() - self.created_at
+        elapsed = datetime.now(UTC).timestamp() - self.created_at
         return elapsed < self.expires_in
 
 

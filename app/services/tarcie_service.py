@@ -6,7 +6,7 @@ Append-only storage with duplicate detection.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import select
@@ -41,7 +41,7 @@ class TarcieService:
                 status="success",
                 events_ingested=0,
                 events_skipped=0,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
             )
 
         ingested = 0
@@ -92,7 +92,7 @@ class TarcieService:
             events_ingested=ingested,
             events_skipped=skipped,
             errors=errors,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
         )
 
     def _event_to_dict(self, event: TarcieEventIn) -> dict:
@@ -106,7 +106,7 @@ class TarcieService:
             "content": event.content,
             "app_context": event.app_context,
             "source_version": event.source_version,
-            "ingested_at": datetime.utcnow(),
+            "ingested_at": datetime.now(UTC),
         }
 
     def get_event_count(self, device_id: UUID | None = None) -> int:

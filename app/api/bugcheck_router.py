@@ -16,7 +16,7 @@ API Endpoints:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import UUID
 
@@ -528,7 +528,7 @@ async def create_lifecycle_event(
 
     # Update finding state
     db_finding.lifecycle_state = event.to_state.value
-    db_finding.updated_at = datetime.utcnow()
+    db_finding.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(db_event)

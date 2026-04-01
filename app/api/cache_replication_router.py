@@ -11,7 +11,7 @@ FastAPI router providing HTTP endpoints for:
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.utils.cache_replication import (
     get_cache_replication_manager,
@@ -163,7 +163,7 @@ async def get_health(
             "service": "cache-replication",
             "connected_replicas": connected,
             "total_replicas": total,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -224,7 +224,7 @@ async def register_replica(
         return {
             "status": "registered",
             "replica_name": request.name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -263,7 +263,7 @@ async def unregister_replica(
         return {
             "status": "unregistered",
             "replica_name": replica_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -285,7 +285,7 @@ async def get_replica_lag(
         return {
             "replica_name": replica_name,
             "lag_ms": lag_ms,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -310,7 +310,7 @@ async def set_replication_mode(
             "status": "updated",
             "replica_name": replica_name,
             "mode": request.mode,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid mode: {e}")
@@ -379,7 +379,7 @@ async def initiate_failover(
             "status": "failover_initiated",
             "reason": request.reason,
             "state": failover_mgr.metrics.current_state.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid reason: {e}")
@@ -408,7 +408,7 @@ async def promote_replica(
             "status": "promoted",
             "promoted_replica": replica_name,
             "reason": request.reason,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid reason: {e}")
@@ -434,7 +434,7 @@ async def recover_primary(
             "status": "recovery_initiated",
             "primary_name": primary_name,
             "state": failover_mgr.metrics.current_state.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -456,7 +456,7 @@ async def set_readonly_mode(
         return {
             "status": "updated",
             "readonly_mode": enable,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise

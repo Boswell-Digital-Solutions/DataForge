@@ -5,7 +5,7 @@ CRUD operations for AuthorForge projects and related entities.
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, bindparam, text
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.models.authorforge_models import (
     Project, Manuscript, Character, Location, StoryArc,
@@ -139,7 +139,7 @@ def update_project(db: Session, project_id: int, user_id: int, project_update: P
             value = _normalize_project_status(value)
         setattr(db_project, field, value)
 
-    db_project.updated_at = datetime.utcnow()
+    db_project.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(db_project)
     return _load_genres(db, db_project)
@@ -168,7 +168,7 @@ def update_project_word_count(db: Session, project_id: int) -> Optional[Project]
     ).scalar() or 0
 
     db_project.word_count = total
-    db_project.last_edited_at = datetime.utcnow()
+    db_project.last_edited_at = datetime.now(UTC)
     db.commit()
     db.refresh(db_project)
     return db_project
@@ -246,7 +246,7 @@ def update_manuscript(
     for field, value in update_data.items():
         setattr(db_manuscript, field, value)
 
-    db_manuscript.updated_at = datetime.utcnow()
+    db_manuscript.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(db_manuscript)
 
@@ -315,7 +315,7 @@ def update_character(
     for field, value in update_data.items():
         setattr(db_character, field, value)
 
-    db_character.updated_at = datetime.utcnow()
+    db_character.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(db_character)
     return db_character

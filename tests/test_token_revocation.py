@@ -10,7 +10,7 @@ Test Classes:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import Mock, patch, MagicMock
 
 from app.utils.token_revocation import (
@@ -47,7 +47,7 @@ def sample_token():
         "jti": "test-token-123",
         "user_id": "user-456",
         "reason": RevocationReason.USER_LOGOUT,
-        "expires_at": datetime.utcnow() + timedelta(hours=1),
+        "expires_at": datetime.now(UTC) + timedelta(hours=1),
     }
 
 
@@ -61,7 +61,7 @@ class TestRevocationRecord:
 
     def test_create_revocation_record(self):
         """Test creating a revocation record."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         record = RevocationRecord(
             jti="token-123",
             user_id="user-456",
@@ -80,7 +80,7 @@ class TestRevocationRecord:
         record = RevocationRecord(
             jti="token-123",
             user_id="user-456",
-            revoked_at=datetime.utcnow().isoformat(),
+            revoked_at=datetime.now(UTC).isoformat(),
             metadata=metadata,
         )
 
@@ -88,7 +88,7 @@ class TestRevocationRecord:
 
     def test_revocation_record_to_dict(self):
         """Test record serialization to dict."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expires = now + timedelta(hours=1)
         record = RevocationRecord(
             jti="token-123",
@@ -119,7 +119,7 @@ class TestRevocationRecord:
             record = RevocationRecord(
                 jti=f"token-{reason.value}",
                 user_id="user-456",
-                revoked_at=datetime.utcnow().isoformat(),
+                revoked_at=datetime.now(UTC).isoformat(),
                 reason=reason,
             )
             assert record.reason == reason
@@ -194,7 +194,7 @@ class TestTokenRevocationManager:
         record_dict = {
             "jti": "token-123",
             "user_id": "user-456",
-            "revoked_at": datetime.utcnow().isoformat(),
+            "revoked_at": datetime.now(UTC).isoformat(),
             "reason": "user_logout",
             "expires_at": None,
             "metadata": {},
@@ -214,7 +214,7 @@ class TestTokenRevocationManager:
         record_dict = {
             "jti": "token-123",
             "user_id": "user-456",
-            "revoked_at": datetime.utcnow().isoformat(),
+            "revoked_at": datetime.now(UTC).isoformat(),
             "reason": "user_logout",
             "expires_at": None,
             "metadata": {},
@@ -295,7 +295,7 @@ class TestRevocationBulkOps:
         record1 = {
             "jti": "token-1",
             "user_id": "user-456",
-            "revoked_at": datetime.utcnow().isoformat(),
+            "revoked_at": datetime.now(UTC).isoformat(),
             "reason": "user_logout",
             "expires_at": None,
             "metadata": {},
@@ -383,7 +383,7 @@ class TestRevocationIntegration:
             "token-123",
             "user-456",
             reason=RevocationReason.USER_LOGOUT,
-            expires_at=datetime.utcnow() + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         assert success is True
 
@@ -396,7 +396,7 @@ class TestRevocationIntegration:
         record_dict = {
             "jti": "token-123",
             "user_id": "user-456",
-            "revoked_at": datetime.utcnow().isoformat(),
+            "revoked_at": datetime.now(UTC).isoformat(),
             "reason": "user_logout",
             "expires_at": None,
             "metadata": {},

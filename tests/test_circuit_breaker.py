@@ -6,7 +6,7 @@ Tests the CircuitBreaker, CircuitBreakerRegistry, and ResilientEmbeddingService.
 
 import pytest
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import AsyncMock, Mock, patch
 
 from app.utils.circuit_breaker import (
@@ -83,7 +83,7 @@ class TestCircuitBreaker:
         assert breaker.state == CircuitState.OPEN
 
         # Manually check update (in real code this happens on each call)
-        breaker._last_failure_time = datetime.utcnow() - timedelta(seconds=3)
+        breaker._last_failure_time = datetime.now(UTC) - timedelta(seconds=3)
         # In reality, _update_state is awaited, but for this test:
         assert breaker._should_attempt_reset()
 

@@ -7,7 +7,7 @@ Service-to-service endpoints — no user-ownership checks needed.
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sql_func, and_
 from typing import Optional, Tuple, List, Dict
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.models.neuroforge_models import Inference, RoutingDecision
 from app.models.neuroforge_schemas import InferenceCreate, RoutingDecisionCreate
@@ -31,7 +31,7 @@ def create_inference(db: Session, data: InferenceCreate) -> Inference:
         latency_ms=data.latency_ms,
         status=data.status,
         error_message=data.error_message,
-        completed_at=datetime.utcnow() if data.status == "completed" else None,
+        completed_at=datetime.now(UTC) if data.status == "completed" else None,
     )
     db.add(row)
     db.commit()

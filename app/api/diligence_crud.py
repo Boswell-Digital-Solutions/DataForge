@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, UTC
 import logging
 import json
 
@@ -598,7 +598,7 @@ def update_finding(
         # If status is being set to resolved, set resolved_at timestamp
         if 'status' in update_data and update_data['status'] == FindingStatus.RESOLVED:
             if db_finding.status != FindingStatus.RESOLVED:
-                db_finding.resolved_at = datetime.utcnow()
+                db_finding.resolved_at = datetime.now(UTC)
 
         for field, value in update_data.items():
             setattr(db_finding, field, value)

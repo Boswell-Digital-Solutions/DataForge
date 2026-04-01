@@ -11,7 +11,7 @@ Supports:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Optional, Set, Any
 from abc import ABC, abstractmethod
 import json
@@ -65,7 +65,7 @@ class GDPRRequest:
     
     def is_overdue(self) -> bool:
         """Check if request is overdue."""
-        return datetime.utcnow() > self.deadline and self.status != "completed"
+        return datetime.now(UTC) > self.deadline and self.status != "completed"
 
 
 @dataclass
@@ -296,13 +296,13 @@ class ComplianceReportGenerator:
         email: str,
     ) -> GDPRRequest:
         """Create new GDPR data subject rights request."""
-        request_id = f"gdpr_{user_id}_{datetime.utcnow().timestamp()}"
+        request_id = f"gdpr_{user_id}_{datetime.now(UTC).timestamp()}"
         
         request = GDPRRequest(
             request_id=request_id,
             user_id=user_id,
             right=right,
-            requested_at=datetime.utcnow(),
+            requested_at=datetime.now(UTC),
             email=email,
             status="pending",
         )
@@ -317,13 +317,13 @@ class ComplianceReportGenerator:
         email: str,
     ) -> CCPARequest:
         """Create new CCPA consumer rights request."""
-        request_id = f"ccpa_{consumer_id}_{datetime.utcnow().timestamp()}"
+        request_id = f"ccpa_{consumer_id}_{datetime.now(UTC).timestamp()}"
         
         request = CCPARequest(
             request_id=request_id,
             consumer_id=consumer_id,
             request_type=request_type,
-            requested_at=datetime.utcnow(),
+            requested_at=datetime.now(UTC),
             email=email,
             status="pending",
         )
@@ -495,7 +495,7 @@ class ComplianceChecker:
         retention_days: int,
     ) -> bool:
         """Check if data is within its retention period."""
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
         return created_date > cutoff
     
     @staticmethod

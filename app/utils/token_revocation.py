@@ -15,7 +15,7 @@ Features:
 """
 
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 from typing import Optional, Dict, List, Set, Any
 import json
@@ -168,7 +168,7 @@ class TokenRevocationManager:
             record = RevocationRecord(
                 jti=jti,
                 user_id=user_id,
-                revoked_at=datetime.utcnow().isoformat(),
+                revoked_at=datetime.now(UTC).isoformat(),
                 reason=reason,
                 expires_at=expires_at.isoformat() if expires_at else None,
                 metadata=metadata or {},
@@ -177,7 +177,7 @@ class TokenRevocationManager:
             # Calculate TTL: expire revocation record when token would naturally expire
             ttl = self._default_revocation_ttl()
             if expires_at:
-                ttl = max(int((expires_at - datetime.utcnow()).total_seconds()), 1)
+                ttl = max(int((expires_at - datetime.now(UTC)).total_seconds()), 1)
 
             # Store revocation record
             token_key = self._redis_key("token", jti)

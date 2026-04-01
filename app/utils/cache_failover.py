@@ -14,7 +14,7 @@ Architecture:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, Dict, List, Optional
 import logging
 
@@ -139,7 +139,7 @@ class CacheFailoverManager:
         """
         try:
             # Simulate health check (PING command)
-            self.last_health_check = datetime.utcnow()
+            self.last_health_check = datetime.now(UTC)
             
             # In production: would call primary_conn.ping()
             # This will raise exception if ping fails
@@ -149,9 +149,9 @@ class CacheFailoverManager:
             # Success
             return True
         except Exception as e:
-            self.failure_history.append(datetime.utcnow())
+            self.failure_history.append(datetime.now(UTC))
             # Prune old failures outside window
-            cutoff = datetime.utcnow() - timedelta(
+            cutoff = datetime.now(UTC) - timedelta(
                 seconds=self.config.failure_window_seconds
             )
             self.failure_history = [
@@ -169,7 +169,7 @@ class CacheFailoverManager:
             True if failure threshold exceeded
         """
         # Prune old failures
-        cutoff = datetime.utcnow() - timedelta(
+        cutoff = datetime.now(UTC) - timedelta(
             seconds=self.config.failure_window_seconds
         )
         self.failure_history = [f for f in self.failure_history if f > cutoff]
@@ -266,7 +266,7 @@ class CacheFailoverManager:
             
             logger.info(f"Initiating failover: {reason.value}")
             self.metrics.current_state = FailoverState.FAILOVER_IN_PROGRESS
-            failover_start = datetime.utcnow()
+            failover_start = datetime.now(UTC)
             
             # Select replica to promote
             replica_to_promote = manual_replica_name
@@ -289,16 +289,16 @@ class CacheFailoverManager:
                     return False
             
             # Update metrics
-            duration = (datetime.utcnow() - failover_start).total_seconds()
+            duration = (datetime.now(UTC) - failover_start).total_seconds()
             self.metrics.current_state = FailoverState.FAILOVER_COMPLETE
             self.metrics.failover_count += 1
             self.metrics.last_failover_duration_seconds = duration
             self.metrics.last_failover_reason = reason.value
-            self.metrics.last_failover_timestamp = datetime.utcnow()
+            self.metrics.last_failover_timestamp = datetime.now(UTC)
             
             # Record in history
             self.metrics.recent_failovers.append({
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "reason": reason.value,
                 "promoted_replica": replica_to_promote,
                 "duration_seconds": duration,

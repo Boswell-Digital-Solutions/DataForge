@@ -7,7 +7,7 @@ Handles CRUD operations, cost calculations, and analytics queries.
 
 import logging
 from typing import List, Optional, Dict, Any, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc
 
@@ -313,9 +313,9 @@ class RunsRepository:
         """
         # Default to last 30 days if no dates provided
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(UTC) - timedelta(days=30)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(UTC)
         
         # Query runs in date range
         runs_query = self.db.query(Run).filter(

@@ -7,7 +7,7 @@ Standardized health, readiness, and version endpoints per FPVS spec.
 import os
 import sys
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from fastapi import APIRouter, Header, Request
 from pydantic import BaseModel, Field
@@ -145,7 +145,7 @@ async def health_check() -> HealthResponse:
     """
     return HealthResponse(
         status="ok",
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        timestamp=datetime.now(UTC).isoformat() + "Z"
     )
 
 
@@ -228,7 +228,7 @@ async def readiness_check(
 
     return ReadyResponse(
         status=status,
-        timestamp=datetime.utcnow().isoformat() + "Z",
+        timestamp=datetime.now(UTC).isoformat() + "Z",
         version=SERVICE_VERSION,
         correlation_id=correlation_id,
         dependencies=dependencies,

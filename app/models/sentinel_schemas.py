@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ── Enums ────────────────────────────────────────────────────
@@ -84,8 +84,8 @@ class SweepResponse(BaseModel):
     started_at: datetime
     completed_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SweepListResponse(BaseModel):
     items: list[SweepResponse]
@@ -125,8 +125,8 @@ class HealingEventResponse(BaseModel):
     created_at: datetime
     completed_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class HealingEventListResponse(BaseModel):
     items: list[HealingEventResponse]

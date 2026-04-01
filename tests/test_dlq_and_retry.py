@@ -5,7 +5,7 @@ Comprehensive test suite for Dead Letter Queue, retry policies,
 and Celery integration with exponential backoff.
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import Mock, patch, MagicMock
 from app.utils.dead_letter_queue import (
     get_dlq,
@@ -79,13 +79,13 @@ class TestDLQItem:
         # First retry: 60s
         next_retry_1 = sample_dlq_item.calculate_next_retry()
         assert next_retry_1 is not None
-        assert 55 < (next_retry_1 - datetime.utcnow()).total_seconds() < 65
+        assert 55 < (next_retry_1 - datetime.now(UTC)).total_seconds() < 65
 
         # Simulate retry
         sample_dlq_item.retry_count = 1
         next_retry_2 = sample_dlq_item.calculate_next_retry()
         assert next_retry_2 is not None
-        delay_2 = (next_retry_2 - datetime.utcnow()).total_seconds()
+        delay_2 = (next_retry_2 - datetime.now(UTC)).total_seconds()
         assert 85 < delay_2 < 95  # ~90s (60 * 1.5)
 
     def test_mark_retrying(self, sample_dlq_item):
@@ -242,7 +242,7 @@ class TestDeadLetterQueue:
         
         # Manually set next_retry_at to past
         item1_obj = dlq.get_item(item1.id)
-        item1_obj.next_retry_at = (datetime.utcnow() - timedelta(seconds=10)).isoformat()
+        item1_obj.next_retry_at = (datetime.now(UTC) - timedelta(seconds=10)).isoformat()
         
         items = dlq.get_items_for_retry()
         assert len(items) >= 1
@@ -292,7 +292,7 @@ class TestDeadLetterQueue:
         
         # Manually set old timestamp
         item1_obj = dlq.get_item(item1.id)
-        item1_obj.created_at = (datetime.utcnow() - timedelta(days=10)).isoformat()
+        item1_obj.created_at = (datetime.now(UTC) - timedelta(days=10)).isoformat()
         
         count = dlq.cleanup_resolved_items(days_old=7)
         assert count >= 1
@@ -512,4 +512,4 @@ class TestDLQIntegration:
         
         # Verify next_retry_at is in future
         next_retry = datetime.fromisoformat(updated_item.next_retry_at)
-        assert next_retry > datetime.utcnow()
+        assert next_retry > datetime.now(UTC)

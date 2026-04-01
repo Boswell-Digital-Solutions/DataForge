@@ -13,7 +13,7 @@ Features:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, Dict, List, Optional, Set
 from enum import Enum
 import hashlib
@@ -44,12 +44,12 @@ class SessionData:
     @property
     def is_expired(self) -> bool:
         """Check if session has expired."""
-        age_seconds = (datetime.utcnow() - self.created_at).total_seconds()
+        age_seconds = (datetime.now(UTC) - self.created_at).total_seconds()
         return age_seconds > self.ttl_seconds
     
     def touch(self) -> None:
         """Update last activity timestamp."""
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.now(UTC)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -60,7 +60,7 @@ class SessionData:
             "created_at": self.created_at.isoformat(),
             "last_activity": self.last_activity.isoformat(),
             "ttl_seconds": self.ttl_seconds,
-            "age_seconds": (datetime.utcnow() - self.created_at).total_seconds(),
+            "age_seconds": (datetime.now(UTC) - self.created_at).total_seconds(),
             "is_expired": self.is_expired,
             "data": self.data,
         }
@@ -141,7 +141,7 @@ class ConnectionPool:
         # In production, would create actual connection
         return {
             "instance": self.instance_name,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(UTC),
         }
     
     def acquire_connection(self, timeout_seconds: int = 5) -> Optional[Any]:
@@ -235,7 +235,7 @@ class SessionManager:
         
         self.sessions: Dict[str, SessionData] = {}
         self.connection_pools: Dict[str, ConnectionPool] = {}
-        self.last_cleanup: datetime = datetime.utcnow()
+        self.last_cleanup: datetime = datetime.now(UTC)
     
     def create_session(
         self,
@@ -256,7 +256,7 @@ class SessionManager:
         """
         try:
             session_id = hashlib.sha256(
-                f"{datetime.utcnow().isoformat()}{user_id}{instance_name}".encode()
+                f"{datetime.now(UTC).isoformat()}{user_id}{instance_name}".encode()
             ).hexdigest()[:32]
             
             session = SessionData(
@@ -360,7 +360,7 @@ class SessionManager:
         """Clean up expired sessions."""
         try:
             expired_count = 0
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             
             # Only run if interval elapsed
             if (now - self.last_cleanup).total_seconds() < self.cleanup_interval_seconds:

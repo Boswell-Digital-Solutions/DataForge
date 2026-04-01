@@ -10,12 +10,12 @@ Provides endpoints for:
 - Metrics and monitoring
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import List, Optional, Dict
 import logging
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.utils.token_revocation import (
     get_token_revocation_manager,
@@ -44,13 +44,8 @@ class RevokeTokenRequest(BaseModel):
     )
     metadata: Optional[Dict] = Field(default=None, description="Extra context")
 
-    class Config:
-        example = {
-            "jti": "abc123",
-            "user_id": "user-456",
-            "reason": "user_logout",
-            "metadata": {"device_id": "iphone-x"},
-        }
+    model_config = ConfigDict(example={'jti': 'abc123', 'user_id': 'user-456', 'reason': 'user_logout', 'metadata': {'device_id': 'iphone-x'}})
+
 
 
 class RevokeUserTokensRequest(BaseModel):
@@ -66,20 +61,16 @@ class RevokeUserTokensRequest(BaseModel):
     )
     metadata: Optional[Dict] = Field(default=None, description="Extra context")
 
-    class Config:
-        example = {
-            "user_id": "user-456",
-            "reason": "password_changed",
-            "except_jti": "current-token-jti",
-        }
+    model_config = ConfigDict(example={'user_id': 'user-456', 'reason': 'password_changed', 'except_jti': 'current-token-jti'})
+
 
 
 class UnrevokeTokenRequest(BaseModel):
     """Request to restore a revoked token."""
     jti: str = Field(..., description="JWT ID claim to restore")
 
-    class Config:
-        example = {"jti": "abc123"}
+    model_config = ConfigDict(example={'jti': 'abc123'})
+
 
 
 class RevocationRecordResponse(BaseModel):
@@ -91,15 +82,8 @@ class RevocationRecordResponse(BaseModel):
     expires_at: Optional[str]
     metadata: Dict
 
-    class Config:
-        example = {
-            "jti": "abc123",
-            "user_id": "user-456",
-            "revoked_at": "2025-11-21T15:30:00",
-            "reason": "user_logout",
-            "expires_at": "2025-11-21T16:30:00",
-            "metadata": {},
-        }
+    model_config = ConfigDict(example={'jti': 'abc123', 'user_id': 'user-456', 'revoked_at': '2025-11-21T15:30:00', 'reason': 'user_logout', 'expires_at': '2025-11-21T16:30:00', 'metadata': {}})
+
 
 
 class RevocationStatusResponse(BaseModel):
@@ -107,18 +91,8 @@ class RevocationStatusResponse(BaseModel):
     is_revoked: bool
     record: Optional[RevocationRecordResponse] = None
 
-    class Config:
-        example = {
-            "is_revoked": True,
-            "record": {
-                "jti": "abc123",
-                "user_id": "user-456",
-                "revoked_at": "2025-11-21T15:30:00",
-                "reason": "user_logout",
-                "expires_at": "2025-11-21T16:30:00",
-                "metadata": {},
-            },
-        }
+    model_config = ConfigDict(example={'is_revoked': True, 'record': {'jti': 'abc123', 'user_id': 'user-456', 'revoked_at': '2025-11-21T15:30:00', 'reason': 'user_logout', 'expires_at': '2025-11-21T16:30:00', 'metadata': {}}})
+
 
 
 class BulkActionResponse(BaseModel):
@@ -127,12 +101,8 @@ class BulkActionResponse(BaseModel):
     count: int
     details: str
 
-    class Config:
-        example = {
-            "success": True,
-            "count": 5,
-            "details": "Revoked 5 tokens for user-456",
-        }
+    model_config = ConfigDict(example={'success': True, 'count': 5, 'details': 'Revoked 5 tokens for user-456'})
+
 
 
 class RevocationMetricsResponse(BaseModel):
@@ -144,19 +114,8 @@ class RevocationMetricsResponse(BaseModel):
     failed_revocations: int = Field(description="Failed revocation attempts")
     redis_available: bool = Field(description="Is Redis available for revocation?")
 
-    class Config:
-        example = {
-            "total_revoked": 42,
-            "active_revocations": 12,
-            "revoked_by_reason": {
-                "user_logout": 25,
-                "password_changed": 10,
-                "security_event": 7,
-            },
-            "bulk_revocations": 3,
-            "failed_revocations": 0,
-            "redis_available": True,
-        }
+    model_config = ConfigDict(example={'total_revoked': 42, 'active_revocations': 12, 'revoked_by_reason': {'user_logout': 25, 'password_changed': 10, 'security_event': 7}, 'bulk_revocations': 3, 'failed_revocations': 0, 'redis_available': True})
+
 
 
 class UserRevocationsResponse(BaseModel):
@@ -165,21 +124,8 @@ class UserRevocationsResponse(BaseModel):
     total: int
     revocations: List[RevocationRecordResponse]
 
-    class Config:
-        example = {
-            "user_id": "user-456",
-            "total": 2,
-            "revocations": [
-                {
-                    "jti": "abc123",
-                    "user_id": "user-456",
-                    "revoked_at": "2025-11-21T15:30:00",
-                    "reason": "user_logout",
-                    "expires_at": "2025-11-21T16:30:00",
-                    "metadata": {},
-                },
-            ],
-        }
+    model_config = ConfigDict(example={'user_id': 'user-456', 'total': 2, 'revocations': [{'jti': 'abc123', 'user_id': 'user-456', 'revoked_at': '2025-11-21T15:30:00', 'reason': 'user_logout', 'expires_at': '2025-11-21T16:30:00', 'metadata': {}}]})
+
 
 
 class HealthResponse(BaseModel):
@@ -273,7 +219,7 @@ async def revoke_token(
         )
 
     # Calculate expires_at based on default token TTL (1 hour)
-    expires_at = datetime.utcnow() + timedelta(hours=1)
+    expires_at = datetime.now(UTC) + timedelta(hours=1)
 
     success = manager.revoke_token(
         jti=req.jti,

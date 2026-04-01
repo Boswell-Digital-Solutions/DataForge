@@ -8,7 +8,7 @@ Prefix: /api/v1/press
 
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -123,7 +123,7 @@ def update_journalist(journalist_id: UUID, body: JournalistUpdate, db: Session =
     for key, value in body.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(journalist, key, value.value if hasattr(value, 'value') else value)
-    journalist.updated_at = datetime.utcnow()
+    journalist.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(journalist)
@@ -190,7 +190,7 @@ def update_campaign(campaign_id: UUID, body: CampaignUpdate, db: Session = Depen
     for key, value in body.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(campaign, key, value.value if hasattr(value, 'value') else value)
-    campaign.updated_at = datetime.utcnow()
+    campaign.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(campaign)
@@ -259,7 +259,7 @@ def update_match_result(match_id: UUID, body: MatchResultUpdate, db: Session = D
     for key, value in body.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(match, key, value.value if hasattr(value, 'value') else value)
-    match.updated_at = datetime.utcnow()
+    match.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(match)
@@ -540,7 +540,7 @@ def update_evidence_item(evidence_id: UUID, body: EvidenceItemUpdate, db: Sessio
         if value is not None:
             attr_name = field_map.get(key, key)
             setattr(item, attr_name, value.value if hasattr(value, 'value') else value)
-    item.updated_at = datetime.utcnow()
+    item.updated_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(item)
@@ -807,7 +807,7 @@ def update_automation_run(run_id: UUID, body: AutomationRunUpdate, db: Session =
     if run.status in ("success", "failed"):
         job = db.query(PfAutomationJob).filter(PfAutomationJob.id == run.job_id).first()
         if job:
-            job.last_run_at = datetime.utcnow()
+            job.last_run_at = datetime.now(UTC)
             db.commit()
     return run
 
@@ -858,7 +858,7 @@ def dismiss_automation_alert(alert_id: UUID, dismissed_by: str = Query(...), db:
         raise HTTPException(404, "Alert not found")
     alert.dismissed = True
     alert.dismissed_by = dismissed_by
-    alert.dismissed_at = datetime.utcnow()
+    alert.dismissed_at = datetime.now(UTC)
     db.commit()
     db.refresh(alert)
     return alert
@@ -869,7 +869,7 @@ def dismiss_automation_alert(alert_id: UUID, dismissed_by: str = Query(...), db:
 @router.post("/automation/overrides", response_model=AutomationOverrideResponse, status_code=201)
 def create_automation_override(body: AutomationOverrideCreate, db: Session = Depends(get_db)):
     from datetime import timedelta
-    max_expires = datetime.utcnow() + timedelta(days=7)
+    max_expires = datetime.now(UTC) + timedelta(days=7)
     if body.expires_at > max_expires:
         raise HTTPException(400, "Override TTL cannot exceed 7 days")
     override = PfAutomationOverride(
@@ -897,7 +897,7 @@ def list_automation_overrides(
     if job_key:
         q = q.filter(PfAutomationOverride.job_key == job_key)
     if active_only:
-        q = q.filter(PfAutomationOverride.expires_at > datetime.utcnow())
+        q = q.filter(PfAutomationOverride.expires_at > datetime.now(UTC))
     total = q.count()
     items = q.order_by(PfAutomationOverride.created_at.desc()).offset(offset).limit(limit).all()
     return AutomationOverrideListResponse(items=items, total=total)

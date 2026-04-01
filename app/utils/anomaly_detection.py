@@ -12,7 +12,7 @@ Provides:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Set, Optional, Tuple
 import re
 from collections import defaultdict
@@ -140,7 +140,7 @@ class UserBehaviorBaseline:
             profile.devices_used.add(device_id)
         
         profile.typical_login_hours.add(timestamp.hour)
-        profile.last_updated = datetime.utcnow()
+        profile.last_updated = datetime.now(UTC)
         
         # Keep only last 100 logins
         if len(self.login_history[user_id]) > 100:
@@ -162,7 +162,7 @@ class UserBehaviorBaseline:
         # Record in history
         self.access_history[user_id].append((timestamp, resource_id, int(access_size_gb)))
         
-        profile.last_updated = datetime.utcnow()
+        profile.last_updated = datetime.now(UTC)
         
         # Keep only last 500 accesses
         if len(self.access_history[user_id]) > 500:
@@ -173,7 +173,7 @@ class UserBehaviorBaseline:
         if user_id not in self.access_history:
             return 0.0
         
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
         total_gb = sum(
             size for ts, _, size in self.access_history[user_id]
             if ts > cutoff
@@ -254,7 +254,7 @@ class ImpossibleTravelDetector(AnomalyDetector):
                 anomaly_type=AnomalyType.IMPOSSIBLE_TRAVEL,
                 threat_level=ThreatLevel.CRITICAL,
                 user_id=context.get("user_id", "unknown"),
-                timestamp=context.get("timestamp", datetime.utcnow()),
+                timestamp=context.get("timestamp", datetime.now(UTC)),
                 message=f"Impossible travel: {distance_km:.0f}km in {actual_hours:.1f}h",
                 metadata={
                     "distance_km": distance_km,
@@ -318,7 +318,7 @@ class BruteForceDetector(AnomalyDetector):
         }
         """
         user_id = context.get("user_id")
-        timestamp = context.get("timestamp", datetime.utcnow())
+        timestamp = context.get("timestamp", datetime.now(UTC))
         
         if not user_id:
             return None
@@ -372,7 +372,7 @@ class DataExfiltrationDetector(AnomalyDetector):
         """
         user_id = context.get("user_id")
         access_size = context.get("access_size_gb", 0)
-        timestamp = context.get("timestamp", datetime.utcnow())
+        timestamp = context.get("timestamp", datetime.now(UTC))
         
         if not user_id:
             return None
@@ -440,7 +440,7 @@ class SuspiciousPatternDetector(AnomalyDetector):
         """
         user_id = context.get("user_id")
         query = context.get("query", "")
-        timestamp = context.get("timestamp", datetime.utcnow())
+        timestamp = context.get("timestamp", datetime.now(UTC))
         
         if not query:
             return None
@@ -484,7 +484,7 @@ class AnomalyTimeDetector(AnomalyDetector):
         }
         """
         user_id = context.get("user_id")
-        timestamp = context.get("timestamp", datetime.utcnow())
+        timestamp = context.get("timestamp", datetime.now(UTC))
         
         if not user_id:
             return None
@@ -530,7 +530,7 @@ class BulkOperationDetector(AnomalyDetector):
         """
         user_id = context.get("user_id")
         record_count = context.get("record_count", 0)
-        timestamp = context.get("timestamp", datetime.utcnow())
+        timestamp = context.get("timestamp", datetime.now(UTC))
         
         if record_count > self.threshold:
             return DetectedAnomaly(
@@ -609,7 +609,7 @@ class AnomalyDetectionEngine:
     
     def get_recent_anomalies(self, user_id: Optional[str] = None, hours: int = 24) -> List[DetectedAnomaly]:
         """Get anomalies from recent time period."""
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
         
         result = [a for a in self.detected_anomalies if a.timestamp > cutoff]
         
@@ -620,7 +620,7 @@ class AnomalyDetectionEngine:
     
     def get_high_risk_users(self, threshold: int = 5, hours: int = 24) -> List[Tuple[str, int]]:
         """Get users with anomalies above threshold in recent period."""
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
         
         anomaly_counts: Dict[str, int] = defaultdict(int)
         for a in self.detected_anomalies:

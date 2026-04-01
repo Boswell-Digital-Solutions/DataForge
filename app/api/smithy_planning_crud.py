@@ -4,7 +4,7 @@ Smithy Planning Session CRUD Operations
 Database operations for Planning sessions, deliverables, and steps.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, func
@@ -129,7 +129,7 @@ def start_session(db: Session, session_id: str) -> Optional[SmithyPlanningSessio
         session_id,
         PlanningSessionUpdate(
             status=SessionStatus.RUNNING,
-            started_at=datetime.utcnow()
+            started_at=datetime.now(UTC)
         )
     )
 
@@ -141,7 +141,7 @@ def complete_session(db: Session, session_id: str) -> Optional[SmithyPlanningSes
         session_id,
         PlanningSessionUpdate(
             status=SessionStatus.COMPLETED,
-            completed_at=datetime.utcnow()
+            completed_at=datetime.now(UTC)
         )
     )
 
@@ -158,7 +158,7 @@ def fail_session(
         session_id,
         PlanningSessionUpdate(
             status=SessionStatus.FAILED,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(UTC),
             error_message=error_message,
             error_stage=error_stage
         )
@@ -172,7 +172,7 @@ def cancel_session(db: Session, session_id: str) -> Optional[SmithyPlanningSessi
         session_id,
         PlanningSessionUpdate(
             status=SessionStatus.CANCELLED,
-            completed_at=datetime.utcnow()
+            completed_at=datetime.now(UTC)
         )
     )
 
@@ -258,7 +258,7 @@ def get_session_stats(
     days: int = 30
 ) -> dict:
     """Get session statistics for operational memory."""
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     query = db.query(SmithyPlanningSession).filter(
         SmithyPlanningSession.created_at >= since

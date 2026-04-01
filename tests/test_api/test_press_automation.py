@@ -2,7 +2,7 @@
 Tests for PressForge v1.2 automation, governance, GEO, draftset, promptpack endpoints.
 """
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -135,7 +135,7 @@ class TestAutomationOverrideEndpoints:
     """Test runtime config overrides with TTL validation."""
 
     def test_create_override_within_ttl(self, client: TestClient):
-        expires = (datetime.utcnow() + timedelta(days=3)).isoformat()
+        expires = (datetime.now(UTC) + timedelta(days=3)).isoformat()
         resp = client.post("/api/v1/press/automation/overrides", json={
             "job_key": "journalist_refresh",
             "override_config": {"stale_threshold_days": 14},
@@ -146,7 +146,7 @@ class TestAutomationOverrideEndpoints:
         assert resp.status_code == 201
 
     def test_reject_override_exceeding_7day_ttl(self, client: TestClient):
-        expires = (datetime.utcnow() + timedelta(days=10)).isoformat()
+        expires = (datetime.now(UTC) + timedelta(days=10)).isoformat()
         resp = client.post("/api/v1/press/automation/overrides", json={
             "job_key": "journalist_refresh",
             "override_config": {"stale_threshold_days": 7},
@@ -157,7 +157,7 @@ class TestAutomationOverrideEndpoints:
         assert resp.status_code == 400
 
     def test_delete_override(self, client: TestClient):
-        expires = (datetime.utcnow() + timedelta(days=1)).isoformat()
+        expires = (datetime.now(UTC) + timedelta(days=1)).isoformat()
         create_resp = client.post("/api/v1/press/automation/overrides", json={
             "job_key": "del_test",
             "override_config": {},

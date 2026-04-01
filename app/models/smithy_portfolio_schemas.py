@@ -5,7 +5,7 @@ Request/response schemas for the Smithy Portfolio API.
 Matches the TypeScript types in forge-smithy/src/lib/smithy_portfolio/types/index.ts
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -42,8 +42,8 @@ class EvidenceItem(BaseModel):
     provenance: EvidenceProvenance = "manual"
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -108,8 +108,8 @@ class EvaluationSnapshot(BaseModel):
     publish_ready: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -141,5 +141,5 @@ class PortfolioProject(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+

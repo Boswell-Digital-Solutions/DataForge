@@ -7,7 +7,7 @@ All queries enforce user ownership through the project FK chain.
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func as sql_func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.models.authorforge_models import Project
 from app.models.authorforge_v2_models import (
@@ -60,7 +60,7 @@ def _update_chapter_word_count(db: Session, chapter_id: int) -> None:
         Scene.chapter_id == chapter_id
     ).scalar()
     db.query(Chapter).filter(Chapter.id == chapter_id).update(
-        {"word_count": total, "updated_at": datetime.utcnow()}
+        {"word_count": total, "updated_at": datetime.now(UTC)}
     )
 
 
@@ -99,7 +99,7 @@ def update_chapter(db: Session, chapter_id: int, user_id: int, data: ChapterUpda
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(ch, field, value)
-    ch.updated_at = datetime.utcnow()
+    ch.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(ch)
     return ch
@@ -167,7 +167,7 @@ def update_scene(db: Session, scene_id: int, user_id: int, data: SceneUpdate) ->
         update_data["word_count"] = _count_words(update_data["content_html"])
     for field, value in update_data.items():
         setattr(sc, field, value)
-    sc.updated_at = datetime.utcnow()
+    sc.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(sc)
     _update_chapter_word_count(db, sc.chapter_id)
@@ -223,7 +223,7 @@ def update_entity(db: Session, entity_id: int, user_id: int, data: EntityUpdate)
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(ent, field, value)
-    ent.updated_at = datetime.utcnow()
+    ent.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(ent)
     return ent
@@ -316,7 +316,7 @@ def update_arc(db: Session, arc_id: int, user_id: int, data: ArcUpdate) -> Optio
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(arc, field, value)
-    arc.updated_at = datetime.utcnow()
+    arc.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(arc)
     return arc
@@ -362,7 +362,7 @@ def update_beat(db: Session, beat_id: int, user_id: int, data: BeatUpdate) -> Op
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(beat, field, value)
-    beat.updated_at = datetime.utcnow()
+    beat.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(beat)
     return beat
@@ -419,7 +419,7 @@ def update_style_profile(
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(sp, field, value)
-    sp.updated_at = datetime.utcnow()
+    sp.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(sp)
     return sp
@@ -482,7 +482,7 @@ def update_asset(db: Session, asset_id: int, user_id: int, data: AssetUpdate) ->
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(asset, field, value)
-    asset.updated_at = datetime.utcnow()
+    asset.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(asset)
     return asset
@@ -561,7 +561,7 @@ def update_asset_collection(
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(coll, field, value)
-    coll.updated_at = datetime.utcnow()
+    coll.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(coll)
     return coll
@@ -659,7 +659,7 @@ def update_faction(db: Session, faction_id: int, user_id: int, data: FactionUpda
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(f, field, value)
-    f.updated_at = datetime.utcnow()
+    f.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(f)
     return f
@@ -709,7 +709,7 @@ def update_alert(
         return None
     update_data = data.model_dump(exclude_unset=True)
     if update_data.get("resolved") is True and not alert.resolved:
-        update_data["resolved_at"] = datetime.utcnow()
+        update_data["resolved_at"] = datetime.now(UTC)
     for field, value in update_data.items():
         setattr(alert, field, value)
     db.commit()
@@ -750,7 +750,7 @@ def update_cover(db: Session, cover_id: int, user_id: int, data: CoverUpdate) ->
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(c, field, value)
-    c.updated_at = datetime.utcnow()
+    c.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(c)
     return c
@@ -804,7 +804,7 @@ def update_map_node(db: Session, node_id: int, user_id: int, data: MapNodeUpdate
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(n, field, value)
-    n.updated_at = datetime.utcnow()
+    n.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(n)
     return n
@@ -1105,7 +1105,7 @@ def upsert_map_settings(db: Session, project_id: int, user_id: int, data: MapSet
     else:
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(s, field, value)
-        s.updated_at = datetime.utcnow()
+        s.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(s)
     return s
@@ -1139,7 +1139,7 @@ def update_map_viewport(db: Session, viewport_id: str, user_id: int, data: MapVi
         return None
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(v, field, value)
-    v.updated_at = datetime.utcnow()
+    v.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(v)
     return v

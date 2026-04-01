@@ -8,7 +8,7 @@ import functools
 import logging
 import time
 from typing import Callable, Any, TypeVar, Optional, Dict, List
-from datetime import datetime
+from datetime import datetime, UTC
 import json
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def _record_query_metric(query_name: str, elapsed_ms: float, threshold_ms: int) 
         query_record = {
             "query": query_name,
             "duration_ms": elapsed_ms,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         slowest: List[Dict[str, Any]] = metrics_data["slowest_queries"]  # type: ignore
         slowest.append(query_record)

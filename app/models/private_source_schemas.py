@@ -7,7 +7,7 @@ Covers: CRUD operations for PrivateSourceProfile.
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ── Enums (mirrored as string constraints in DB) ────────────────────
@@ -71,8 +71,8 @@ class PSPResponse(BaseModel):
     created_at: datetime
     updated_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ── List Response ────────────────────────────────────────────────────

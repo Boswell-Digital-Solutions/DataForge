@@ -12,7 +12,7 @@ FastAPI router providing HTTP endpoints for:
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.utils.load_balancer import (
     get_load_balancer,
@@ -150,7 +150,7 @@ async def register_instance(
         return {
             "status": "registered",
             "instance_name": request.name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -201,7 +201,7 @@ async def unregister_instance(
         return {
             "status": "unregistered",
             "instance_name": instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -244,7 +244,7 @@ async def change_strategy(
         return {
             "status": "updated",
             "strategy": strategy.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid strategy: {request.strategy}")
@@ -265,7 +265,7 @@ async def select_instance(
         
         return {
             "selected_instance": selected,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -291,7 +291,7 @@ async def drain_instance(
         return {
             "status": "draining",
             "instance_name": instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -313,7 +313,7 @@ async def recover_instance(
         return {
             "status": "recovered",
             "instance_name": instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -334,7 +334,7 @@ async def record_request(
         return {
             "status": "recorded",
             "instance_name": instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -355,7 +355,7 @@ async def report_health_check(
             "instance_name": instance_name,
             "reported_healthy": is_healthy,
             "current_status": status["status"] if status else "unknown",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -383,7 +383,7 @@ async def create_session(
             "session_id": session.session_id,
             "user_id": session.user_id,
             "instance_name": session.instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -423,7 +423,7 @@ async def update_session(
             "status": "updated",
             "session_id": session_id,
             "key": request.key,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -445,7 +445,7 @@ async def delete_session(
         return {
             "status": "deleted",
             "session_id": session_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -469,7 +469,7 @@ async def set_session_affinity(
             "status": "updated",
             "session_id": session_id,
             "instance_name": request.instance_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except HTTPException:
         raise
@@ -489,7 +489,7 @@ async def list_sessions(
         return {
             "sessions": sessions,
             "counts": counts,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -504,7 +504,7 @@ async def get_pool_metrics(
         pools = sm.get_pool_metrics()
         return {
             "pools": pools,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

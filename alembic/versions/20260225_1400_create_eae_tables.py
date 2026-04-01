@@ -10,7 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, TSVECTOR
 from pgvector.sqlalchemy import Vector
 
 
@@ -43,12 +43,11 @@ def upgrade() -> None:
 
         # Trust & classification
         sa.Column('trust_tier', sa.Integer, nullable=False, server_default='1'),
-        sa.Column('entity_tags', JSONB, nullable=False, server_default="'[]'::jsonb"),
-        sa.Column('metadata', JSONB, nullable=False, server_default="'{}'::jsonb"),
-
+        sa.Column('entity_tags', JSONB, nullable=False, server_default=sa.text("'[]'::jsonb")),
+        sa.Column('metadata', JSONB, nullable=False, server_default=sa.text("'{}'::jsonb")),
         # Search
         sa.Column('embedding', Vector(1536), nullable=True),
-        sa.Column('search_vector', sa.Column.__class__),  # Created via raw SQL below
+        sa.Column('search_vector', TSVECTOR, nullable=True),
 
         # Provenance
         sa.Column('source_chunk_id', sa.Integer, nullable=True),
@@ -62,10 +61,7 @@ def upgrade() -> None:
         sa.CheckConstraint('trust_tier BETWEEN 1 AND 5', name='ck_pf_evidence_trust_tier'),
     )
 
-    # Add tsvector column via raw SQL (Alembic Column type doesn't support TSVECTOR natively)
-    op.execute("ALTER TABLE pf_evidence_items ADD COLUMN IF NOT EXISTS search_vector TSVECTOR")
-
-    # FK to chunks if applicable
+     # FK to chunks if applicable
     op.execute("""
         DO $$
         BEGIN
@@ -149,8 +145,8 @@ def upgrade() -> None:
 
         # Coverage quality
         sa.Column('coverage_score', sa.Float, nullable=False),
-        sa.Column('missing_kinds', JSONB, server_default="'[]'::jsonb"),
-        sa.Column('warnings', JSONB, server_default="'[]'::jsonb"),
+        sa.Column('missing_kinds', JSONB, server_default=sa.text("'[]'::jsonb")),
+        sa.Column('warnings', JSONB, server_default=sa.text("'[]'::jsonb")),
     )
 
     # FK to campaigns if applicable

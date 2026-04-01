@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ── Enums ─────────────────────────────────────────────────────────────
@@ -110,8 +110,8 @@ class ModelCatalogResponse(BaseModel):
     updated_at: datetime | None
     updated_by: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class ModelCatalogListResponse(BaseModel):
@@ -151,8 +151,8 @@ class PricingMonitorRunResponse(BaseModel):
     started_at: datetime
     completed_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class PricingMonitorRunListResponse(BaseModel):
@@ -181,8 +181,8 @@ class PricingSnapshotResponse(BaseModel):
     validation_errors: list[dict[str, Any]]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ── PricingAlert ──────────────────────────────────────────────────────
@@ -220,8 +220,8 @@ class PricingAlertResponse(BaseModel):
     admin_notes: str | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class PricingAlertListResponse(BaseModel):
@@ -260,8 +260,8 @@ class CostLedgerResponse(BaseModel):
     is_cached: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class CostLedgerListResponse(BaseModel):
@@ -328,8 +328,8 @@ class BatchQueueResponse(BaseModel):
     error_message: str | None
     retry_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class BatchQueueListResponse(BaseModel):

@@ -4,7 +4,7 @@ NeuroForge Domain Models
 Core models for the inference pipeline.
 """
 from typing import Any, Dict, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from pydantic import BaseModel, Field
 
 
@@ -81,5 +81,5 @@ class CacheEntry(BaseModel):
     
     def is_expired(self) -> bool:
         """Check if cache entry has expired."""
-        elapsed = (datetime.utcnow() - self.created_at).total_seconds()
+        elapsed = (datetime.now(UTC) - self.created_at).total_seconds()
         return elapsed > self.ttl_seconds

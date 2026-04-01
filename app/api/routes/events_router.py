@@ -7,7 +7,7 @@ GET /api/v1/events/stats - Dashboard statistics
 GET /api/v1/events/profiles - Profile statistics
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 from uuid import UUID
 
@@ -150,8 +150,8 @@ def _update_profile_stats(db: Session, event: BuildGuardMetricsEventCreate):
             total_findings_evaluated=event.metrics.total_findings,
             total_blocked=event.metrics.blocked_count,
             avg_triage_lag_hours_overall=event.metrics.avg_triage_lag_hours,
-            first_seen=datetime.utcnow(),
-            last_seen=datetime.utcnow(),
+            first_seen=datetime.now(UTC),
+            last_seen=datetime.now(UTC),
         )
         db.add(stats)
     else:
@@ -175,7 +175,7 @@ def _update_profile_stats(db: Session, event: BuildGuardMetricsEventCreate):
                     (stats.avg_triage_lag_hours_overall * (n - 1) + event.metrics.avg_triage_lag_hours) / n
                 )
 
-        stats.last_seen = datetime.utcnow()
+        stats.last_seen = datetime.now(UTC)
 
 
 @router.get("", response_model=EventsListResponse)
@@ -229,7 +229,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
     fail_count = total - pass_count
 
     # Last 24 hours
-    cutoff = datetime.utcnow() - timedelta(hours=24)
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
     recent_total = db.query(func.count(BuildGuardEvent.id)).filter(
         BuildGuardEvent.timestamp >= cutoff
     ).scalar() or 0
@@ -244,7 +244,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
     p95_lag = db.query(func.avg(BuildGuardEvent.p95_triage_lag_hours)).scalar()
 
     # Top failing profiles (by fail count, last 7 days)
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(UTC) - timedelta(days=7)
     top_failing = db.query(BuildGuardProfileStats).filter(
         BuildGuardProfileStats.last_seen >= week_ago,
         BuildGuardProfileStats.fail_count > 0

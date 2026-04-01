@@ -11,7 +11,7 @@ Provides:
 
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Any, Optional, Set
 from abc import ABC, abstractmethod
 import json
@@ -350,7 +350,7 @@ class AuditLogger:
         """Log security event."""
         
         log_entry = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             event_type=event_type,
             severity=severity,
             user_id=user_id,

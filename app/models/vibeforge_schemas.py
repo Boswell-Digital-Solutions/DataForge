@@ -31,7 +31,7 @@ class VibeForgeProjectBase(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=255)
     project_type: ProjectType
     description: Optional[str] = None
-    selected_languages: List[str] = Field(..., min_items=1)
+    selected_languages: List[str] = Field(..., min_length=1)
     selected_stack: str = Field(..., min_length=1, max_length=100)
     intent_description: Optional[str] = None
     team_size: Optional[int] = Field(None, ge=1, le=1000)
@@ -131,7 +131,7 @@ class StackOutcomeBase(BaseModel):
     project_id: int
     stack_id: str = Field(..., min_length=1, max_length=100)
     project_type: ProjectType
-    languages_used: List[str] = Field(..., min_items=1)
+    languages_used: List[str] = Field(..., min_length=1)
     outcome_status: OutcomeStatus
     build_successful: Optional[bool] = None
     tests_passed: Optional[bool] = None

@@ -4,7 +4,7 @@ Multi-AI Planning System Pydantic Schemas
 Request/response models for the planning system API endpoints.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -80,8 +80,8 @@ class PlanningOutcomeResponse(BaseModel):
     execution_success: Optional[bool]
     user_rating: Optional[int]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -103,8 +103,8 @@ class ModelPerformanceResponse(BaseModel):
     ema_quality: Optional[float]
     avg_cost_cents: Optional[float]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -177,5 +177,5 @@ class AIEstimationFeedbackResponse(BaseModel):
     executor_type: str
     model_used: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+

@@ -11,7 +11,7 @@ Comprehensive test suite covering:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import MagicMock, patch
 from typing import Any
 
@@ -309,7 +309,7 @@ class TestSessionExpiration:
         assert session_manager.get_session(session.session_id) is not None
         
         # Manually mark expired
-        session.created_at = datetime.utcnow() - timedelta(seconds=2)
+        session.created_at = datetime.now(UTC) - timedelta(seconds=2)
         
         # Session should be expired
         assert session_manager.get_session(session.session_id) is None

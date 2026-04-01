@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 # ============================================================================
@@ -187,8 +187,8 @@ class BugCheckRunResponse(BaseModel):
     error_message: str | None = None
     metadata: dict[str, Any]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -253,8 +253,8 @@ class FindingResponse(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class FindingsBatchResponse(BaseModel):
@@ -311,8 +311,8 @@ class EnrichmentResponse(BaseModel):
     latency_ms: int | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -357,8 +357,8 @@ class LifecycleEventResponse(BaseModel):
     metadata: dict[str, Any]
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 # ============================================================================
@@ -383,5 +383,5 @@ class ProgressEventResponse(BaseModel):
     metadata: dict[str, Any]
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
