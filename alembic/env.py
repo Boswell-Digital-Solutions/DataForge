@@ -35,7 +35,7 @@ from app.models import neuroforge_models  # noqa: F401
 from app.models import tarcie_models  # noqa: F401
 from app.models import agentic_reasoning_models  # noqa: F401
 from app.models import multi_provider_models  # noqa: F401
-
+from app.models import runtime_promotion_models  # noqa: F401
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = _context.config
