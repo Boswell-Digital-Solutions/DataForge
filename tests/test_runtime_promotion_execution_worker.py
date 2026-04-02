@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import uuid
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.runtime_promotion.execution_handoff.contracts import (
     FailureReasonClass,
@@ -172,6 +172,144 @@ def test_claim_next_local_runtime_action_request_is_duplicate_safe(
     )
 
 
+def test_claim_next_local_runtime_action_request_accepts_queued_request(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _, execution_request_id = _create_approved_execution_request(client)
+
+    request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+    assert request_row is not None
+    request_row.request_status = "queued"
+    db.add(request_row)
+    db.commit()
+
+    claimed_request = claim_next_local_runtime_action_request(db)
+    assert claimed_request is not None
+    assert claimed_request.execution_request_id == execution_request_id
+    db.commit()
+
+    request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+    assert request_row is not None
+    assert request_row.request_status == "accepted"
+
+    statuses = _list_statuses(db, execution_request_id)
+    assert [status.execution_state for status in statuses] == ["accepted"]
+    assert (
+        statuses[0].status_summary
+        == "Execution request accepted by bounded local runtime lane."
+    )
+
+
+def test_claim_next_local_runtime_action_request_does_not_claim_terminal_states(
+    client: TestClient,
+    db: Session,
+) -> None:
+    terminal_statuses = [
+        "completed",
+        "failed",
+        "timed_out",
+        "dead_lettered",
+    ]
+
+    for terminal_status in terminal_statuses:
+        _, execution_request_id = _create_approved_execution_request(client)
+
+        request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+        assert request_row is not None
+        request_row.request_status = terminal_status
+        db.add(request_row)
+        db.commit()
+
+        claimed_request = claim_next_local_runtime_action_request(db)
+        assert claimed_request is None, (
+            f"Expected no claim for terminal status {terminal_status}, "
+            f"but got {claimed_request!r}"
+        )
+        db.commit()
+
+        request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+        assert request_row is not None
+        assert request_row.request_status == terminal_status
+
+        statuses = _list_statuses(db, execution_request_id)
+        assert statuses == []
+
+
+def test_claim_next_local_runtime_action_request_allows_only_one_winner_across_sessions(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _, execution_request_id = _create_approved_execution_request(client)
+
+    SessionLocal = sessionmaker(bind=db.get_bind())
+    session_a = SessionLocal()
+    session_b = SessionLocal()
+
+    try:
+        claimed_a = claim_next_local_runtime_action_request(session_a)
+        session_a.commit()
+
+        claimed_b = claim_next_local_runtime_action_request(session_b)
+        session_b.commit()
+
+        winners = [claim for claim in (claimed_a, claimed_b) if claim is not None]
+        assert len(winners) == 1
+        assert winners[0].execution_request_id == execution_request_id
+
+        request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+        assert request_row is not None
+        assert request_row.request_status == "accepted"
+
+        statuses = _list_statuses(db, execution_request_id)
+        assert [status.execution_state for status in statuses] == ["accepted"]
+        assert (
+            statuses[0].status_summary
+            == "Execution request accepted by bounded local runtime lane."
+        )
+    finally:
+        session_a.close()
+        session_b.close()
+
+
+def test_claim_next_local_runtime_action_request_repeated_multi_session_contention_keeps_one_winner_per_round(
+    client: TestClient,
+    db: Session,
+) -> None:
+    SessionLocal = sessionmaker(bind=db.get_bind())
+
+    for _ in range(5):
+        _, execution_request_id = _create_approved_execution_request(client)
+
+        sessions = [SessionLocal() for _ in range(4)]
+
+        try:
+            claims: list[RuntimePromotionExecutionRequest | None] = []
+
+            for session in sessions:
+                claimed = claim_next_local_runtime_action_request(session)
+                session.commit()
+                claims.append(claimed)
+
+            winners = [claim for claim in claims if claim is not None]
+            assert len(winners) == 1
+            assert winners[0].execution_request_id == execution_request_id
+
+            request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+            assert request_row is not None
+            assert request_row.request_status == "accepted"
+
+            statuses = _list_statuses(db, execution_request_id)
+            assert [status.execution_state for status in statuses] == ["accepted"]
+            assert (
+                statuses[0].status_summary
+                == "Execution request accepted by bounded local runtime lane."
+            )
+        finally:
+            for session in sessions:
+                session.close()
+
+
 def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
     client: TestClient,
     db: Session,
@@ -188,6 +326,18 @@ def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
     request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
     assert request_row is not None
     assert request_row.request_status == "completed"
+
+    worker_execution_result = request_row.bounded_parameters_json.get(
+        "worker_execution_result"
+    )
+    assert worker_execution_result is not None
+    assert worker_execution_result["worker_action"] == FIRST_LOCAL_RUNTIME_ACTION
+    assert worker_execution_result["candidate_id"] == candidate_id
+    assert worker_execution_result["issue_class"] == "migration_failure"
+    assert worker_execution_result["service"] == "df_local_foundation"
+    assert worker_execution_result["emitting_subsystem"] == "forge_local_runtime"
+    assert worker_execution_result["result_class"] == "bounded_runtime_maintenance_marker"
+    assert worker_execution_result["executed_at"]
 
     statuses = _list_statuses(db, execution_request_id)
     assert [status.execution_state for status in statuses] == [
@@ -207,6 +357,43 @@ def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
         f"candidate:{candidate_id}",
         "service:df_local_foundation",
         "issue_class:migration_failure",
+        "side_effect:worker_execution_result_written",
+    ]
+
+
+def test_run_one_local_runtime_action_writes_real_low_risk_side_effect_marker(
+    client: TestClient,
+    db: Session,
+) -> None:
+    candidate_id, execution_request_id = _create_approved_execution_request(client)
+
+    result = run_one_local_runtime_action(db)
+    assert result is not None
+    assert result.execution_request_id == execution_request_id
+    assert result.terminal_state == "completed"
+    db.commit()
+
+    request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+    assert request_row is not None
+
+    bounded_parameters = request_row.bounded_parameters_json
+    assert isinstance(bounded_parameters, dict)
+
+    worker_execution_result = bounded_parameters.get("worker_execution_result")
+    assert worker_execution_result is not None
+    assert worker_execution_result["worker_action"] == FIRST_LOCAL_RUNTIME_ACTION
+    assert worker_execution_result["candidate_id"] == candidate_id
+    assert worker_execution_result["issue_class"] == "migration_failure"
+    assert worker_execution_result["service"] == "df_local_foundation"
+    assert worker_execution_result["emitting_subsystem"] == "forge_local_runtime"
+    assert worker_execution_result["result_class"] == "bounded_runtime_maintenance_marker"
+    assert worker_execution_result["executed_at"]
+
+    statuses = _list_statuses(db, execution_request_id)
+    assert [status.execution_state for status in statuses] == [
+        "accepted",
+        "running",
+        "completed",
     ]
 
 

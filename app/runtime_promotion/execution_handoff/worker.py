@@ -64,7 +64,9 @@ def claim_next_local_runtime_action_request(
             == TargetSubsystem.FORGE_LOCAL_RUNTIME.value,
             RuntimePromotionExecutionRequest.requested_action
             == FIRST_LOCAL_RUNTIME_ACTION,
-            RuntimePromotionExecutionRequest.request_status.in_(CLAIMABLE_REQUEST_STATUSES),
+            RuntimePromotionExecutionRequest.request_status.in_(
+                CLAIMABLE_REQUEST_STATUSES
+            ),
         )
         .order_by(RuntimePromotionExecutionRequest.requested_at.asc())
         .first()
@@ -79,7 +81,9 @@ def claim_next_local_runtime_action_request(
         .where(
             RuntimePromotionExecutionRequest.execution_request_id
             == candidate.execution_request_id,
-            RuntimePromotionExecutionRequest.request_status.in_(CLAIMABLE_REQUEST_STATUSES),
+            RuntimePromotionExecutionRequest.request_status.in_(
+                CLAIMABLE_REQUEST_STATUSES
+            ),
         )
         .values(
             request_status=ExecutionRequestStatus.ACCEPTED.value,
@@ -166,7 +170,11 @@ def execute_claimed_local_runtime_action(
         session.flush()
 
         started_monotonic = monotonic()
-        artifact_refs = _perform_supported_local_runtime_action(execution_request)
+        artifact_refs = _perform_supported_local_runtime_action(
+            session,
+            execution_request,
+            emitting_subsystem=emitting_subsystem,
+        )
 
         if monotonic() - started_monotonic > timeout_seconds:
             raise TimeoutError("Execution exceeded bounded timeout budget.")
@@ -316,9 +324,12 @@ def _validate_execution_request(
 
 
 def _perform_supported_local_runtime_action(
+    session: Session,
     execution_request: RuntimePromotionExecutionRequest,
+    *,
+    emitting_subsystem: str,
 ) -> list[str]:
-    bounded_parameters = execution_request.bounded_parameters_json or {}
+    bounded_parameters = dict(execution_request.bounded_parameters_json or {})
 
     candidate_id = str(bounded_parameters["candidate_id"]).strip()
     issue_class = str(bounded_parameters["issue_class"]).strip()
@@ -329,9 +340,27 @@ def _perform_supported_local_runtime_action(
     if not issue_class:
         raise ValueError("issue_class must not be empty.")
 
+    executed_at = _utcnow()
+
+    bounded_parameters["worker_execution_result"] = {
+        "worker_action": FIRST_LOCAL_RUNTIME_ACTION,
+        "candidate_id": candidate_id,
+        "issue_class": issue_class,
+        "service": service,
+        "executed_at": executed_at.isoformat(),
+        "emitting_subsystem": emitting_subsystem,
+        "result_class": "bounded_runtime_maintenance_marker",
+    }
+
+    execution_request.bounded_parameters_json = bounded_parameters
+    execution_request.updated_at = executed_at
+    session.add(execution_request)
+    session.flush()
+
     return [
         f"worker_action:{FIRST_LOCAL_RUNTIME_ACTION}",
         f"candidate:{candidate_id}",
         f"service:{service}",
         f"issue_class:{issue_class}",
+        "side_effect:worker_execution_result_written",
     ]
