@@ -46,6 +46,14 @@ def _new_trace_id() -> str:
     return str(uuid4())
 
 
+def _normalize_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
 def build_execution_request_idempotency_key(
     *,
     candidate_id: str,
@@ -62,6 +70,114 @@ def build_execution_request_idempotency_key(
         ]
     )
     return sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _append_unique_evidence_ref(
+    evidence_refs: list[str],
+    value: str | None,
+) -> None:
+    if value is None:
+        return
+
+    normalized = value.strip()
+    if not normalized:
+        return
+
+    if normalized not in evidence_refs:
+        evidence_refs.append(normalized)
+
+
+def _get_worker_execution_result(
+    execution_request: RuntimePromotionExecutionRequest,
+) -> dict | None:
+    bounded_parameters = execution_request.bounded_parameters_json or {}
+    if not isinstance(bounded_parameters, dict):
+        return None
+
+    worker_execution_result = bounded_parameters.get("worker_execution_result")
+    if not isinstance(worker_execution_result, dict):
+        return None
+
+    return worker_execution_result
+
+
+def _build_verification_evidence_refs(
+    execution_request: RuntimePromotionExecutionRequest,
+    explicit_evidence_refs: list[str] | None,
+) -> list[str]:
+    evidence_refs: list[str] = []
+
+    for ref in explicit_evidence_refs or []:
+        _append_unique_evidence_ref(evidence_refs, ref)
+
+    worker_execution_result = _get_worker_execution_result(execution_request)
+    if worker_execution_result is None:
+        return evidence_refs
+
+    _append_unique_evidence_ref(
+        evidence_refs,
+        "verification:evidence:worker_execution_result_present",
+    )
+
+    maintenance_action_class = worker_execution_result.get("maintenance_action_class")
+    if isinstance(maintenance_action_class, str) and maintenance_action_class.strip():
+        _append_unique_evidence_ref(
+            evidence_refs,
+            (
+                "verification:evidence:maintenance_action_class:"
+                f"{maintenance_action_class.strip()}"
+            ),
+        )
+
+    target_capability = worker_execution_result.get("target_capability")
+    if isinstance(target_capability, str) and target_capability.strip():
+        _append_unique_evidence_ref(
+            evidence_refs,
+            (
+                "verification:evidence:target_capability:"
+                f"{target_capability.strip()}"
+            ),
+        )
+
+    return evidence_refs
+
+
+def _build_grounded_verification_summary(
+    execution_request: RuntimePromotionExecutionRequest,
+    explicit_summary: str,
+) -> str:
+    base_summary = explicit_summary.strip()
+    if not base_summary:
+        return explicit_summary
+
+    if "Verification basis:" in base_summary:
+        return base_summary
+
+    worker_execution_result = _get_worker_execution_result(execution_request)
+    if worker_execution_result is None:
+        return base_summary
+
+    basis_parts = ["worker_execution_result present"]
+
+    maintenance_action_class = _normalize_text(
+        worker_execution_result.get("maintenance_action_class")
+        if isinstance(worker_execution_result.get("maintenance_action_class"), str)
+        else None
+    )
+    if maintenance_action_class is not None:
+        basis_parts.append(
+            f"maintenance_action_class={maintenance_action_class}"
+        )
+
+    target_capability = _normalize_text(
+        worker_execution_result.get("target_capability")
+        if isinstance(worker_execution_result.get("target_capability"), str)
+        else None
+    )
+    if target_capability is not None:
+        basis_parts.append(f"target_capability={target_capability}")
+
+    return f"{base_summary} Verification basis: {'; '.join(basis_parts)}."
 
 
 @dataclass(slots=True)
@@ -293,6 +409,14 @@ def create_verification_result(
         )
 
     verified_at = _utcnow()
+    evidence_refs = _build_verification_evidence_refs(
+        execution_request,
+        payload.evidence_refs,
+    )
+    verification_summary = _build_grounded_verification_summary(
+        execution_request,
+        payload.verification_summary,
+    )
 
     verification = RuntimePromotionVerificationResult(
         verification_artifact_id=_new_id(),
@@ -309,8 +433,8 @@ def create_verification_result(
         observed_outcome=payload.observed_outcome.value,
         regression_detected=payload.regression_detected,
         rollback_recommended=payload.rollback_recommended,
-        verification_summary=payload.verification_summary,
-        evidence_refs_json=list(payload.evidence_refs or []),
+        verification_summary=verification_summary,
+        evidence_refs_json=evidence_refs,
         verified_at=verified_at,
     )
 

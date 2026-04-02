@@ -310,6 +310,49 @@ def test_claim_next_local_runtime_action_request_repeated_multi_session_contenti
                 session.close()
 
 
+def test_claim_next_local_runtime_action_request_high_session_contention_keeps_single_winner_and_single_accept_status(
+    client: TestClient,
+    db: Session,
+) -> None:
+    SessionLocal = sessionmaker(bind=db.get_bind())
+
+    for round_index in range(8):
+        _, execution_request_id = _create_approved_execution_request(client)
+
+        sessions = [SessionLocal() for _ in range(8)]
+
+        try:
+            ordered_sessions = (
+                sessions if round_index % 2 == 0 else list(reversed(sessions))
+            )
+
+            claims: list[RuntimePromotionExecutionRequest | None] = []
+
+            for session in ordered_sessions:
+                claimed = claim_next_local_runtime_action_request(session)
+                session.commit()
+                claims.append(claimed)
+
+            winners = [claim for claim in claims if claim is not None]
+            assert len(winners) == 1
+            assert winners[0].execution_request_id == execution_request_id
+
+            request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+            assert request_row is not None
+            assert request_row.request_status == "accepted"
+
+            statuses = _list_statuses(db, execution_request_id)
+            assert len(statuses) == 1
+            assert [status.execution_state for status in statuses] == ["accepted"]
+            assert (
+                statuses[0].status_summary
+                == "Execution request accepted by bounded local runtime lane."
+            )
+        finally:
+            for session in sessions:
+                session.close()
+
+
 def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
     client: TestClient,
     db: Session,
@@ -337,6 +380,20 @@ def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
     assert worker_execution_result["service"] == "df_local_foundation"
     assert worker_execution_result["emitting_subsystem"] == "forge_local_runtime"
     assert worker_execution_result["result_class"] == "bounded_runtime_maintenance_marker"
+    assert worker_execution_result["maintenance_action_class"] == "runtime_metadata_writeback"
+    assert worker_execution_result["target_capability"] == "runtime_promotion_execution_request"
+    assert worker_execution_result["precondition_summary"] == (
+        "Approved local runtime action request was claimed and validated."
+    )
+    assert worker_execution_result["postcondition_summary"] == (
+        "Execution request now carries a richer bounded maintenance evidence payload."
+    )
+    assert worker_execution_result["verification_hint"] == (
+        "Confirm worker_execution_result is present and candidate-detail readback exposes it."
+    )
+    assert worker_execution_result["operator_summary"] == (
+        "Bounded local runtime action recorded maintenance evidence for operator review."
+    )
     assert worker_execution_result["executed_at"]
 
     statuses = _list_statuses(db, execution_request_id)
@@ -357,6 +414,8 @@ def test_run_one_local_runtime_action_completes_and_writes_durable_statuses(
         f"candidate:{candidate_id}",
         "service:df_local_foundation",
         "issue_class:migration_failure",
+        "maintenance_action_class:runtime_metadata_writeback",
+        "target_capability:runtime_promotion_execution_request",
         "side_effect:worker_execution_result_written",
     ]
 
@@ -387,6 +446,20 @@ def test_run_one_local_runtime_action_writes_real_low_risk_side_effect_marker(
     assert worker_execution_result["service"] == "df_local_foundation"
     assert worker_execution_result["emitting_subsystem"] == "forge_local_runtime"
     assert worker_execution_result["result_class"] == "bounded_runtime_maintenance_marker"
+    assert worker_execution_result["maintenance_action_class"] == "runtime_metadata_writeback"
+    assert worker_execution_result["target_capability"] == "runtime_promotion_execution_request"
+    assert worker_execution_result["precondition_summary"] == (
+        "Approved local runtime action request was claimed and validated."
+    )
+    assert worker_execution_result["postcondition_summary"] == (
+        "Execution request now carries a richer bounded maintenance evidence payload."
+    )
+    assert worker_execution_result["verification_hint"] == (
+        "Confirm worker_execution_result is present and candidate-detail readback exposes it."
+    )
+    assert worker_execution_result["operator_summary"] == (
+        "Bounded local runtime action recorded maintenance evidence for operator review."
+    )
     assert worker_execution_result["executed_at"]
 
     statuses = _list_statuses(db, execution_request_id)
@@ -395,6 +468,54 @@ def test_run_one_local_runtime_action_writes_real_low_risk_side_effect_marker(
         "running",
         "completed",
     ]
+
+
+def test_candidate_detail_readback_surfaces_worker_execution_result(
+    client: TestClient,
+    db: Session,
+) -> None:
+    candidate_id, execution_request_id = _create_approved_execution_request(client)
+
+    result = run_one_local_runtime_action(db)
+    assert result is not None
+    assert result.execution_request_id == execution_request_id
+    assert result.terminal_state == "completed"
+    db.commit()
+
+    detail = _get_candidate_detail(client, candidate_id)
+    execution_handoff = detail["execution_handoff"]
+    assert execution_handoff is not None
+
+    execution_request = execution_handoff["execution_request"]
+    assert execution_request is not None
+    assert execution_request["execution_request_id"] == execution_request_id
+
+    bounded_parameters = execution_request["bounded_parameters"]
+    assert isinstance(bounded_parameters, dict)
+
+    worker_execution_result = bounded_parameters.get("worker_execution_result")
+    assert worker_execution_result is not None
+    assert worker_execution_result["worker_action"] == FIRST_LOCAL_RUNTIME_ACTION
+    assert worker_execution_result["candidate_id"] == candidate_id
+    assert worker_execution_result["issue_class"] == "migration_failure"
+    assert worker_execution_result["service"] == "df_local_foundation"
+    assert worker_execution_result["emitting_subsystem"] == "forge_local_runtime"
+    assert worker_execution_result["result_class"] == "bounded_runtime_maintenance_marker"
+    assert worker_execution_result["maintenance_action_class"] == "runtime_metadata_writeback"
+    assert worker_execution_result["target_capability"] == "runtime_promotion_execution_request"
+    assert worker_execution_result["precondition_summary"] == (
+        "Approved local runtime action request was claimed and validated."
+    )
+    assert worker_execution_result["postcondition_summary"] == (
+        "Execution request now carries a richer bounded maintenance evidence payload."
+    )
+    assert worker_execution_result["verification_hint"] == (
+        "Confirm worker_execution_result is present and candidate-detail readback exposes it."
+    )
+    assert worker_execution_result["operator_summary"] == (
+        "Bounded local runtime action recorded maintenance evidence for operator review."
+    )
+    assert worker_execution_result["executed_at"]
 
 
 def test_execute_claimed_local_runtime_action_fails_closed_on_invalid_parameters(
@@ -741,19 +862,28 @@ def test_run_one_local_runtime_action_completed_then_verification_reads_back_sep
     )
     assert latest_verification["observed_outcome"] == "verified_success"
     assert latest_verification["verification_summary"] == (
-        "Verification passed. Expected improvement was observed."
+        "Verification passed. Expected improvement was observed. "
+        "Verification basis: worker_execution_result present; "
+        "maintenance_action_class=runtime_metadata_writeback; "
+        "target_capability=runtime_promotion_execution_request."
     )
     assert latest_verification["regression_detected"] is False
     assert latest_verification["rollback_recommended"] is False
     assert latest_verification["evidence_refs"] == [
-        "verification:evidence:worker-closeout:001"
+        "verification:evidence:worker-closeout:001",
+        "verification:evidence:worker_execution_result_present",
+        "verification:evidence:maintenance_action_class:runtime_metadata_writeback",
+        "verification:evidence:target_capability:runtime_promotion_execution_request",
     ]
 
     latest_verification_summary = execution_handoff["latest_verification_summary"]
     assert latest_verification_summary["execution_request_id"] == execution_request_id
     assert latest_verification_summary["observed_outcome"] == "verified_success"
     assert latest_verification_summary["verification_summary"] == (
-        "Verification passed. Expected improvement was observed."
+        "Verification passed. Expected improvement was observed. "
+        "Verification basis: worker_execution_result present; "
+        "maintenance_action_class=runtime_metadata_writeback; "
+        "target_capability=runtime_promotion_execution_request."
     )
     assert latest_verification_summary["regression_detected"] is False
     assert latest_verification_summary["rollback_recommended"] is False

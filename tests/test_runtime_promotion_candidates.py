@@ -280,6 +280,9 @@ def test_runtime_promotion_candidate_detail_shows_verification_separate_from_exe
         ExecutionState,
         VerificationObservedOutcome,
     )
+    from app.runtime_promotion.execution_handoff.models import (
+        RuntimePromotionExecutionRequest,
+    )
     from app.runtime_promotion.execution_handoff.service import (
         VerificationResultCreate,
         create_verification_result,
@@ -312,6 +315,37 @@ def test_runtime_promotion_candidate_detail_shows_verification_separate_from_exe
             emitting_subsystem="forge_local_runtime",
         ),
     )
+    db.commit()
+
+    request_row = db.get(RuntimePromotionExecutionRequest, execution_request_id)
+    assert request_row is not None
+
+    bounded_parameters = dict(request_row.bounded_parameters_json or {})
+    bounded_parameters["worker_execution_result"] = {
+        "worker_action": "process_local_failure_pattern",
+        "candidate_id": candidate_id,
+        "issue_class": "migration_failure",
+        "service": "df_local_foundation",
+        "executed_at": datetime.now(UTC).isoformat(),
+        "emitting_subsystem": "forge_local_runtime",
+        "result_class": "bounded_runtime_maintenance_marker",
+        "maintenance_action_class": "runtime_metadata_writeback",
+        "target_capability": "runtime_promotion_execution_request",
+        "precondition_summary": (
+            "Approved local runtime action request was claimed and validated."
+        ),
+        "postcondition_summary": (
+            "Execution request now carries a richer bounded maintenance evidence payload."
+        ),
+        "verification_hint": (
+            "Confirm worker_execution_result is present and candidate-detail readback exposes it."
+        ),
+        "operator_summary": (
+            "Bounded local runtime action recorded maintenance evidence for operator review."
+        ),
+    }
+    request_row.bounded_parameters_json = bounded_parameters
+    db.add(request_row)
     db.commit()
 
     detail_after_execution = _get_candidate_detail(client, candidate_id)
@@ -379,11 +413,19 @@ def test_runtime_promotion_candidate_detail_shows_verification_separate_from_exe
     )
     assert latest_verification["observed_outcome"] == "verified_success"
     assert latest_verification["verification_summary"] == (
-        "Verification passed. Expected improvement was observed."
+        "Verification passed. Expected improvement was observed. "
+        "Verification basis: worker_execution_result present; "
+        "maintenance_action_class=runtime_metadata_writeback; "
+        "target_capability=runtime_promotion_execution_request."
     )
     assert latest_verification["regression_detected"] is False
     assert latest_verification["rollback_recommended"] is False
-    assert latest_verification["evidence_refs"] == ["verification:evidence:001"]
+    assert latest_verification["evidence_refs"] == [
+        "verification:evidence:001",
+        "verification:evidence:worker_execution_result_present",
+        "verification:evidence:maintenance_action_class:runtime_metadata_writeback",
+        "verification:evidence:target_capability:runtime_promotion_execution_request",
+    ]
     assert latest_verification["trace_id"] == execution_request["trace_id"]
     assert (
         latest_verification["root_decision_artifact_id"]
@@ -395,7 +437,10 @@ def test_runtime_promotion_candidate_detail_shows_verification_separate_from_exe
     assert latest_verification_summary["execution_request_id"] == execution_request_id
     assert latest_verification_summary["observed_outcome"] == "verified_success"
     assert latest_verification_summary["verification_summary"] == (
-        "Verification passed. Expected improvement was observed."
+        "Verification passed. Expected improvement was observed. "
+        "Verification basis: worker_execution_result present; "
+        "maintenance_action_class=runtime_metadata_writeback; "
+        "target_capability=runtime_promotion_execution_request."
     )
     assert latest_verification_summary["regression_detected"] is False
     assert latest_verification_summary["rollback_recommended"] is False

@@ -342,6 +342,21 @@ def _perform_supported_local_runtime_action(
 
     executed_at = _utcnow()
 
+    maintenance_action_class = "runtime_metadata_writeback"
+    target_capability = "runtime_promotion_execution_request"
+    precondition_summary = (
+        "Approved local runtime action request was claimed and validated."
+    )
+    postcondition_summary = (
+        "Execution request now carries a richer bounded maintenance evidence payload."
+    )
+    verification_hint = (
+        "Confirm worker_execution_result is present and candidate-detail readback exposes it."
+    )
+    operator_summary = (
+        "Bounded local runtime action recorded maintenance evidence for operator review."
+    )
+
     bounded_parameters["worker_execution_result"] = {
         "worker_action": FIRST_LOCAL_RUNTIME_ACTION,
         "candidate_id": candidate_id,
@@ -350,6 +365,12 @@ def _perform_supported_local_runtime_action(
         "executed_at": executed_at.isoformat(),
         "emitting_subsystem": emitting_subsystem,
         "result_class": "bounded_runtime_maintenance_marker",
+        "maintenance_action_class": maintenance_action_class,
+        "target_capability": target_capability,
+        "precondition_summary": precondition_summary,
+        "postcondition_summary": postcondition_summary,
+        "verification_hint": verification_hint,
+        "operator_summary": operator_summary,
     }
 
     execution_request.bounded_parameters_json = bounded_parameters
@@ -362,5 +383,7 @@ def _perform_supported_local_runtime_action(
         f"candidate:{candidate_id}",
         f"service:{service}",
         f"issue_class:{issue_class}",
+        f"maintenance_action_class:{maintenance_action_class}",
+        f"target_capability:{target_capability}",
         "side_effect:worker_execution_result_written",
     ]
