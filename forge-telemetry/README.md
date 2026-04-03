@@ -4,11 +4,21 @@
 
 - **Repo type:** Shared library / support repo
 - **Authority boundary:** Telemetry client behavior and event emission helpers for Forge services; not a resident service and not the durable truth store
-- **Deep reference:** `doc/system/_index.md`, `doc/ftSYSTEM.md`, `../../docs/canonical/documentation_protocol_v1.md`
+- **Deep reference:** `doc/system/_index.md`, root `SYSTEM.md` (legacy `doc/ftSYSTEM.md` mirror), `../../forgeHQ/docs/reference/bds/BDS_DOCUMENTATION_PROTOCOL_v1.md`
 - **README role:** Library entrypoint overview
 - **Truth note:** Usage examples and surface descriptions in this README reflect the current implementation snapshot unless explicitly marked as canonical doctrine
 
 Unified telemetry client for the Forge ecosystem (DataForge, NeuroForge, Rake).
+
+## Current Snapshot
+
+| Surface | Current truth |
+|---------|---------------|
+| Python package files | 4 (`setup.py`, `forge_telemetry/__init__.py`, `client.py`, `models.py`) |
+| Documentation parts | 6 `doc/system` chapters |
+| Generated references | root `SYSTEM.md`, `doc/SYSTEM.md`, legacy `doc/ftSYSTEM.md` |
+| Context loader | `scripts/context-bundle.sh` |
+| Dedicated tests | none yet; behavior changes should add tests under `tests/` |
 
 ## Installation
 

@@ -75,8 +75,8 @@ Dismissals without these fields return `422 Unprocessable Entity`.
 
 When a run transitions to `status = "finalized"`:
 
-- All subsequent `POST /api/bugcheck/runs/{run_id}/findings` return **409 Conflict**
-- All subsequent `POST /api/bugcheck/runs/{run_id}/progress` return **409 Conflict**
+- All subsequent `POST /api/v1/bugcheck/runs/{run_id}/findings` return **409 Conflict**
+- All subsequent `POST /api/v1/bugcheck/runs/{run_id}/progress` return **409 Conflict**
 - The run record becomes read-only
 - Existing findings retain their lifecycle states and continue to accept transitions
 
@@ -216,12 +216,7 @@ DataForge does not degrade silently. When dependencies are unavailable:
 
 ## Compliance Deletion (GDPR / CCPA)
 
-When a GDPR erasure request is received:
-
-1. User record is soft-deleted (anonymized, not hard-deleted) immediately
-2. Hard deletion is scheduled after `GDPR_DELETION_DELAY_DAYS` (default: 30)
-3. All associated documents are anonymized (author field scrubbed)
-4. Audit log entries are retained but actor identity is pseudonymized
-5. Encrypted field values are re-encrypted with a null key (effectively zeroed)
-
-The compliance test suite (`tests/test_compliance_gdpr.py`) verifies this full flow.
+Historical docs described a multi-step erasure workflow here. The current canonical audit does
+not treat that older flow or its former dedicated test file as verified repo truth. Any GDPR
+or CCPA deletion contract should be re-documented only after the live implementation and test
+surface are re-audited.

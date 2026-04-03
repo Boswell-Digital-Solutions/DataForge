@@ -144,7 +144,9 @@ class EncryptedField(TypeDecorator):
 
 Encryption/decryption is transparent at the ORM layer. Application code reads and writes plaintext; the `EncryptedField` type handles the transformation. Encrypted values in PostgreSQL are stored as `TEXT` (base64-encoded Fernet tokens).
 
-**Key rotation:** Requires a migration to re-encrypt all existing records with the new key. A key rotation script is provided in `scripts/`.
+**Key rotation:** Requires an explicit migration or dedicated rotation utility to re-encrypt
+existing records with the new key. Do not assume a checked-in helper script exists unless it
+is present in the repo at the time of the change.
 
 ---
 
@@ -165,7 +167,7 @@ DataForge implements six threat detection patterns in the auth layer, evaluated 
 
 ### Implementation
 
-Each detection type runs as an async check after the primary auth validation succeeds. Detection results are written to the audit log via `POST /api/events`. The auth response is returned to the caller only after all anomaly checks complete (detections are non-blocking for legitimate users; blocking only on hard violations like brute force).
+Each detection type runs as an async check after the primary auth validation succeeds. Detection results are written to the audit log via `POST /api/v1/events`. The auth response is returned to the caller only after all anomaly checks complete (detections are non-blocking for legitimate users; blocking only on hard violations like brute force).
 
 ---
 
@@ -277,7 +279,7 @@ event = AuditEvent(
 
 The `hmac` field enables tamper detection. On audit log export or compliance review, each event's HMAC is re-computed and compared. Any mismatch indicates tampering.
 
-**The audit log table has no UPDATE or DELETE operations in the ORM.** The only permitted operation is INSERT. The `/api/events` router has no PATCH or DELETE endpoints.
+**The audit log table has no UPDATE or DELETE operations in the ORM.** The only permitted operation is INSERT. The `/api/v1/events` router has no PATCH or DELETE endpoints.
 
 ---
 

@@ -4,7 +4,7 @@
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| Python | 3.11+ | Type hints mandatory, async/await throughout |
+| Python | 3.11+ | Typed FastAPI service; mixed async endpoints with synchronous ORM/session usage |
 | FastAPI | 0.109.0 | ASGI framework; lifespan for startup/shutdown |
 | uvicorn | 0.27.0 | ASGI worker server used behind Gunicorn in production |
 | gunicorn | 21.2.0 | Production process manager for multiple Uvicorn workers |
@@ -23,7 +23,7 @@
 |-----------|---------|-------|
 | SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
-| Alembic | 1.13.1 | Schema migrations; 11 version files |
+| Alembic | 1.13.1 | Schema migrations; 47 version files in `alembic/versions/` as of 2026-04-03 |
 
 ## Data Validation
 
@@ -71,9 +71,9 @@
 
 | Component | Notes |
 |-----------|-------|
-| Prometheus client | Metrics at `/metrics` |
-| OpenTelemetry | Distributed tracing with correlation IDs |
-| structlog / logging | Structured JSON logging |
+| Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
+| Security headers / timeout middleware | Active in the mounted FastAPI app |
+| OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 
 ## Optional / Load Testing
 

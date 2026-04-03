@@ -2,9 +2,11 @@
 
 ## Current Status
 
-Core DataForge functionality is implemented, and the latest verified suite result is
-`513 passed, 16 skipped` as of March 1, 2026. This document is a broad project snapshot;
-the canonical runtime/system contract now lives in `doc/system/` and `doc/dfSYSTEM.md`.
+Core DataForge functionality is implemented. The 2026-04-03 documentation audit refreshed the
+repo test inventory to `565 tests collected`, while the last recorded full execution snapshot in
+repo docs remains `513 passed, 16 skipped` from March 1, 2026. This document is a broad project
+snapshot; the canonical runtime/system contract now lives in `doc/system/` and root `SYSTEM.md`
+(legacy `doc/dfSYSTEM.md` remains mirrored for compatibility).
 
 ---
 

@@ -1,16 +1,38 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOC_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OUTPUT="${DOC_DIR}/ftSYSTEM.md"
+PARTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$PARTS_DIR/../.." && pwd)"
+ROOT_OUTPUT="$REPO_ROOT/SYSTEM.md"
+DOC_OUTPUT="$REPO_ROOT/doc/SYSTEM.md"
+LEGACY_OUTPUT_REL="doc/ftSYSTEM.md"
+TMP_OUTPUT="$(mktemp)"
 
-{
-  cat "${SCRIPT_DIR}/_index.md"
-  while IFS= read -r part; do
-    printf '\n---\n\n'
-    cat "${SCRIPT_DIR}/${part}"
-  done < <(find "${SCRIPT_DIR}" -maxdepth 1 -type f -name '[0-9][0-9]-*.md' -printf '%f\n' | sort)
-} > "${OUTPUT}"
+echo "Assembling SYSTEM.md..."
 
-echo "ftSYSTEM.md rebuilt ($(wc -l < "${OUTPUT}") lines)"
+cat "$PARTS_DIR/_index.md" > "$TMP_OUTPUT"
+
+for part in "$PARTS_DIR"/[0-9][0-9]-*.md; do
+  echo "" >> "$TMP_OUTPUT"
+  echo "---" >> "$TMP_OUTPUT"
+  echo "" >> "$TMP_OUTPUT"
+  cat "$part" >> "$TMP_OUTPUT"
+done
+
+cp "$TMP_OUTPUT" "$ROOT_OUTPUT"
+cp "$TMP_OUTPUT" "$DOC_OUTPUT"
+
+if [[ -n "$LEGACY_OUTPUT_REL" ]]; then
+  LEGACY_OUTPUT="$REPO_ROOT/$LEGACY_OUTPUT_REL"
+  mkdir -p "$(dirname "$LEGACY_OUTPUT")"
+  cp "$TMP_OUTPUT" "$LEGACY_OUTPUT"
+fi
+
+chmod 664 "$ROOT_OUTPUT" "$DOC_OUTPUT"
+if [[ -n "$LEGACY_OUTPUT_REL" ]]; then
+  chmod 664 "$REPO_ROOT/$LEGACY_OUTPUT_REL"
+fi
+
+LINE_COUNT=$(wc -l < "$ROOT_OUTPUT")
+rm -f "$TMP_OUTPUT"
+echo "SYSTEM.md assembled: $LINE_COUNT lines"

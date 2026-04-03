@@ -7,7 +7,7 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # Migration version files
+│   └── versions/                     # 47 migration version files as of 2026-04-03
 │       ├── 0001_initial_schema.py
 │       ├── ...
 │       ├── 0012_multi_provider_tables.py
@@ -19,8 +19,8 @@ DataForge/
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   │
 │   ├── models/
-│   │   ├── models.py                 # SQLAlchemy ORM models (31+ classes)
-│   │   ├── schemas.py                # Pydantic request/response schemas (90+)
+│   │   ├── models.py                 # Core shared ORM tables: users, documents, corpus state, execution index
+│   │   ├── schemas.py                # Core shared schemas: auth, search, user/domain/document/tag flows
 │   │   ├── multi_provider_models.py  # Multi-provider pipeline models (6 tables)
 │   │   ├── multi_provider_schemas.py # Multi-provider Pydantic schemas
 │   │   ├── sentinel_models.py        # Sentinel health sweep + healing models
@@ -29,15 +29,15 @@ DataForge/
 │   │   └── private_source_schemas.py # PSIM: PSPCreate/Update/Response schemas
 │   │
 │   ├── api/
-│   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
-│   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
-│   │   ├── auth_router.py            # JWT, OAuth2, TOTP 2FA endpoints
+│   │   ├── search_router.py          # Mounted: POST /api/search, GET /api/search/stats
+│   │   ├── admin_router.py           # Mounted: admin CRUD for documents, domains, tags
+│   │   ├── auth_router.py            # Mounted: /auth/token plus legacy /api/auth login/register/refresh/me
 │   │   ├── crud.py                   # Database operations (no business logic)
 │   │   ├── search.py                 # Hybrid vector + BM25 search logic
-│   │   ├── multi_provider_router.py  # /api/v1/models, pricing, costs, batch queue
-│   │   ├── sentinel_router.py        # Sentinel sweeps + healing events CRUD
-│   │   ├── private_source_crud.py   # PSIM: PrivateSourceProfile CRUD ops
-│   │   └── private_source_router.py # PSIM: /api/v1/private-source-profiles
+│   │   ├── multi_provider_router.py  # Mounted: /api/v1/models, pricing, costs, batch queue
+│   │   ├── sentinel_router.py        # Mounted: Sentinel sweep/healing record persistence
+│   │   ├── private_source_crud.py    # PSIM: PrivateSourceProfile CRUD ops
+│   │   └── private_source_router.py  # Mounted: /api/v1/private-source-profiles
 │   │
 │   └── utils/
 │       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
@@ -54,7 +54,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 31 test files, 529 collected tests as of 2026-03-01
+├── tests/                            # 39 test files, 565 collected tests as of 2026-04-03
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -66,7 +66,13 @@ DataForge/
 │   ├── test_authorforge_api.py
 │   ├── test_lifecycle.py
 │   ├── test_compliance_gdpr.py
-│   └── ... (32 files total)
+│   └── ... (39 files total)
+│
+├── forge-telemetry/                  # Nested git repo; shared telemetry library with its own docs stack
+│   ├── doc/system/                   # Separate library system docs
+│   ├── forge_telemetry/              # Published package surface
+│   ├── scripts/context-bundle.sh     # Selective context loader for the nested repo
+│   └── CLAUDE.md                     # Nested repo working instructions
 │
 ├── alembic.ini                       # Alembic configuration
 ├── docker-compose.yml                # Local dev: PostgreSQL + Redis + DataForge
@@ -82,9 +88,9 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers all routers with their prefixes. Configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 35 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
-**Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware.
+**Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware. Router modules that exist in `app/api/` but are not included here are source-present only and should not be documented as live API surface.
 
 ### `app/database.py`
 Creates the SQLAlchemy `engine` from `DATAFORGE_DATABASE_URL`. Provides `SessionLocal` for synchronous sessions and `get_db()` as a FastAPI dependency. The engine applies connect, pool, statement, lock, and idle-in-transaction timeouts. pgvector extension initialization is handled during startup in `app/main.py`, not in `database.py`.
@@ -99,61 +105,29 @@ def get_db():
 ```
 
 ### `app/models/models.py`
-Contains the core SQLAlchemy ORM model classes. Key models:
+Contains the core shared ORM tables that anchor the service:
 
 | Model | Table | Purpose |
 |-------|-------|---------|
-| `User` | `users` | Auth identity (username, email, hashed_password, is_admin) |
+| `User` | `users` | Auth identity and admin status |
 | `Domain` | `domains` | Knowledge organization hierarchy |
-| `Document` | `documents` | Content storage + publication state + metadata JSONB |
-| `Chunk` | `chunks` | Text segments + pgvector embedding + TSVECTOR |
+| `Tag` | `tags` | Document labels |
+| `Document` | `documents` | Canonical stored documents and metadata |
+| `Chunk` | `chunks` | Text chunks, embeddings, and search indexes |
 | `CorpusState` | `corpus_state` | Single-row current retrieval corpus version |
-| `CorpusVersion` | `corpus_versions` | Append-only audit trail of corpus version bumps |
-| `Tag` | `tags` | Labels; many-to-many via `document_tags` |
-| `ExecutionIndex` | `execution_index` | Fast run status lookups (run_id PK, denormalized) |
-| `RunEvidence` | `run_evidence` | Full JSONB evidence blobs |
-| `AgentRegistry` | `agent_registry` | Agent configuration persistence |
-| `BugCheckRunModel` | `bugcheck_runs` | BugCheck run records |
-| `BugCheckFindingModel` | `bugcheck_findings` | Individual findings with lifecycle_state |
-| `BugCheckLifecycleEventModel` | `bugcheck_lifecycle_events` | Append-only transition log |
-| `BugCheckEnrichmentModel` | `bugcheck_enrichments` | XAI/MAID enrichment artifacts |
-| `NeuroForgeRun` | `neuroforge_runs` | LLM run records |
-| `ModelResult` | `model_results` | Per-model output |
-| `ModelPerformance` | `model_performance` | Benchmark metrics |
-| `Inference` | `inferences` | Individual inference records |
-| `VibeForgeProject` | `vibeforge_projects` | Project metadata |
-| `ProjectSession` | `project_sessions` | Session records |
-| `StackOutcome` | `stack_outcomes` | Tech stack analysis results |
-| `AuthorForgeProject` | `authorforge_projects` | Book project |
-| `Chapter` | `chapters` | Chapter records |
-| `Scene` | `scenes` | Scene records |
-| `Manuscript` | `manuscripts` | Compiled manuscript blobs |
-| `Character` | `characters` | Character definitions |
-| `StoryArc` | `story_arcs` | Narrative arc tracking |
-| `Location` | `locations` | Setting/place records |
-| `SmithyPlanningSession` | `smithy_planning_sessions` | SMITH planning |
-| `SmithyPortfolioProject` | `smithy_portfolio` | Portfolio items |
-| `SmithyEvaluationSnapshot` | `smithy_evaluations` | Snapshots |
-| `Team` | `teams` | Team definitions |
-| `TeamMember` | `team_members` | Membership + roles |
-| `TeamInvite` | `team_invites` | Pending invitations |
-| `TarcieEvent` | `tarcie_events` | DX friction events |
-| `BuildGuardEvent` | `buildguard_events` | Quality gate events |
-| `DiligenceProject` | `diligence_projects` | Compliance assessment projects |
-| `DiligenceFinding` | `diligence_findings` | Assessment findings |
-| `DiligenceReview` | `diligence_reviews` | Review records |
-| `ModelCatalog` | `model_catalog` | Multi-provider model registry (14 models, 3 tiers) |
-| `PricingMonitorRun` | `pricing_monitor_runs` | Pricing monitor agent run records |
-| `PricingSnapshot` | `pricing_snapshots` | Point-in-time provider pricing data |
-| `PricingAlert` | `pricing_alerts` | Price change / model change alerts |
-| `CostLedger` | `cost_ledger` | Per-inference cost records |
-| `BatchQueue` | `batch_queue` | Batch inference queue tracking |
-| `SentinelSweep` | `sentinel_sweeps` | Health sweep run records (light/deep) |
-| `SentinelHealingEvent` | `sentinel_healing_events` | Healing action records with tier + outcome |
-| `PrivateSourceProfile` | `private_source_profiles` | PSIM: operator-curated crawl configurations |
+| `CorpusVersion` | `corpus_versions` | Append-only corpus version history |
+| `ExecutionIndex` | `execution_index` | Fast run lookup/status surface |
+| `RunEvidence` | `run_evidence` | Full JSON evidence blobs |
+| `AgentRegistry` | `agent_registry` | Agent definition persistence |
+
+Most domain tables no longer live in `models.py`. Authoring, BugCheck, policy envelopes,
+press automation, runtime promotion, rate limits, Sentinel, SMITH, teams, and provider
+catalog state are defined in companion `*_models.py` modules under `app/models/`.
 
 ### `app/models/schemas.py`
-Pydantic v2 schemas (130+) for request/response validation. Each domain has Create, Update, and Response schemas. All schemas use `model_config = ConfigDict(from_attributes=True)` for ORM compatibility.
+Contains the core shared Pydantic schemas for users, auth tokens, domains, tags, documents,
+chunks, and search. Domain-specific request/response contracts live in companion
+`*_schemas.py` modules alongside their model families.
 
 ### `app/api/crud.py`
 Document/domain/tag CRUD plus document-processing orchestration. Document writes perform
@@ -177,6 +151,6 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-Migration files covering the base schema plus later domain additions, pgvector support,
+47 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.

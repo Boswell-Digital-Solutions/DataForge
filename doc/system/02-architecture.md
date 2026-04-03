@@ -6,28 +6,49 @@
 DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── Router-based API surface
-│   ├── Lifespan handler (CORS, startup/shutdown)
-│   ├── Static file serving
-│   └── Admin UI (Jinja2 template)
+│   ├── 35 mounted router objects plus app-level health/admin/docs routes
+│   ├── Lifespan handler (config validation, pgvector startup checks, readiness posture)
+│   ├── Correlation, timeout, and security-header middleware
+│   ├── HTML admin/diligence views plus JSON API surfaces
+│   └── Static file serving when `static/` is present
 │
-├── Business Logic Layer
-│   ├── CRUD operations (app/api/crud.py)
-│   ├── Hybrid search engine (app/api/search.py)
-│   ├── Embedding pipeline (app/utils/embeddings.py)
-│   ├── Auth utilities (app/utils/auth.py)
-│   └── Anomaly detection (inline with auth)
+├── Mounted Service Domains
+│   ├── Search and content admin
+│   ├── Auth compatibility, admin key control, token rotation
+│   ├── AuthorForge, VibeForge, NeuroForge, Forge:SMITH, Teams
+│   ├── ForgeAgents, BugCheck, experience store, run persistence
+│   ├── Diligence UI/API, Tarcie ingest, events/audit surfaces
+│   ├── Runtime promotion, policy envelopes, rate-limit governance
+│   ├── Multi-provider catalog/pricing/costs/batch
+│   ├── Sentinel, compression, press automation, private-source profiles
+│   └── FPVS health, readiness, and version probes
 │
-├── ORM Layer
-│   ├── SQLAlchemy models (app/models/models.py) — 31+ classes
-│   ├── Pydantic schemas (app/models/schemas.py) — 90+ schemas
-│   └── Session dependency (app/database.py)
+├── Model and Schema Layer
+│   ├── Core shared tables in `app/models/models.py`
+│   ├── Core shared schemas in `app/models/schemas.py`
+│   ├── Domain-specific `*_models.py` and `*_schemas.py` modules
+│   └── Session dependency and engine wiring in `app/database.py`
+│
+├── Utility and Integration Layer
+│   ├── Hybrid search engine (`app/api/search.py`)
+│   ├── Embedding pipeline (`app/utils/embeddings.py`)
+│   ├── Cache governance + corpus versioning
+│   ├── Auth, encryption, tracing, resilience, and failover helpers
+│   └── Nested `forge-telemetry/` library boundary for shared telemetry concerns
 │
 └── Storage Layer
     ├── PostgreSQL 13+ — canonical relational store and authority boundary
     ├── pgvector extension — ANN index (IVFFlat, cosine)
     └── Redis / Redis Cloud — derived cache only (disposable, TTL-bound)
 ```
+
+## Mounted Versus Source-Present Surface
+
+`app/api/` currently contains more router modules than the live app mounts. The live contract
+is whatever `app.main:app` includes. Source-present but unmounted routers such as
+`auth_secure_router`, `tracing_router`, `api_deployment_router`, `replication_router`,
+`cache_replication_router`, `dlq_router`, and `rate_limit_router` remain implementation
+inventory only until explicitly registered in `app/main.py`.
 
 ## Hybrid Search Architecture
 
@@ -235,10 +256,11 @@ because the version is part of the key.
 
 ## Admin UI
 
-A self-contained HTML interface (`templates/admin.html`) is served at `/admin-ui`. It provides:
+A server-rendered HTML interface is served at `/admin` and `/admin-ui`. It provides:
 - Document browse and create
 - Domain and tag management
 - Search testing interface
-- Rendered server-side via Jinja2
+- Rendered server-side via Jinja2 with companion assets under `static/`
 
-No JavaScript framework dependency; the admin UI is a single-file template.
+No frontend SPA is mounted inside DataForge. The operator-facing UI surface here remains
+server-rendered HTML plus JSON APIs.

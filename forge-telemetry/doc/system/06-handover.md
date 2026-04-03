@@ -29,5 +29,5 @@ bash doc/system/BUILD.sh
 Expected output:
 
 ```text
-doc/ftSYSTEM.md
+SYSTEM.md
 ```

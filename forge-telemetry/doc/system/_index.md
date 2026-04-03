@@ -1,6 +1,6 @@
 # Forge Telemetry — System Documentation
 
-**Document version:** 1.0 (2026-03-06) — Initial Forge Documentation Protocol v1 release
+**Document version:** 1.1 (2026-04-03) — Nested repo documentation stack completed
 **Protocol:** Forge Documentation Protocol v1
 
 This `doc/system/` tree uses explicit truth classes:
@@ -12,7 +12,8 @@ Repo deviation:
 
 Assembly contract:
 - Command: `bash doc/system/BUILD.sh`
-- Output: `doc/ftSYSTEM.md`
+- Primary output: root `SYSTEM.md`
+- Additional mirrored outputs: `doc/SYSTEM.md`, legacy `doc/ftSYSTEM.md`
 
 | Part | File | Contents |
 |------|------|----------|
@@ -23,4 +24,4 @@ Assembly contract:
 | §5 | `05-config-env.md` | Environment variables, connection resolution, runtime toggles |
 | §6 | `06-handover.md` | Known limitations, maintenance cautions, operator notes |
 
-*Last updated: 2026-03-06*
+*Last updated: 2026-04-03*

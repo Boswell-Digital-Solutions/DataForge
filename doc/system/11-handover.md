@@ -52,7 +52,9 @@ The `status = "finalized"` transition is one-way. ForgeCommand sets it; nothing 
 
 ### 9. Field Encryption Key Rotation Requires a Migration
 
-Changing `SECRET_KEY` (and thus the derived Fernet key) without a migration script will make all existing encrypted field values unreadable. Never rotate the secret key without running the re-encryption migration first. The migration script is at `scripts/rotate_encryption_key.py`.
+Changing `SECRET_KEY` (and thus the derived Fernet key) without a migration or dedicated
+rotation utility will make existing encrypted field values unreadable. Never rotate the secret
+key unless the re-encryption path is implemented and reviewed in the repo you are deploying.
 
 ---
 
@@ -157,8 +159,8 @@ alembic history --verbose
 
 ### Adding a New ORM Model
 
-1. Define the SQLAlchemy model class in `app/models/models.py`
-2. Define the corresponding Pydantic schemas in `app/models/schemas.py`
+1. Define the SQLAlchemy model class in the correct module under `app/models/`
+2. Define the corresponding Pydantic schemas in the matching `*_schemas.py` module
 3. Create the Alembic migration: `alembic revision --autogenerate -m "add_<model_name>"`
 4. Review the generated migration (add indexes, constraints, triggers manually if needed)
 5. Apply: `alembic upgrade head`
@@ -215,13 +217,12 @@ This starts PostgreSQL, Redis, and DataForge. Migrations run automatically via t
 - [ ] `LOG_LEVEL=INFO` (not DEBUG)
 - [ ] Production start command uses Gunicorn with Uvicorn workers
 - [ ] Health check endpoint registered with load balancer / Render as `/health`
-- [ ] Prometheus scrape job configured for `/metrics`
 - [ ] Grafana dashboards imported
 - [ ] Backup schedule confirmed (daily/weekly/monthly + PITR)
 
 If Postgres or the pgvector extension is unreachable during a deploy, `DataForge` should still boot and bind a port. Treat `/ready` as the authoritative signal for database/pgvector availability; do not revert to a startup path that exits the worker before `/health` can respond.
 - [ ] `alembic upgrade head` run against production DB before traffic cutover
-- [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/login`, `POST /api/search`
+- [ ] Smoke test: `GET /health`, `GET /ready`, `POST /auth/token`, `POST /api/search`
 
 ---
 
@@ -288,7 +289,9 @@ Adjust `DATABASE_URL` to point to PgBouncer's port (default: 6432).
 
 ### Redis Memory
 
-Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tuned based on actual usage patterns. If Redis memory exceeds 80% of limit, reduce TTLs or increase memory allocation.
+Monitor Redis memory usage. Tune TTLs through the cache-governance helpers and whichever
+mounted consumers are actually using Redis-backed derived state. If Redis memory exceeds
+80% of limit, reduce TTLs or increase memory allocation.
 
 ---
 
@@ -298,14 +301,15 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 |------|---------|
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
-| `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | All ORM models (31+ classes) |
-| `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | All Pydantic schemas (90+) |
+| `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
+| `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
+| `/home/charlie/Forge/ecosystem/DataForge/app/models/` | Full modular model/schema catalog for domains, governance, and platform surfaces |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/crud.py` | Database operations |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/search.py` | Hybrid search implementation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/DataForge/tests/` | 32 test files |
+| `/home/charlie/Forge/ecosystem/DataForge/tests/` | 39 test files; 565 collected tests in the 2026-04-03 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
@@ -315,16 +319,12 @@ Monitor Redis memory usage. The cache TTLs in the `/cache` router should be tune
 
 ---
 
-## Version History
+## Documentation Audit Note
 
-| Version | Phases | Status |
-|---------|--------|--------|
-| v5.3 (current) | 20/20 complete | Multi-provider pipeline + Sentinel agent models |
-| v5.2 | 18/18 complete | 296 tests, 82% coverage, 42,732 LOC |
-| v5.1 | 17/18 complete | BugCheck integration added |
-| v5.0 | 15/18 complete | AuthorForge V2, Teams, Smithy added |
-| v4.x | Core platform | NeuroForge, VibeForge, auth, search |
+The current canonical reference is the generated root `SYSTEM.md` assembled from `doc/system/`.
+When older phase summaries or historical completion documents conflict with the generated
+system docs, the generated system docs win.
 
 ---
 
-*Forge Documentation Protocol v1 — Last updated: 2026-02-18*
+*Forge Documentation Protocol v1 — Last updated: 2026-04-03*

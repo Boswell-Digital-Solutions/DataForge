@@ -2,90 +2,77 @@
 
 ## Service Identity
 
-**DataForge** is the unified data and knowledge engine of the Forge Ecosystem. It runs on port **8001** and serves as the single, authoritative source of truth for all durable state across every Forge service.
+**DataForge** is the resident FastAPI service that owns durable ecosystem truth. It is
+the persistence, retrieval, and governance evidence boundary behind the rest of Forge,
+not a bootstrap repo or passive library.
 
-- **Version:** v5.2
-- **Status:** 18/18 phases complete
-- **Scale:** 42,732 LOC across 133 Python files
-- **Tests:** 296/296 passing, 82% coverage
-- **Port:** 8001
+- **Runtime posture:** Resident HTTP service
+- **Default port:** `8001`
+- **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
+- **Mounted router objects:** `35` from `app/main.py` (audit: 2026-04-03)
+- **Router modules in source:** `39`
+- **Alembic migrations:** `47`
+- **Python files under `app/`:** `175`
+- **Pytest files:** `39`
+- **Collected tests:** `565` via `PYTHONPATH=. ./.venv/bin/pytest --collect-only -q`
+- **Nested repo boundary:** `forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
 
-DataForge is not a cache. It is not a secondary store. It is not a convenience API. It is the truth.
+DataForge is not a convenience mirror. Durable state written here is the canonical record
+for the ecosystem.
 
-Every service in the Forge Ecosystem that produces durable state writes to DataForge. This is a non-negotiable architectural invariant:
+Every major Forge runtime writes authoritative records into DataForge:
 
-- **NeuroForge** writes all LLM run results, model performance metrics, and inference records.
-- **VibeForge** writes project sessions, stack outcomes, and code analysis results.
-- **AuthorForge** writes all narrative content: books, chapters, scenes, characters, arcs, locations, manuscripts.
-- **ForgeAgents / BugCheck** writes findings, lifecycle events, enrichment artifacts, and progress events.
-- **Forge:SMITH** writes planning sessions, portfolio projects, evaluation snapshots, and governance events.
-- **ForgeCommand** writes run records, lifecycle transitions, and finalization states.
+- **NeuroForge** persists inference records, model-routing evidence, and learning data.
+- **VibeForge** persists projects, sessions, outcomes, analytics, and preferences.
+- **AuthorForge** persists project, chapter, scene, manuscript, map, and asset state.
+- **ForgeAgents / BugCheck** persist agent definitions, run evidence, findings, enrichments, and lifecycle events.
+- **Forge:SMITH** persists planning sessions, deliverables, portfolio projects, and evaluations.
+- **ForgeCommand** depends on DataForge for execution evidence, key control, secret sync, and governance-adjacent state.
+- **Sentinel / Press / private-source / runtime-governance surfaces** persist sweep records, automation records, profile state, policy envelopes, and promotion receipts.
 
-No service maintains a local truth cache. No service treats its own database as canonical. All reads for authoritative state flow through DataForge. All writes that create or mutate durable state flow through DataForge.
+If a service cannot persist required durable state to DataForge, the operation is not complete.
+That fail-closed posture is intentional.
 
-**If DataForge is unavailable, runs do not start. This is by design.**
+## Current Service Role
 
-## Ecosystem Role
+### 1. Durable Persistence
+PostgreSQL remains the authority boundary for documents, runs, findings, planning state,
+authoring assets, pricing data, policy ledgers, press automation records, and private-source
+profiles.
 
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│                        Forge Ecosystem                                 │
-│                                                                       │
-│   NeuroForge  VibeForge  AuthorForge  ForgeAgents  SMITH  BugCheck   │
-│       │           │           │            │          │        │      │
-│       └───────────┴───────────┴────────────┴──────────┴────────┘      │
-│                                   │                                   │
-│                            ┌──────▼──────┐                           │
-│                            │  DataForge  │  ← The Source of Truth    │
-│                            │   (8001)    │                           │
-│                            └──────┬──────┘                           │
-│                                   │                                   │
-│                    ┌──────────────┼──────────────┐                   │
-│                    │              │              │                   │
-│             ┌──────▼─────┐  ┌────▼────┐  ┌─────▼────┐             │
-│             │ PostgreSQL  │  │  Redis  │  │ pgvector  │             │
-│             │  (primary)  │  │ (cache) │  │  (ANN)    │             │
-│             └─────────────┘  └─────────┘  └──────────┘             │
-└───────────────────────────────────────────────────────────────────────┘
-```
+### 2. Hybrid Retrieval
+DataForge stores chunked documents with vector embeddings and full-text indexes, then
+serves semantic, keyword, and fused search through the mounted search routers.
 
-## Core Responsibilities
+### 3. Scoped Authentication and Write Boundaries
+The live mounted surface exposes JWT/token compatibility routes, admin key rotation,
+service-key validation, run-scoped write flows, and admin-token protected control surfaces.
+The repo also contains a richer secure auth stack in source, but that stack is not mounted
+by default and therefore is not part of the live surface contract.
 
-### 1. Durable State Persistence
-All service state — run records, findings, projects, content, events — is stored in PostgreSQL via SQLAlchemy ORM models. State is never ephemeral unless explicitly designed to be (e.g., Redis cache).
+### 4. Runtime Governance Evidence
+DataForge now persists policy envelopes, policy ledgers, reward records, runtime-promotion
+receipts, candidate approvals/rejections, rate-limit state, and execution evidence for
+operator review.
 
-### 2. Semantic Knowledge Retrieval
-DataForge stores documents with 1536-dimensional vector embeddings. It provides hybrid search combining cosine similarity (Voyage AI embeddings) with BM25 keyword scoring via Reciprocal Rank Fusion (RRF), delivering +40% accuracy over pure semantic search.
+### 5. Platform and Operator Surfaces
+The mounted app includes control surfaces for secret sync/read, compression dictionaries,
+Sentinel sweep/healing record persistence, PressForge automation tables, FPVS health/version
+probes, diligence workflows, and private-source ingestion profiles.
 
-### 3. Authentication & Authorization
-DataForge manages the full auth stack: JWT issuance, OAuth2/OIDC flows, TOTP 2FA, API key management, and scoped run tokens. Every write operation to DataForge requires a valid credential.
-
-### 4. Audit & Compliance
-An append-only, HMAC-SHA256-signed audit log captures all significant events. Field-level AES-256 Fernet encryption protects PII. Anomaly detection covers six threat patterns. Compliance targets include GDPR, CCPA, HIPAA, SOC2, and PCI-DSS.
-
-### 5. Lifecycle Enforcement
-DataForge enforces the BugCheck finding lifecycle state machine at the API level. Invalid transitions return 409 Conflict. After a run is finalized, new findings are rejected with 409. These are invariants, not policies.
-
-### 6. Observability Infrastructure
-Prometheus metrics at `/metrics`, OpenTelemetry distributed tracing, structured JSON logging, and a dead-letter queue for failed async tasks.
+### 6. Fail-Closed Readiness
+Redis is derived state only. Database and pgvector readiness drive the authoritative ready
+signal. Startup will surface dependency problems through readiness instead of silently
+downgrading authority decisions.
 
 ## What DataForge Is Not
 
-- **Not a message bus.** It does not replace Celery/Redis for async task queuing, though it operates a DLQ.
-- **Not a CDN.** Static assets live elsewhere; DataForge serves document content, not binary blobs.
-- **Not an orchestrator.** ForgeCommand orchestrates runs; DataForge persists their state.
-- **Not an LLM gateway.** NeuroForge routes LLM inference; DataForge stores the results.
+- **Not a cache authority.** Redis accelerates reads and rate limits; it does not own truth.
+- **Not an orchestrator.** ForgeCommand remains the ecosystem operator/control plane.
+- **Not an autonomous healer.** Sentinel data is persisted here, but DataForge does not itself perform autonomous repair.
+- **Not the live OAuth2/TOTP gateway on the default mounted surface.** Those secure auth modules exist in source only until explicitly wired in `app/main.py`.
+- **Not the `forge-telemetry` codebase.** The nested repo is versioned and documented separately.
 
-## Performance Targets
-
-| Metric | Target |
-|--------|--------|
-| API latency (p95) | < 100ms |
-| Throughput | 1,000+ RPS |
-| Uptime SLA | 99.99% |
-| PostgreSQL failover | < 30 seconds |
-| Redis failover | < 10 seconds |
-
-*See §11 for critical constraints and invariants that must never be violated.*
+*See §11 for the invariants that must remain true across future changes.*

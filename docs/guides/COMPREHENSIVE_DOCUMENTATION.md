@@ -1,10 +1,11 @@
 # DataForge: Comprehensive Documentation & Architecture Guide
 
-**Last Updated:** March 1, 2026  
+**Last Updated:** April 3, 2026  
 **Version:** 5.2  
-**Status:** Active, validated against the current runtime
+**Status:** Active operational guide; canonical runtime details are maintained in `doc/system/` and root `SYSTEM.md`
 
-> Canonical system/runtime details live in `doc/system/` and `doc/dfSYSTEM.md`. This guide is
+> Canonical system/runtime details live in `doc/system/` and root `SYSTEM.md` (with legacy
+> `doc/dfSYSTEM.md` mirrored for compatibility). This guide is
 > a higher-level operational overview and has been updated to match the current app contract.
 
 ---

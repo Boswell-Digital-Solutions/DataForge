@@ -2,12 +2,12 @@
 
 ## Service Identity
 
-**What it is:** Unified data and knowledge engine — the single source of truth for the Forge Ecosystem.
-**What it does:** PostgreSQL + pgvector + Redis for persistent intelligent storage and semantic retrieval.
+**What it is:** Resident FastAPI service and durable-truth boundary for the Forge ecosystem.
+**What it does:** Persists authoritative state, serves hybrid retrieval, and stores operator/runtime governance evidence.
 **Port:** 8001
 **Location:** `/home/charlie/Forge/ecosystem/DataForge/`
 **Entry point:** `app/main.py`
-**Status:** v5.2 — 18/18 phases complete, 296 tests passing, 82% coverage
+**Status:** Resident FastAPI service; documentation refreshed against the 2026-04-03 working tree (`35` mounted router objects, `47` Alembic migrations, `39` pytest files / `565` collected tests)
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
@@ -25,11 +25,12 @@ DataForge (Source of Truth)
 ├── PostgreSQL 13+ with pgvector extension (1536-dim IVFFlat index)
 ├── Redis 6+ (cache, sessions, rate limiting, distributed lock)
 ├── Hybrid search: semantic cosine distance + BM25 keyword → RRF fusion (+40% accuracy)
-├── 29 domain-specific API routers across all Forge products
-├── 80+ REST endpoints
-├── 133 Python files, 42,732 lines of code
-├── Field-level AES-256 encryption for PII (auto-detected by model)
-└── Multi-tenant RBAC with anomaly detection (6 detector types)
+├── 35 mounted router objects in `app/main.py`
+├── Additional router modules exist in `app/api/` and stay inactive until explicitly mounted
+├── 175 Python files under `app/` plus a separate nested `forge-telemetry/` library repo
+├── 47 Alembic migration files under `alembic/versions/`
+├── Modular `app/models/` layout with domain-specific `*_models.py` and `*_schemas.py` files
+└── Policy/runtime governance surfaces: promotion receipts, policy envelopes, rate limits, Sentinel, secrets, press, private source
 ```
 
 ## Key Files
@@ -37,19 +38,21 @@ DataForge (Source of Truth)
 | File | Purpose |
 |------|---------|
 | `app/main.py` | FastAPI app with lifespan management (CORS, routers, static) |
-| `app/database.py` | SQLAlchemy engine + async session dependency |
-| `app/models/models.py` | SQLAlchemy ORM (31+ core classes, 90+ total) |
-| `app/models/schemas.py` | Pydantic request/response schemas |
+| `app/database.py` | SQLAlchemy engine + synchronous session dependency |
+| `app/models/models.py` | Core shared ORM tables only |
+| `app/models/schemas.py` | Core shared schemas only |
+| `app/models/` | Full modular model/schema catalog across authoring, BugCheck, policy, press, rate limits, Sentinel, private source, and provider governance |
 | `app/api/search_router.py` | Public search: `POST /api/search`, `GET /api/search/stats` |
 | `app/api/admin_router.py` | Admin CRUD: domains, documents (auto-chunk+embed), tags |
-| `app/api/auth_router.py` | JWT login, OAuth2, TOTP 2FA setup |
+| `app/api/auth_router.py` | `/auth/token` plus legacy `/api/auth` login/register/refresh/me routes |
 | `app/api/crud.py` | Database operations layer |
 | `app/api/search.py` | Vector similarity + BM25 hybrid search logic |
 | `app/utils/embeddings.py` | Text chunking (500 tokens, 50 overlap) + embedding generation |
 | `app/utils/auth.py` | JWT signing + bcrypt password hashing |
-| `alembic/` | Database migrations (11 schema versions) |
+| `alembic/` | Database migrations (`47` migration files as of 2026-04-03) |
 | `scripts/create_admin.py` | Interactive admin user creation |
 | `templates/admin.html` | Self-contained admin UI (no external deps) |
+| `forge-telemetry/` | Nested shared-library repo with its own documentation boundary and build surfaces |
 
 ## Tech Stack
 
@@ -61,7 +64,7 @@ DataForge (Source of Truth)
 - **Embeddings:** Voyage AI voyage-large-2 (recommended), OpenAI, Cohere fallback
 - **Auth:** python-jose 3.3.0 (JWT/JWE/JWS), passlib + bcrypt 4.1.2
 - **Migrations:** Alembic 1.13.1
-- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, 82% coverage, 296 tests
+- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `39` repo test files / `565` collected tests (`PYTHONPATH=. ./.venv/bin/pytest --collect-only -q` on 2026-04-03)
 
 ## Development Commands
 
@@ -90,26 +93,19 @@ mypy app/
 curl http://localhost:8001/health
 ```
 
-## API Groups
+## Mounted API Families
 
-| Router | Path | Purpose |
-|--------|------|---------|
-| Search | `/api/search` | Hybrid semantic + BM25 search |
-| Admin | `/admin` | Domain / document / tag CRUD |
-| Auth | `/auth` | JWT, OAuth2, TOTP 2FA |
-| API Keys | `/admin/api-keys` | Service-to-service key management |
-| BugCheck | `/api/bugcheck` | Finding persistence + lifecycle events |
-| NeuroForge | `/api/neuroforge` | LLM run logging + inference tracking |
-| VibeForge | `/api/vibeforge` | Project sessions + stack analytics |
-| AuthorForge | `/api/projects` | Book / chapter / scene management |
-| ForgeAgents | `/api/agents-registry` + `/forge-runs` | Agent registry + run evidence |
-| Smithy | `/api/v1/smithy` | Planning sessions + portfolio |
-| Teams | `/api/teams` | Team management + learning aggregates |
-| Events | `/api/events` | Immutable audit log (append-only) |
-| Tracing | `/api/tracing` | OpenTelemetry distributed traces |
-| Secrets | `/secrets` | LLM API key vault (synced from ForgeCommand) |
-| Deployment | `/api-deployment` | Load balancer + instance management |
-| Health | `/health` | Liveness probe |
+| Family | Source Modules | Purpose |
+|--------|----------------|---------|
+| Search & Admin | `search_router`, `admin_router` | Hybrid retrieval plus core document/domain CRUD |
+| Auth & Key Control | `auth_router`, `admin_keys_router`, `auth_info_router`, `rotation_router` | JWT/login compatibility, service-key governance, admin token rotation |
+| Content & Planning | `projects_router`, `authorforge_v2_router`, `smithy_planning_router`, `smithy_portfolio_router` | AuthorForge and Forge:SMITH persistence surfaces |
+| Runtime Governance | `runtime_promotion_router`, `runtime_promotion_candidate_router`, `policy_envelope_router`, `diligence_router`, `diligence_ui_router` | Promotion receipts, candidate review, policy evidence, diligence workflows |
+| Agent & Run Persistence | `forge_run_router`, `agents_registry_router`, `bugcheck_router`, `runs_router`, `experience_router` | Agent registry, run evidence, BugCheck findings, experience storage |
+| Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `tarcie_router`, `secrets_router` | Cross-product persistence and operator-facing integrations |
+| Platform Surfaces | `multi_provider_router`, `rate_limits_router`, `sentinel_router`, `compression_router`, `press_router`, `private_source_router`, `fpvs_router` | Pricing/catalog, cross-run rate limits, health sweeps, compression, press, private-source profiles, health/version probes |
+
+Source-present but not mounted by default in `app/main.py`: `api_deployment_router`, `auth_revocation_router`, `auth_secure_router`, `cache_replication_router`, `dlq_router`, `rate_limit_router`, `replication_router`, `tracing_router`.
 
 ## Environment Variables (Critical)
 
@@ -157,15 +153,16 @@ LOG_LEVEL=INFO
 - 6 anomaly detectors: impossible travel, brute force, bulk exfiltration, suspicious patterns, after-hours, bulk mutations
 - Compliance: GDPR, CCPA, HIPAA, SOC2, PCI-DSS
 - TLS 1.3 in transit, Fernet encryption at rest for sensitive fields
+- Secure OAuth2/TOTP auth modules exist in source, but `auth_secure_router` is not mounted in the default app surface
 
 ## Context Bundle
 
 ```bash
-./scripts/context-bundle.sh              # Full bundle
-./scripts/context-bundle.sh search       # Search / vector focus
-./scripts/context-bundle.sh bugcheck     # BugCheck integration
-./scripts/context-bundle.sh auth         # Auth + security focus
-./scripts/context-bundle.sh schema       # Data models focus
+./scripts/context-bundle.sh --list
+./scripts/context-bundle.sh --dry-run --preset core
+./scripts/context-bundle.sh --dry-run --preset api
+./scripts/context-bundle.sh --dry-run --preset schema
+./scripts/context-bundle.sh --dry-run --preset testing --with-specs
 ```
 
-Full system documentation: `doc/system/`
+Full system documentation: root `SYSTEM.md` built from `doc/system/` (legacy `doc/dfSYSTEM.md` still mirrors the build output).
