@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # DataForge Cloud CI gate — proving-slice contract participation
 #
-# Wires this repo into the forge-contract-core gate runner. All changes to
-# DataForge Cloud that touch artifact intake, receipt emission, or the
-# proving-slice router must pass this gate.
+# Wires this repo into the forge-contract-core gate runner and runs the
+# local proving-slice intake test suite. Both must pass.
 #
-# The gate validates: schemas, fixture corpus, validator correctness,
-# compatibility notes, and forbidden patterns — using the shared contract
-# library that DataForge Cloud consumes via app/api/proving_slice_router.py.
+# The contract-core gate validates: schemas, fixture corpus, validator
+# correctness, compatibility notes, and forbidden patterns — using the
+# shared contract library that DataForge Cloud consumes via
+# app/api/proving_slice_router.py.
+#
+# The local pytest suite validates: intake validation, signature/identity,
+# acceptance/rejection, duplicate reconciliation, restricted visibility,
+# and unsupported-version behaviour.
 #
 # Exit codes:
 #   0 — all gates pass
@@ -24,6 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # DataForge Cloud is at: Cloud Systems/DataForge/ → ../../contracts/forge-contract-core
 ECOSYSTEM_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONTRACT_CORE_PATH="$ECOSYSTEM_ROOT/contracts/forge-contract-core"
+REPORT_DIR="$SCRIPT_DIR/reports"
 
 if [[ ! -d "$CONTRACT_CORE_PATH" ]]; then
     echo "ERROR: forge-contract-core not found at $CONTRACT_CORE_PATH"
@@ -34,19 +39,45 @@ echo "DataForge Cloud CI gate — proving-slice contract participation"
 echo "  contract core path: $CONTRACT_CORE_PATH"
 echo ""
 
-# Use the contract-core venv if available, otherwise the local venv, otherwise system python
-PYTHON="$CONTRACT_CORE_PATH/.venv/bin/python"
-if [[ ! -x "$PYTHON" ]]; then
-    PYTHON="$SCRIPT_DIR/venv/bin/python"
-fi
-if [[ ! -x "$PYTHON" ]]; then
-    PYTHON="python3"
+# Gate 1 uses the contract-core venv (only needs forge_contract_core)
+PYTHON_CONTRACT="$CONTRACT_CORE_PATH/.venv/bin/python"
+if [[ ! -x "$PYTHON_CONTRACT" ]]; then
+    PYTHON_CONTRACT="python3"
 fi
 
-echo "  python: $PYTHON"
+# Gate 2 uses the DataForge Cloud local venv (needs fastapi, etc.)
+PYTHON_LOCAL="$SCRIPT_DIR/venv/bin/python"
+if [[ ! -x "$PYTHON_LOCAL" ]]; then
+    PYTHON_LOCAL="$SCRIPT_DIR/.venv/bin/python"
+fi
+if [[ ! -x "$PYTHON_LOCAL" ]]; then
+    PYTHON_LOCAL="python3"
+fi
+
+echo "  python (contract gate): $PYTHON_CONTRACT"
+echo "  python (local tests):   $PYTHON_LOCAL"
 echo ""
 
-PYTHONPATH="$CONTRACT_CORE_PATH" "$PYTHON" -m forge_contract_core.gates.run_all
+mkdir -p "$REPORT_DIR"
+
+# ── Gate 1: forge-contract-core canonical gate runner ─────────────────────────
+echo "=== Gate 1: forge-contract-core canonical gate ==="
+GATE_REPORT="$REPORT_DIR/contract_core_gate_$(date +%Y%m%d_%H%M%S).json"
+PYTHONPATH="$CONTRACT_CORE_PATH" "$PYTHON_CONTRACT" -m forge_contract_core.gates.run_all \
+    --repo "DataForge-cloud" \
+    --report-out "$GATE_REPORT"
+
+echo ""
+
+# ── Gate 2: local proving-slice pytest suite ──────────────────────────────────
+echo "=== Gate 2: local proving-slice intake tests ==="
+LOCAL_REPORT="$REPORT_DIR/local_tests_$(date +%Y%m%d_%H%M%S).xml"
+cd "$SCRIPT_DIR"
+PYTHONPATH=".:forge-telemetry" "$PYTHON_LOCAL" -m pytest tests/test_proving_slice_intake.py -v \
+    --junit-xml="$LOCAL_REPORT" \
+    --tb=short
 
 echo ""
 echo "DataForge Cloud CI gate: PASSED"
+echo "  contract core gate report: $GATE_REPORT"
+echo "  local test report:         $LOCAL_REPORT"
