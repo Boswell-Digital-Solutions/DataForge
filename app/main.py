@@ -42,6 +42,7 @@ from app.api.compression_router import router as compression_router  # Dictionar
 from app.api.press_router import router as press_router  # PressForge: journalist outreach (AuthorForge module)
 from app.api.private_source_router import router as private_source_router  # PSIM: private source profiles
 from app.api.policy_envelope_router import router as policy_envelope_router  # Deterministic LLM policy envelopes + ledgers
+from app.api.proving_slice_router import router as proving_slice_router  # Proving-slice artifact intake + receipt
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
 try:
@@ -276,6 +277,7 @@ app.include_router(compression_router)  # Dictionary Compression: CRUD for Zstd 
 app.include_router(press_router)  # PressForge: journalist outreach module
 app.include_router(private_source_router)  # PSIM: private source profile CRUD
 app.include_router(policy_envelope_router)  # Deterministic LLM policy envelopes + run ledgers
+app.include_router(proving_slice_router)  # Proving-slice artifact intake + receipt emission
 
 # ============================================
 # Health Check & Info Endpoints

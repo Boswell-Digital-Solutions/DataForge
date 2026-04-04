@@ -4,10 +4,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `39` |
-| Total tests collected | `565` |
-| Inventory command | `PYTHONPATH=. ./.venv/bin/pytest --collect-only -q` |
-| Inventory audit date | `2026-04-03` |
+| Total test files | `40` |
+| Total tests collected | `588` (565 baseline + 23 proving-slice) |
+| Inventory command | `PYTHONPATH=. venv/bin/python -m pytest --collect-only -q` |
+| Inventory audit date | `2026-04-04` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
 This section intentionally documents what is currently observable from the repository. It
@@ -35,6 +35,10 @@ without PostgreSQL or Redis.
 - `tests/test_integration/test_crud_operations.py`
 - `tests/test_integration/test_e2e_workflows.py`
 - `tests/test_integration/test_infrastructure_health.py`
+
+### Proving-Slice Intake
+
+- `tests/test_proving_slice_intake.py` — 23 tests covering accepted/rejected/duplicate intake outcomes, family gate (422), idempotency, receipt lookup, and end-to-end rejection without patching. No live DB required (SQLite in-memory via conftest).
 
 ### Runtime / Governance / Persistence
 

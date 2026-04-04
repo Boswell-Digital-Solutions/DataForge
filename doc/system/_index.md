@@ -26,6 +26,7 @@ Assembly contract:
 | §10 | [10-testing.md](10-testing.md) | Current test inventory, audited counts, and execution posture |
 | §11 | [11-handover.md](11-handover.md) | Critical constraints, access control matrix, migration runbook |
 | §12 | [12-pressforge-automation-schema.md](12-pressforge-automation-schema.md) | PressForge Automation Schema — 11 new pf_* tables, column additions, indexes, CRUD endpoints |
+| §13 | [13-proving-slice-schema.md](13-proving-slice-schema.md) | Proving-Slice Schema — ps_cloud_intake_records + ps_cloud_receipts, intake decision logic, receipt artifact structure |
 
 ## Quick Assembly
 
