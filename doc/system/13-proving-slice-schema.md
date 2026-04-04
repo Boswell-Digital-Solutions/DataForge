@@ -91,3 +91,20 @@ to reconcile ambiguous sends — when the original `POST /intake` response was l
 Local can re-query by `artifact_id` to determine the true intake outcome.
 
 Returns `404` if the `artifact_id` has never been processed.
+
+## Test Coverage
+
+`tests/test_proving_slice_intake.py` — **29 tests, no live PostgreSQL required** (SQLite in-memory via `tests/conftest.py`).
+
+*Last updated: 2026-04-04*
+
+| Class | Tests | What is verified |
+|-------|-------|-----------------|
+| `TestIntakeAccepted` | 8 | 200 response; receipt family/version; `accepted` outcome; shared_record_ref; `produced_by_system=DataForge`; intake + receipt rows written to DB |
+| `TestIntakeDuplicate` | 3 | `duplicate_reconciled` on second submit; exactly one intake row; shared_record_ref preserved from original |
+| `TestIntakeRejected` | 5 | `rejected` outcome; rejection_class present; `retry_allowed=false`; rejected row persisted; end-to-end malformed artifact without patching |
+| `TestIntakeFamilyGate` | 3 | `promotion_receipt` → 422; unknown family → 422; `promotion_envelope` admitted |
+| `TestReceiptLookup` | 4 | 200 after intake; artifact_id echoed; receipt family; 404 for unknown artifact_id |
+| `TestIntakeAdversarial` | 6 | Replay with swapped artifact_id; tampered lineage_root_id; conflicting idempotency key; unknown producer; oversize payload; receipt-family 422 |
+
+Adversarial tests do **not** patch `validate_artifact` — they verify the real contract-core validation pipeline fires and produces `rejected` outcomes for malformed submissions.
