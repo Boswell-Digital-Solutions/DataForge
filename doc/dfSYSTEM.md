@@ -856,8 +856,10 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §6 — API Layer
 
+*Last updated: 2026-04-04*
+
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-04-03 confirmed `35` mounted router objects plus app-level docs, HTML views, and
+on 2026-04-04 confirmed `36` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 
@@ -1594,12 +1596,14 @@ surface are re-audited.
 
 # §10 — Testing
 
+*Last updated: 2026-04-04*
+
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
 | Total test files | `40` |
-| Total tests collected | `588` (565 baseline + 23 proving-slice) |
+| Total tests collected | `594` (565 baseline + 29 proving-slice) |
 | Inventory command | `PYTHONPATH=. venv/bin/python -m pytest --collect-only -q` |
 | Inventory audit date | `2026-04-04` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
@@ -1632,7 +1636,7 @@ without PostgreSQL or Redis.
 
 ### Proving-Slice Intake
 
-- `tests/test_proving_slice_intake.py` — 23 tests covering accepted/rejected/duplicate intake outcomes, family gate (422), idempotency, receipt lookup, and end-to-end rejection without patching. No live DB required (SQLite in-memory via conftest).
+- `tests/test_proving_slice_intake.py` — 29 tests covering accepted (8), rejected (5), duplicate/idempotency (3), family gate (3), receipt lookup (4), and adversarial (6). Adversarial tests exercise real contract-core validation without patching. No live DB required (SQLite in-memory via conftest).
 
 ### Runtime / Governance / Persistence
 
@@ -2320,6 +2324,8 @@ After these additions, PressForge uses **21 `pf_*` tables** total:
 
 # §13 — Proving-Slice Schema
 
+*Last updated: 2026-04-04*
+
 Added in migration `20260404_10` (down_revision: `20260401_02`).
 
 Two tables in the default public schema.
@@ -2411,3 +2417,20 @@ to reconcile ambiguous sends — when the original `POST /intake` response was l
 Local can re-query by `artifact_id` to determine the true intake outcome.
 
 Returns `404` if the `artifact_id` has never been processed.
+
+## Test Coverage
+
+`tests/test_proving_slice_intake.py` — **29 tests, no live PostgreSQL required** (SQLite in-memory via `tests/conftest.py`).
+
+*Last updated: 2026-04-04*
+
+| Class | Tests | What is verified |
+|-------|-------|-----------------|
+| `TestIntakeAccepted` | 8 | 200 response; receipt family/version; `accepted` outcome; shared_record_ref; `produced_by_system=DataForge`; intake + receipt rows written to DB |
+| `TestIntakeDuplicate` | 3 | `duplicate_reconciled` on second submit; exactly one intake row; shared_record_ref preserved from original |
+| `TestIntakeRejected` | 5 | `rejected` outcome; rejection_class present; `retry_allowed=false`; rejected row persisted; end-to-end malformed artifact without patching |
+| `TestIntakeFamilyGate` | 3 | `promotion_receipt` → 422; unknown family → 422; `promotion_envelope` admitted |
+| `TestReceiptLookup` | 4 | 200 after intake; artifact_id echoed; receipt family; 404 for unknown artifact_id |
+| `TestIntakeAdversarial` | 6 | Replay with swapped artifact_id; tampered lineage_root_id; conflicting idempotency key; unknown producer; oversize payload; receipt-family 422 |
+
+Adversarial tests do **not** patch `validate_artifact` — they verify the real contract-core validation pipeline fires and produces `rejected` outcomes for malformed submissions.

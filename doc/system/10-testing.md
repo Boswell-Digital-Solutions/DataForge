@@ -1,11 +1,13 @@
 # §10 — Testing
 
+*Last updated: 2026-04-04*
+
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
 | Total test files | `40` |
-| Total tests collected | `588` (565 baseline + 23 proving-slice) |
+| Total tests collected | `594` (565 baseline + 29 proving-slice) |
 | Inventory command | `PYTHONPATH=. venv/bin/python -m pytest --collect-only -q` |
 | Inventory audit date | `2026-04-04` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
@@ -38,7 +40,7 @@ without PostgreSQL or Redis.
 
 ### Proving-Slice Intake
 
-- `tests/test_proving_slice_intake.py` — 23 tests covering accepted/rejected/duplicate intake outcomes, family gate (422), idempotency, receipt lookup, and end-to-end rejection without patching. No live DB required (SQLite in-memory via conftest).
+- `tests/test_proving_slice_intake.py` — 29 tests covering accepted (8), rejected (5), duplicate/idempotency (3), family gate (3), receipt lookup (4), and adversarial (6). Adversarial tests exercise real contract-core validation without patching. No live DB required (SQLite in-memory via conftest).
 
 ### Runtime / Governance / Persistence
 

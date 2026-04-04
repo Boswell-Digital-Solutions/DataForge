@@ -1,7 +1,9 @@
 # §6 — API Layer
 
+*Last updated: 2026-04-04*
+
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-04-03 confirmed `35` mounted router objects plus app-level docs, HTML views, and
+on 2026-04-04 confirmed `36` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 

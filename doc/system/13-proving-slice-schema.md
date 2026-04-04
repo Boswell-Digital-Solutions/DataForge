@@ -1,5 +1,7 @@
 # §13 — Proving-Slice Schema
 
+*Last updated: 2026-04-04*
+
 Added in migration `20260404_10` (down_revision: `20260401_02`).
 
 Two tables in the default public schema.
