@@ -497,48 +497,133 @@ Never install packages directly into the venv without updating `requirements.txt
 
 ## Directory Tree
 
+*Last updated: 2026-04-04*
+
 ```
 DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 47 migration version files as of 2026-04-03
-│       ├── 0001_initial_schema.py
-│       ├── ...
-│       ├── 0012_multi_provider_tables.py
-│       ├── 0013_sentinel_tables.py
-│       └── corpus_governance_001.py  # corpus_state + corpus_versions
+│   └── versions/                     # 47 migration version files (hash-prefixed Alembic names)
 │
-├── app/                              # Main application package
-│   ├── main.py                       # FastAPI app + lifespan + router registration
+├── app/                              # Main application package (175 Python files)
+│   ├── main.py                       # FastAPI app + lifespan + router registration (35 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
+│   ├── config.py                     # Environment config and validation
+│   ├── security_config.py            # Security policy helpers
+│   ├── logging_config.py             # Structured logging setup
 │   │
-│   ├── models/
-│   │   ├── models.py                 # Core shared ORM tables: users, documents, corpus state, execution index
-│   │   ├── schemas.py                # Core shared schemas: auth, search, user/domain/document/tag flows
-│   │   ├── multi_provider_models.py  # Multi-provider pipeline models (6 tables)
-│   │   ├── multi_provider_schemas.py # Multi-provider Pydantic schemas
-│   │   ├── sentinel_models.py        # Sentinel health sweep + healing models
-│   │   ├── sentinel_schemas.py       # Sentinel Pydantic schemas
-│   │   ├── private_source_models.py  # PSIM: PrivateSourceProfile table
-│   │   └── private_source_schemas.py # PSIM: PSPCreate/Update/Response schemas
+│   ├── models/                       # ORM models + Pydantic schemas (52 files, 27 domain families)
+│   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
+│   │   ├── schemas.py                # Core: auth, search, user/domain/document/tag schemas
+│   │   ├── agentic_reasoning_models.py / _schemas.py   # Experience store, gate analytics, skill nomination
+│   │   ├── agent_registry_schemas.py                   # Agent definition persistence
+│   │   ├── authorforge_models.py / _schemas.py         # AuthorForge v1 state
+│   │   ├── authorforge_v2_models.py / _schemas.py      # AuthorForge v2 state
+│   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
+│   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
+│   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
+│   │   ├── diligence_models.py / _schemas.py           # Due diligence workflows
+│   │   ├── forge_run_schemas.py                        # ForgeRun evidence and index schemas
+│   │   ├── multi_provider_models.py / _schemas.py      # Multi-provider routing catalog (6 tables)
+│   │   ├── neuroforge_models.py / _schemas.py          # NeuroForge inference + model-routing records
+│   │   ├── planning_models.py / _schemas.py            # SMITH multi-AI planning sessions
+│   │   ├── policy_envelope_models.py / _schemas.py     # Governed LLM policy envelopes, ledger, bandit state
+│   │   ├── press_models.py / _schemas.py               # PressForge campaign + automation state
+│   │   ├── private_source_models.py / _schemas.py      # PSIM private source profiles
+│   │   ├── proving_slice_models.py / _schemas.py       # Proving-slice intake records + receipts
+│   │   ├── rate_limits_models.py / _schemas.py         # Cross-run global rate limit state
+│   │   ├── runs_models.py / _schemas.py                # Run evidence blobs and index
+│   │   ├── runtime_promotion_models.py / _schemas.py   # Promotion receipts and execution handoff
+│   │   ├── runtime_promotion_candidate_models.py / _schemas.py  # Candidate decision records
+│   │   ├── sentinel_models.py / _schemas.py            # Sentinel health sweep + healing records
+│   │   ├── smithy_planning_models.py / _schemas.py     # Forge:SMITH planning deliverables
+│   │   ├── smithy_portfolio_models.py / _schemas.py    # Forge:SMITH portfolio projects
+│   │   ├── tarcie_models.py / _schemas.py              # TARCIE event records
+│   │   ├── team_models.py / _schemas.py                # Team and organization state
+│   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
-│   ├── api/
-│   │   ├── search_router.py          # Mounted: POST /api/search, GET /api/search/stats
-│   │   ├── admin_router.py           # Mounted: admin CRUD for documents, domains, tags
-│   │   ├── auth_router.py            # Mounted: /auth/token plus legacy /api/auth login/register/refresh/me
-│   │   ├── crud.py                   # Database operations (no business logic)
+│   ├── api/                          # Router modules (40+ files; 35 mounted in main.py)
+│   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
+│   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
+│   │   ├── admin_keys_router.py      # Service-key governance
+│   │   ├── auth_router.py            # /auth/token + legacy /api/auth routes
+│   │   ├── crud.py                   # Core document/domain/tag DB operations
 │   │   ├── search.py                 # Hybrid vector + BM25 search logic
-│   │   ├── multi_provider_router.py  # Mounted: /api/v1/models, pricing, costs, batch queue
-│   │   ├── sentinel_router.py        # Mounted: Sentinel sweep/healing record persistence
-│   │   ├── private_source_crud.py    # PSIM: PrivateSourceProfile CRUD ops
-│   │   └── private_source_router.py  # Mounted: /api/v1/private-source-profiles
+│   │   ├── agents_registry_router.py / forge_run_router.py / bugcheck_router.py
+│   │   │                             # Agent definitions, run evidence, BugCheck persistence
+│   │   ├── runs_router.py / experience_router.py
+│   │   │                             # Run history + agentic experience storage
+│   │   ├── neuroforge_router.py / neuroforge_crud.py
+│   │   │                             # NeuroForge inference record persistence
+│   │   ├── multi_provider_router.py / multi_provider_crud.py
+│   │   │                             # Provider pricing catalog and batch queue
+│   │   ├── projects_router.py / projects_crud.py
+│   │   │                             # AuthorForge v1 projects
+│   │   ├── authorforge_v2_router.py / authorforge_v2_crud.py
+│   │   │                             # AuthorForge v2 state
+│   │   ├── smithy_planning_router.py / smithy_planning_crud.py
+│   │   ├── smithy_portfolio_router.py / smithy_portfolio_crud.py
+│   │   ├── sentinel_router.py        # Sentinel sweep/healing records
+│   │   ├── policy_envelope_router.py # Governed LLM policy, ledger, bandit state, rollout labels
+│   │   ├── runtime_promotion_router.py / runtime_promotion_candidate_router.py
+│   │   │                             # Promotion receipts and candidate decisions
+│   │   ├── proving_slice_router.py   # Proving-slice intake + receipt endpoints
+│   │   ├── diligence_router.py / diligence_crud.py
+│   │   ├── press_router.py           # PressForge automation state
+│   │   ├── private_source_router.py / private_source_crud.py
+│   │   ├── rate_limits_router.py     # Cross-run global rate limits
+│   │   ├── compression_router.py     # Compression dictionary governance
+│   │   ├── vibeforge_router.py / learning_router.py
+│   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
+│   │   ├── fpvs_router.py            # Health/version probe surface
+│   │   ├── routes/events_router.py   # Audit event append
+│   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
+│   │        auth_secure_router, cache_replication_router, dlq_router,
+│   │        rate_limit_router, replication_router, tracing_router)
 │   │
-│   └── utils/
+│   ├── auth/                         # Auth utilities
+│   │   ├── api_keys.py               # Service API key validation
+│   │   └── token_rotation.py         # JWT rotation helpers
+│   │
+│   ├── middleware/                   # FastAPI middleware
+│   │   ├── correlation.py            # Correlation ID injection
+│   │   └── request_timeout.py        # Per-request timeout enforcement
+│   │
+│   ├── neuroforge/                   # Embedded NeuroForge service helpers
+│   │   ├── services/context_builder.py / inference_pipeline.py / post_processor.py / dataforge_client.py
+│   │   └── config.py
+│   │
+│   ├── runtime_promotion/            # Runtime promotion execution handoff
+│   │   └── execution_handoff/        # contracts.py, models.py, service.py, status_service.py, worker.py
+│   │
+│   ├── services/                     # Domain service layer
+│   │   ├── embeddings_integration.py
+│   │   ├── runs_service.py
+│   │   ├── runtime_promotion_candidate_builder.py
+│   │   ├── tarcie_service.py
+│   │   ├── teams_service.py
+│   │   └── vibeforge_service.py
+│   │
+│   ├── tasks/                        # Background task integration
+│   │   └── celery_integration.py
+│   │
+│   └── utils/                        # Shared utility modules (27 files)
+│       ├── auth.py                   # JWT creation/validation + bcrypt helpers
 │       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
 │       ├── corpus_versioning.py      # Atomic corpus version bump + current-version cache
 │       ├── embeddings.py             # Text chunking + embedding generation/cache
-│       └── auth.py                   # JWT creation/validation + bcrypt helpers
+│       ├── audit_logging.py          # Append-only HMAC-signed audit event writer
+│       ├── anomaly_detection.py      # Six auth-layer threat detection patterns
+│       ├── rate_limiter.py / rate_limit.py  # Redis sliding-window rate limiter
+│       ├── circuit_breaker.py        # Service circuit-breaker pattern
+│       ├── data_encryption.py        # AES-256 Fernet field-level encryption
+│       ├── redis_utils.py / resilient_embeddings.py / cache_failover.py / cache_replication.py
+│       ├── db_failover.py / db_replication.py / load_balancer.py
+│       ├── distributed_tracing.py / cross_region_tracing.py
+│       ├── metrics.py / compliance_reporting.py / secure_key_storage.py
+│       ├── session_manager.py / token_revocation.py / mfa_handler.py / oauth2_oidc.py
+│       └── dead_letter_queue.py / task_retry_policy.py / diligence_parser.py
 │
 ├── scripts/
 │   ├── create_admin.py               # Interactive CLI: create initial admin user
