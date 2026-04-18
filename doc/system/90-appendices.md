@@ -1,0 +1,52 @@
+# Appendices
+
+**Document version:** 1.0 (carry-forward)
+
+Appendices, glossary, and cross-references.
+
+## Unmapped legacy chapters
+
+The following legacy chapters were carried forward but could not be
+deterministically mapped to a class-aware slot. Review and place them by
+hand:
+
+- `DataForge System Documentation`
+- `§3 — Technology Stack`
+- `§5 — Configuration & Environment Variables`
+- `Database`
+- `Security`
+- `Server`
+- `AI Providers`
+- `Chunking`
+- `Logging`
+- `§6 — API Layer`
+- `§7 — Backend Internals`
+- `pgvector cosine similarity query`
+- `PostgreSQL TSVECTOR + ts_rank`
+- `§8 — Ecosystem Integration Contracts`
+- `§9 — Error Handling, Lifecycle & Access Control`
+- `Default fingerprint`
+- `Category-specific fingerprints`
+- `API Contract Drift:`
+- `Dependency CVE:`
+- `Flaky Test:`
+- `§10 — Testing`
+- `§11 — Handover, Critical Constraints & Migration Runbook`
+- `1. Install any new dependencies`
+- `2. Run migrations`
+- `2a. Refresh the canonical model catalog when model identifiers or pricing change`
+- `2b. Refresh governed policy whitelists after catalog changes`
+- `3. Verify migrations applied cleanly`
+- `4. Run tests to confirm nothing broke`
+- `5. Start service`
+- `Auto-generate migration from ORM model changes`
+- `Review the generated file in alembic/versions/`
+- `Verify the upgrade() and downgrade() functions are correct`
+- `Apply`
+- `Verify`
+- `Roll back one step`
+- `Roll back to a specific revision`
+- `View migration history`
+- `Create admin user interactively`
+- `Or set environment variables for non-interactive:`
+- `§13 — Proving-Slice Schema`
