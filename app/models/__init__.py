@@ -53,6 +53,14 @@ from .runtime_promotion_models import RuntimePromotionReceipt
 from .runtime_promotion_candidate_models import (
     RuntimePromotionCandidate, RuntimePromotionCandidateDecision,
 )
+from .llm_intel_pending_records_models import (
+    LLMIntelDriftReportRecord,
+    LLMIntelExtractedClaimRecord,
+    LLMIntelPendingCandidateRecord,
+    LLMIntelReceiptRecord,
+    LLMIntelReplayManifestRecord,
+    LLMIntelSourceFingerprintRecord,
+)
 from .agentic_reasoning_models import (
     ExecutionExperienceModel, SkillNominationModel, GovernedBroadcastModel
 )
