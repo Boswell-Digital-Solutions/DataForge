@@ -46,3 +46,42 @@ class LLMIntelRunPendingRecordSummary(BaseModel):
     promotion_application_allowed: Literal[False] = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LLMIntelPromotionDecisionApplyRequest(BaseModel):
+    payload: dict[str, Any] = Field(..., min_length=1)
+
+
+class LLMIntelPromotionApplicationResponse(BaseModel):
+    decision_id: str
+    candidate_id: str
+    decision: str
+    decision_resulting_state: str
+    promotion_state: str
+    promotion_applied: bool
+    application_status: Literal["stored", "duplicate", "recorded_no_promotion"]
+    payload_hash: str
+    promoted_record_id: str | None = None
+    promotion_action: str | None = None
+    supersedes_record_id: str | None = None
+    lineage_root_id: str | None = None
+    supersession_chain_event_id: str | None = None
+    promoted_payload: dict[str, Any] | None = None
+
+
+class LLMIntelPromotedRecordRead(BaseModel):
+    promoted_record_id: str
+    provider_id: str
+    record_type: str
+    candidate_id: str
+    decision_id: str
+    claim_path: str
+    promotion_action: str
+    lineage_root_id: str
+    supersedes_record_id: str | None = None
+    superseded_by_record_id: str | None = None
+    is_current: bool
+    payload_hash: str
+    payload: dict[str, Any]
+
+    model_config = ConfigDict(from_attributes=True)

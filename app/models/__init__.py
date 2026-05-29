@@ -57,9 +57,12 @@ from .llm_intel_pending_records_models import (
     LLMIntelDriftReportRecord,
     LLMIntelExtractedClaimRecord,
     LLMIntelPendingCandidateRecord,
+    LLMIntelPromotedRecord,
+    LLMIntelPromotionDecisionRecord,
     LLMIntelReceiptRecord,
     LLMIntelReplayManifestRecord,
     LLMIntelSourceFingerprintRecord,
+    LLMIntelSupersessionChainRecord,
 )
 from .agentic_reasoning_models import (
     ExecutionExperienceModel, SkillNominationModel, GovernedBroadcastModel

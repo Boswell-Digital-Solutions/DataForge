@@ -45,6 +45,7 @@ from app.api.policy_envelope_router import router as policy_envelope_router  # D
 from app.api.proving_slice_router import router as proving_slice_router  # Proving-slice artifact intake + receipt
 from app.api.llm_intel_source_trust_router import router as llm_intel_source_trust_router  # LLM provider intelligence source trust
 from app.api.llm_intel_pending_records_router import router as llm_intel_pending_records_router  # LLM provider intelligence pending records
+from app.api.llm_intel_promotion_application_router import router as llm_intel_promotion_application_router  # LLM provider intelligence promotion application
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
 try:
@@ -282,6 +283,7 @@ app.include_router(policy_envelope_router)  # Deterministic LLM policy envelopes
 app.include_router(proving_slice_router)  # Proving-slice artifact intake + receipt emission
 app.include_router(llm_intel_source_trust_router)  # LLM provider intelligence approved source registry
 app.include_router(llm_intel_pending_records_router)  # LLM provider intelligence pending record storage
+app.include_router(llm_intel_promotion_application_router)  # LLM provider intelligence DataForge promotion application
 
 # ============================================
 # Health Check & Info Endpoints
