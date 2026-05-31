@@ -38,7 +38,7 @@ router = APIRouter(prefix="/secrets", tags=["LLM Secrets"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
 # Supported LLM providers
-SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "ollama"}
+SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "deepseek", "ollama"}
 
 # Encryption key from environment - required in production
 _env = os.environ.get("ENVIRONMENT", "development")
