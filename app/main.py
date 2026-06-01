@@ -427,13 +427,22 @@ async def readiness_check():
             await redis.ping()
             redis_dep["latency_ms"] = int((time.perf_counter() - start) * 1000)
         else:
-            # Surface the configured endpoint (password stripped) so readiness is
-            # self-diagnosing: shows whether the process actually got REDIS_URL
-            # (cloud host) or fell back to localhost (env not reaching the container).
+            # Surface scheme + host (password masked) so readiness is self-
+            # diagnosing: reveals rediss:// vs redis:// and localhost vs cloud.
             from app.config import REDIS_URL as _ru
-            _endpoint = _ru.split("@")[-1] if _ru else "(unset)"
+            _endpoint = "(unset)"
+            if _ru:
+                try:
+                    _sch, _rest = _ru.split("://", 1)
+                    if "@" in _rest:
+                        _cr, _hp = _rest.rsplit("@", 1)
+                        _endpoint = f"{_sch}://{_cr.split(':', 1)[0]}:***@{_hp}"
+                    else:
+                        _endpoint = f"{_sch}://{_rest}"
+                except Exception:
+                    _endpoint = "(unparseable)"
             redis_dep["status"] = "down"
-            redis_dep["message"] = f"Redis client unavailable (configured endpoint: {_endpoint})"
+            redis_dep["message"] = f"Redis client unavailable (configured: {_endpoint})"
             redis_dep["error_class"] = "dependency_failed"
             if overall_status == "ok":
                 overall_status = "degraded"
