@@ -63,7 +63,11 @@ DB_POOL_RECYCLE_SECONDS = int(os.getenv("DB_POOL_RECYCLE_SECONDS", "1800"))
 # ============================================
 # Redis Configuration (Caching)
 # ============================================
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = (os.getenv("REDIS_URL") or "redis://localhost:6379/0").strip()
+# Defensive against pasted env values: a stray trailing newline/space breaks the
+# connection (already stripped above); restore a missing scheme to redis://.
+if REDIS_URL and "://" not in REDIS_URL:
+    REDIS_URL = "redis://" + REDIS_URL
 
 # Cache TTLs (seconds)
 DOC_FETCH_CACHE_TTL = int(os.getenv("DOC_FETCH_CACHE_TTL", "600"))
