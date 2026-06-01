@@ -441,8 +441,24 @@ async def readiness_check():
                         _endpoint = f"{_sch}://{_rest}"
                 except Exception:
                     _endpoint = "(unparseable)"
+            # get_redis_client() swallows the real error and caches a disable.
+            # Do a fresh direct attempt here purely to surface the actual cause
+            # (auth vs network vs a stale cached-disable) in /ready.
+            _why = "get_redis_client returned None"
+            if _ru:
+                try:
+                    import redis.asyncio as _ar
+                    _tc = _ar.from_url(_ru, socket_connect_timeout=5, socket_timeout=5)
+                    await _tc.ping()
+                    try:
+                        await _tc.aclose()
+                    except Exception:
+                        pass
+                    _why = "direct ping OK (get_redis_client cached a stale disable)"
+                except Exception as _e:
+                    _why = f"{type(_e).__name__}: {str(_e)[:140]}"
             redis_dep["status"] = "down"
-            redis_dep["message"] = f"Redis client unavailable (configured: {_endpoint})"
+            redis_dep["message"] = f"unavailable ({_endpoint}) — {_why}"
             redis_dep["error_class"] = "dependency_failed"
             if overall_status == "ok":
                 overall_status = "degraded"
