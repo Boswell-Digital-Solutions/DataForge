@@ -40,6 +40,15 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # Supported LLM providers
 SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "deepseek", "ollama"}
 
+# Forge service admin tokens. Forge_Command generates + rotates these and syncs
+# them here; each service reads its OWN token (GET /secrets/{name}/value) to
+# validate inbound admin calls. Kept distinct from SUPPORTED_PROVIDERS so the
+# LLM secrets listing (GET /secrets) is not polluted with service tokens.
+SERVICE_TOKENS = {"neuroforge", "forgeagents", "dataforge", "rake"}
+
+# Names accepted for sync/read/delete (LLM provider keys + service admin tokens).
+_ALLOWED_NAMES = SUPPORTED_PROVIDERS | SERVICE_TOKENS
+
 # Encryption key from environment - required in production
 _env = os.environ.get("ENVIRONMENT", "development")
 SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "")
@@ -233,7 +242,7 @@ async def sync_secrets(
     for provider, value in request.secrets.items():
         provider_lower = provider.lower()
 
-        if provider_lower not in SUPPORTED_PROVIDERS:
+        if provider_lower not in _ALLOWED_NAMES:
             logger.warning(f"Unknown provider in sync request: {provider}")
             failed.append(provider)
             continue
@@ -286,7 +295,7 @@ async def get_secret_status(
     """
     provider_lower = provider.lower()
 
-    if provider_lower not in SUPPORTED_PROVIDERS:
+    if provider_lower not in _ALLOWED_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
@@ -322,7 +331,7 @@ async def get_secret_value(
     """
     provider_lower = provider.lower()
 
-    if provider_lower not in SUPPORTED_PROVIDERS:
+    if provider_lower not in _ALLOWED_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
@@ -411,7 +420,7 @@ async def delete_secret(
     """
     provider_lower = provider.lower()
 
-    if provider_lower not in SUPPORTED_PROVIDERS:
+    if provider_lower not in _ALLOWED_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
