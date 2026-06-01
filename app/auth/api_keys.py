@@ -35,6 +35,11 @@ API_KEYS_DB_PATH = os.environ.get("DATAFORGE_API_KEYS_DB", os.path.join(_default
 ROTATION_ADMIN_TOKEN = os.environ.get("ROTATION_ADMIN_TOKEN", "")
 EMERGENCY_OPS_KEY = os.environ.get("EMERGENCY_OPS_KEY", "")
 
+# Ephemeral per-process salt used only when API_KEY_SALT is unset outside
+# production. Generated once so hashes stay stable within a run, but never a
+# predictable constant baked into source.
+_DEV_FALLBACK_SALT = secrets.token_urlsafe(32)
+
 KEY_PREFIX_LENGTH = 10
 KEY_LENGTH = 48
 
@@ -105,7 +110,7 @@ def hash_api_key(key: str) -> str:
                 "API_KEY_SALT must be set in production. "
                 "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
             )
-        salt = "dataforge-dev-salt-NOT-FOR-PRODUCTION"
+        salt = _DEV_FALLBACK_SALT
     return hashlib.sha256(f"{salt}:{key}".encode()).hexdigest()
 
 

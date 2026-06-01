@@ -20,12 +20,26 @@ if not SECRET_KEY:
             "SECRET_KEY must be set in production. "
             "Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
         )
-    SECRET_KEY = "dataforge-dev-jwt-secret-NOT-FOR-PRODUCTION"
+    # Non-production: generate an ephemeral random key rather than shipping a
+    # predictable constant. Tokens won't survive a process restart, which is
+    # acceptable for local dev/tests and avoids a known signing key in source.
+    import secrets as _secrets
+    import logging as _logging
+    SECRET_KEY = _secrets.token_urlsafe(32)
+    _logging.getLogger(__name__).warning(
+        "SECRET_KEY not set; using an ephemeral per-process dev key. "
+        "Set SECRET_KEY for stable tokens."
+    )
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+# Precomputed dummy hash so authentication runs bcrypt even when the username
+# does not exist. This keeps response timing constant regardless of user
+# existence, mitigating username enumeration via timing side channels.
+_DUMMY_PASSWORD_HASH = pwd_context.hash("constant-time-placeholder")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -48,9 +62,11 @@ def get_user_by_username(db: Session, username: str):
 
 def authenticate_user(db: Session, username: str, password: str):
     user = get_user_by_username(db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
+    # Always run a bcrypt verification (against a dummy hash when the user is
+    # absent) so timing does not reveal whether the username exists.
+    hashed = user.hashed_password if user else _DUMMY_PASSWORD_HASH
+    password_ok = verify_password(password, hashed)
+    if not user or not password_ok:
         return False
     return user
 

@@ -3,6 +3,7 @@ Simple in-memory rate limiter for API endpoints.
 
 For production use, consider using Redis-backed rate limiting.
 """
+import os
 import time
 import logging
 from collections import defaultdict
@@ -10,6 +11,13 @@ from fastapi import HTTPException, Request
 from typing import Dict, Tuple
 
 logger = logging.getLogger(__name__)
+
+# Number of trusted reverse-proxy hops in front of this service. The
+# X-Forwarded-For header is appended to by each proxy, so the rightmost
+# entries are the trustworthy ones and entries to the left are client-supplied
+# (spoofable). Defaults to 1 (e.g. Render's load balancer). Set to 0 to ignore
+# forwarding headers entirely when the service is directly exposed.
+TRUSTED_PROXY_HOPS = int(os.getenv("TRUSTED_PROXY_HOPS", "1"))
 
 
 class RateLimiter:
@@ -99,17 +107,27 @@ rate_limiter = RateLimiter()
 
 def get_client_ip(request: Request) -> str:
     """
-    Extract client IP from request, handling proxies.
-    """
-    # Check for X-Forwarded-For header (for proxies)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    Extract client IP from request, handling trusted reverse proxies.
 
-    # Check for X-Real-IP header
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
+    Only the proxy-appended (rightmost) entries of X-Forwarded-For are trusted,
+    bounded by TRUSTED_PROXY_HOPS. Using the leftmost value would let a client
+    spoof its IP and bypass rate limiting. When TRUSTED_PROXY_HOPS is 0,
+    forwarding headers are ignored and the direct peer address is used.
+    """
+    if TRUSTED_PROXY_HOPS > 0:
+        # Check for X-Forwarded-For header (set by reverse proxies)
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+            if parts:
+                # Pick the address observed by the closest trusted proxy.
+                idx = min(TRUSTED_PROXY_HOPS, len(parts))
+                return parts[-idx]
+
+        # Check for X-Real-IP header
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
 
     # Fall back to direct client
     return request.client.host if request.client else "unknown"

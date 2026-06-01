@@ -104,7 +104,17 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127
 # CORS Configuration
 # ============================================
 CORS_ALLOW_METHODS = ["GET", "POST", "PATCH", "DELETE"]
-CORS_ALLOW_HEADERS = ["*"]
+# Explicit allow-list instead of "*". Wildcard headers combined with
+# allow_credentials=True is overly permissive; enumerate the headers the app
+# actually needs. Override via CORS_ALLOW_HEADERS (comma-separated) if required.
+CORS_ALLOW_HEADERS = [
+    h.strip()
+    for h in os.getenv(
+        "CORS_ALLOW_HEADERS",
+        "Authorization,Content-Type,X-Correlation-ID,X-Request-ID",
+    ).split(",")
+    if h.strip()
+]
 
 # ============================================
 # Logging Configuration

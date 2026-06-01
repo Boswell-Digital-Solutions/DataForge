@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
@@ -31,10 +32,22 @@ def _build_connect_args(database_url: str) -> dict[str, object]:
         f"-c lock_timeout={DB_LOCK_TIMEOUT_MS}",
         f"-c idle_in_transaction_session_timeout={DB_IDLE_IN_TX_TIMEOUT_MS}",
     ]
-    return {
+    connect_args: dict[str, object] = {
         "connect_timeout": DB_CONNECT_TIMEOUT_SECONDS,
         "options": " ".join(options),
     }
+
+    # Enforce TLS for remote databases (e.g. Supabase). Local hosts default to
+    # "prefer" (use TLS if offered) so local Postgres without SSL still works;
+    # remote hosts default to "require". Both can be overridden via DB_SSLMODE,
+    # and an sslmode already present in the URL always wins.
+    if "sslmode" not in url.query:
+        host = (url.host or "").lower()
+        is_local = host in {"localhost", "127.0.0.1", "::1", ""}
+        default_sslmode = "prefer" if is_local else "require"
+        connect_args["sslmode"] = os.getenv("DB_SSLMODE", default_sslmode)
+
+    return connect_args
 
 
 def _build_engine_kwargs(database_url: str) -> dict[str, object]:

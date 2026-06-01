@@ -166,13 +166,17 @@ async def lifespan(app: FastAPI):
     main_logger.info("👋 Shutting down DataForge...")
 
 # Initialize FastAPI application
+# Disable interactive API docs (Swagger/ReDoc/OpenAPI) in production so the
+# full API surface of this data gateway is not publicly browsable.
+_is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
 app = FastAPI(
     title="DataForge",
     description="Knowledge Base Management System with Semantic Search",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
 
 

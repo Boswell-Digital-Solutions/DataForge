@@ -2,7 +2,7 @@ from datetime import timedelta
 import re
 from uuid import uuid4
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -15,9 +15,14 @@ from app.utils.auth import (
     get_current_user,
     get_password_hash,
 )
+from app.utils.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 legacy_router = APIRouter(prefix="/api/auth", tags=["authentication"])
+
+# Brute-force protection on credential endpoints (per client IP).
+LOGIN_RATE_MAX_REQUESTS = 10
+LOGIN_RATE_WINDOW_SECONDS = 60
 
 
 class LoginRequest(BaseModel):
@@ -43,6 +48,7 @@ def _validate_registration_payload(payload: schemas.UserCreate) -> None:
 
 @router.post("/token", response_model=schemas.Token)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -52,6 +58,7 @@ async def login(
     Use the token in subsequent requests:
     Authorization: Bearer <token>
     """
+    check_rate_limit(request, LOGIN_RATE_MAX_REQUESTS, LOGIN_RATE_WINDOW_SECONDS)
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -111,9 +118,11 @@ async def register_user(
 @legacy_router.post("/login", response_model=schemas.Token)
 async def legacy_login(
     login_request: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """Legacy compatibility endpoint for JSON-based login."""
+    check_rate_limit(request, LOGIN_RATE_MAX_REQUESTS, LOGIN_RATE_WINDOW_SECONDS)
     user = authenticate_user(db, login_request.username, login_request.password)
     if not user:
         raise HTTPException(

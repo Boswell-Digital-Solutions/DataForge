@@ -52,10 +52,20 @@ _ALLOWED_NAMES = SUPPORTED_PROVIDERS | SERVICE_TOKENS
 # Encryption key from environment - required in production
 _env = os.environ.get("ENVIRONMENT", "development")
 SECRETS_ENCRYPTION_KEY = os.environ.get("SECRETS_ENCRYPTION_KEY", "")
-if not SECRETS_ENCRYPTION_KEY and _env != "production":
-    SECRETS_ENCRYPTION_KEY = "forge-secrets-dev-key-NOT-FOR-PRODUCTION"
-elif not SECRETS_ENCRYPTION_KEY and _env == "production":
-    logger.error("SECRETS_ENCRYPTION_KEY must be set in production!")
+if not SECRETS_ENCRYPTION_KEY:
+    if _env == "production":
+        raise RuntimeError(
+            "SECRETS_ENCRYPTION_KEY must be set in production. "
+            "Generate with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+        )
+    # Non-production: derive an ephemeral key so secrets are still encrypted at
+    # rest (never stored as plaintext) without shipping a predictable constant.
+    import secrets as _py_secrets
+    SECRETS_ENCRYPTION_KEY = _py_secrets.token_urlsafe(32)
+    logger.warning(
+        "SECRETS_ENCRYPTION_KEY not set; using an ephemeral per-process dev key. "
+        "Stored secrets will not be decryptable after a restart."
+    )
 
 # In-memory fallback for development (NOT for production)
 _dev_secrets_store: dict[str, str] = {}
@@ -81,9 +91,14 @@ def _get_fernet():
 def _encrypt_secret(value: str) -> str:
     """Encrypt a secret value."""
     fernet = _get_fernet()
-    if fernet:
-        return fernet.encrypt(value.encode()).decode()
-    return value  # Dev mode: no encryption
+    if not fernet:
+        # Never persist secrets in plaintext. If encryption is unavailable
+        # (e.g. cryptography not installed), refuse rather than degrade.
+        raise RuntimeError(
+            "Secrets encryption unavailable; refusing to store secret in plaintext. "
+            "Install 'cryptography' and set SECRETS_ENCRYPTION_KEY."
+        )
+    return fernet.encrypt(value.encode()).decode()
 
 
 def _decrypt_secret(encrypted: str) -> str:

@@ -28,6 +28,10 @@ TOKEN_DB_PATH = os.environ.get("DATAFORGE_TOKEN_DB", os.path.join(_default_db_di
 # Rotation settings
 ROTATION_INTERVAL_HOURS = int(os.environ.get("TOKEN_ROTATION_HOURS", "72"))
 GRACE_PERIOD_HOURS = int(os.environ.get("TOKEN_GRACE_PERIOD_HOURS", "1"))
+
+# Ephemeral per-process token salt for non-production when TOKEN_SALT is unset.
+# Generated once so hashes are stable within a run, never a source constant.
+_DEV_FALLBACK_TOKEN_SALT = secrets.token_urlsafe(32)
 TOKEN_LENGTH = 48
 
 
@@ -96,7 +100,7 @@ def _hash_token(token: str) -> str:
         environment = os.environ.get("ENVIRONMENT", "development")
         if environment == "production":
             raise RuntimeError("TOKEN_SALT must be set in production")
-        salt = "dataforge-dev-token-salt-NOT-FOR-PRODUCTION"
+        salt = _DEV_FALLBACK_TOKEN_SALT
     return hashlib.sha256(f"{salt}:{token}".encode()).hexdigest()
 
 

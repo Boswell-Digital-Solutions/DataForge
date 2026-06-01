@@ -104,7 +104,12 @@ class TestClientIPExtraction:
         assert ip == "192.168.1.1"
     
     def test_get_client_ip_forwarded(self):
-        """Test getting IP from X-Forwarded-For header."""
+        """Test getting IP from X-Forwarded-For header.
+
+        With one trusted proxy hop (the default), the trustworthy address is
+        the rightmost (proxy-appended) entry; the leftmost is client-supplied
+        and therefore spoofable.
+        """
         request = Mock(spec=Request)
         request.client.host = "127.0.0.1"
         request.headers.get = Mock(side_effect=lambda key: {
@@ -112,7 +117,7 @@ class TestClientIPExtraction:
         }.get(key))
 
         ip = get_client_ip(request)
-        assert ip == "203.0.113.1"
+        assert ip == "198.51.100.1"
 
     def test_get_client_ip_real_ip(self):
         """Test getting IP from X-Real-IP header."""
