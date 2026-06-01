@@ -13,7 +13,11 @@ from app.models import models, schemas
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "")
+# Accept JWT_SECRET_KEY as the canonical name too. Deployments (render.yaml)
+# provision JWT_SECRET_KEY via generateValue, and app/config.py already falls
+# back to it — keep this module consistent so production doesn't crash when only
+# JWT_SECRET_KEY is set.
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET_KEY") or ""
 if not SECRET_KEY:
     if os.getenv("ENVIRONMENT", "development") == "production":
         raise RuntimeError(
