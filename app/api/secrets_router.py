@@ -130,7 +130,11 @@ def _ensure_db():
                 checksum TEXT
             )
         """))
-    logger.info("Secrets table ready in Postgres (llm_secrets)")
+        # Deny the PostgREST/anon Data API by default; the postgres owner (the
+        # connection used here) bypasses RLS, so DataForge keeps full access.
+        # This holds credentials, so protect it even on a fresh DB.
+        conn.execute(text("ALTER TABLE llm_secrets ENABLE ROW LEVEL SECURITY"))
+    logger.info("Secrets table ready in Postgres (llm_secrets, RLS enabled)")
 
 
 try:
