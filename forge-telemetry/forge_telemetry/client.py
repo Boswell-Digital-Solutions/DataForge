@@ -174,7 +174,7 @@ class TelemetryClient:
                     )
                     VALUES (
                         :event_id, :timestamp, :service, :event_type, :severity,
-                        :correlation_id, :metadata, :metrics, NOW()
+                        :correlation_id, CAST(:metadata AS jsonb), CAST(:metrics AS jsonb), NOW()
                     )
                 """)
 
@@ -185,8 +185,10 @@ class TelemetryClient:
                     "event_type": event.event_type,
                     "severity": event.severity,
                     "correlation_id": str(event.correlation_id) if event.correlation_id else None,
-                    "metadata": event.metadata,
-                    "metrics": event.metrics,
+                    # psycopg2 cannot adapt a raw dict to JSONB; serialize to a JSON
+                    # string and cast (::jsonb) in the query, mirroring the SQLite path.
+                    "metadata": json.dumps(event.metadata) if event.metadata is not None else None,
+                    "metrics": json.dumps(event.metrics) if event.metrics is not None else None,
                 })
 
             db.commit()
