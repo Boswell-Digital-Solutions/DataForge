@@ -229,7 +229,7 @@ if _HAS_COMPRESSION:
             min_size=COMPRESSION_MIN_SIZE,
         )
 else:
-    main_logger.warning("forge_compression not installed — compression middleware disabled (local-only feature)")
+    main_logger.info("forge_compression not installed; compression middleware disabled (local-only feature — expected in cloud deploys)")
 
 # Configure CORS
 main_logger.info(f"Configuring CORS with origins: {ALLOWED_ORIGINS}")

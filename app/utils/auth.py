@@ -37,6 +37,12 @@ if not SECRET_KEY:
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
+# passlib reads bcrypt.__about__.__version__ for version detection; bcrypt 4.x
+# removed that attribute, so passlib logs a harmless AttributeError trace at
+# backend load. Hashing still works — quiet the trace to keep logs clean.
+import logging as _bcrypt_logging
+_bcrypt_logging.getLogger("passlib").setLevel(_bcrypt_logging.ERROR)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
