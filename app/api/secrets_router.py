@@ -18,7 +18,6 @@ import logging
 import secrets as python_secrets
 from datetime import datetime, timezone
 from typing import Annotated, Optional
-from contextlib import contextmanager
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -112,52 +111,80 @@ def _decrypt_secret(encrypted: str) -> str:
     return encrypted  # Dev mode: no encryption
 
 
-# Database path for secrets (separate from API keys)
-import sqlite3
-from pathlib import Path
-
-# Secrets DB - default to persistent, secure location (not /tmp)
-_default_secrets_dir = os.path.join(os.environ.get("HOME", "/var/lib/dataforge"), ".dataforge")
-SECRETS_DB_PATH = os.environ.get("DATAFORGE_SECRETS_DB", os.path.join(_default_secrets_dir, "secrets.db"))
+# Secrets are stored in DataForge's durable Postgres (Supabase), NOT a local
+# SQLite file: on Render the filesystem is ephemeral, so a SQLite secrets.db was
+# wiped on every redeploy. Postgres is the source of truth and survives deploys.
+from sqlalchemy import text
+from app.database import engine as _pg_engine
 
 
 def _ensure_db():
-    """Initialize secrets database."""
-    db_path = Path(SECRETS_DB_PATH)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    conn = sqlite3.connect(SECRETS_DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS llm_secrets (
-            provider TEXT PRIMARY KEY,
-            encrypted_value TEXT NOT NULL,
-            synced_at TEXT NOT NULL,
-            synced_from TEXT,
-            checksum TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
-    logger.info(f"Secrets DB initialized: {SECRETS_DB_PATH}")
+    """Create the llm_secrets table in Postgres if it doesn't exist."""
+    with _pg_engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS llm_secrets (
+                provider TEXT PRIMARY KEY,
+                encrypted_value TEXT NOT NULL,
+                synced_at TEXT NOT NULL,
+                synced_from TEXT,
+                checksum TEXT
+            )
+        """))
+    logger.info("Secrets table ready in Postgres (llm_secrets)")
 
 
 try:
     _ensure_db()
 except Exception as e:
-    logger.warning(f"Secrets DB init failed (will use memory): {e}")
+    logger.warning(f"Secrets table init failed: {e}")
 
 
-@contextmanager
-def get_secrets_db():
-    """Get database connection."""
-    Path(SECRETS_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(SECRETS_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
+def _upsert_secret(provider: str, encrypted: str, synced_at: str,
+                   synced_from: Optional[str], checksum: str) -> None:
+    with _pg_engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO llm_secrets (provider, encrypted_value, synced_at, synced_from, checksum)
+            VALUES (:provider, :encrypted, :synced_at, :synced_from, :checksum)
+            ON CONFLICT (provider) DO UPDATE SET
+                encrypted_value = EXCLUDED.encrypted_value,
+                synced_at = EXCLUDED.synced_at,
+                synced_from = EXCLUDED.synced_from,
+                checksum = EXCLUDED.checksum
+        """), {"provider": provider, "encrypted": encrypted, "synced_at": synced_at,
+               "synced_from": synced_from, "checksum": checksum})
+
+
+def _delete_secret_row(provider: str) -> int:
+    with _pg_engine.begin() as conn:
+        result = conn.execute(
+            text("DELETE FROM llm_secrets WHERE provider = :provider"),
+            {"provider": provider},
+        )
+        return result.rowcount or 0
+
+
+def _get_synced_at(provider: str) -> Optional[str]:
+    with _pg_engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT synced_at FROM llm_secrets WHERE provider = :provider"),
+            {"provider": provider},
+        ).fetchone()
+        return row[0] if row else None
+
+
+def _get_encrypted_value(provider: str) -> Optional[str]:
+    with _pg_engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT encrypted_value FROM llm_secrets WHERE provider = :provider"),
+            {"provider": provider},
+        ).fetchone()
+        return row[0] if row else None
+
+
+def _list_synced() -> dict[str, str]:
+    with _pg_engine.connect() as conn:
+        rows = conn.execute(text("SELECT provider, synced_at FROM llm_secrets")).fetchall()
+        return {r[0]: r[1] for r in rows}
 
 
 class SecretAuthContext:
@@ -265,10 +292,7 @@ async def sync_secrets(
         if not value or not value.strip():
             # Empty value means clear the secret
             try:
-                with get_secrets_db() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM llm_secrets WHERE provider = ?", (provider_lower,))
-                    conn.commit()
+                _delete_secret_row(provider_lower)
                 synced.append(provider_lower)
                 logger.info(f"Cleared secret for provider: {provider_lower}")
             except Exception as e:
@@ -280,14 +304,7 @@ async def sync_secrets(
             encrypted = _encrypt_secret(value.strip())
             checksum = python_secrets.token_hex(8)
 
-            with get_secrets_db() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT OR REPLACE INTO llm_secrets
-                    (provider, encrypted_value, synced_at, synced_from, checksum)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (provider_lower, encrypted, now, request.source_id, checksum))
-                conn.commit()
+            _upsert_secret(provider_lower, encrypted, now, request.source_id, checksum)
 
             synced.append(provider_lower)
             logger.info(f"Synced secret for provider: {provider_lower}")
@@ -314,21 +331,10 @@ async def get_secret_status(
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
-        with get_secrets_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT synced_at FROM llm_secrets WHERE provider = ?",
-                (provider_lower,)
-            )
-            row = cursor.fetchone()
-
-            if row:
-                return SecretResponse(
-                    provider=provider_lower,
-                    available=True,
-                    synced_at=row["synced_at"]
-                )
-            return SecretResponse(provider=provider_lower, available=False)
+        synced_at = _get_synced_at(provider_lower)
+        if synced_at:
+            return SecretResponse(provider=provider_lower, available=True, synced_at=synced_at)
+        return SecretResponse(provider=provider_lower, available=False)
     except Exception as e:
         logger.error(f"Failed to check secret status for {provider_lower}: {e}")
         return SecretResponse(provider=provider_lower, available=False)
@@ -350,34 +356,22 @@ async def get_secret_value(
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
-        with get_secrets_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT encrypted_value FROM llm_secrets WHERE provider = ?",
-                (provider_lower,)
-            )
-            row = cursor.fetchone()
-
-            if not row:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"No secret configured for provider: {provider}"
-                )
-
-            decrypted = _decrypt_secret(row["encrypted_value"])
-            if not decrypted:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to decrypt secret"
-                )
-
-            # Log access (but never log the actual key)
-            logger.info(
-                f"Secret accessed: provider={provider_lower}, "
-                f"auth_mode={auth.auth_mode}"
+        encrypted = _get_encrypted_value(provider_lower)
+        if not encrypted:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No secret configured for provider: {provider}"
             )
 
-            return {"provider": provider_lower, "key": decrypted}
+        decrypted = _decrypt_secret(encrypted)
+        if not decrypted:
+            raise HTTPException(status_code=500, detail="Failed to decrypt secret")
+
+        # Log access (but never log the actual key)
+        logger.info(
+            f"Secret accessed: provider={provider_lower}, auth_mode={auth.auth_mode}"
+        )
+        return {"provider": provider_lower, "key": decrypted}
     except HTTPException:
         raise
     except Exception as e:
@@ -396,25 +390,14 @@ async def list_secrets(
     result = []
 
     try:
-        with get_secrets_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT provider, synced_at FROM llm_secrets")
-            rows = cursor.fetchall()
-
-            configured = {row["provider"]: row["synced_at"] for row in rows}
-
-            for provider in SUPPORTED_PROVIDERS:
-                if provider in configured:
-                    result.append(SecretResponse(
-                        provider=provider,
-                        available=True,
-                        synced_at=configured[provider]
-                    ))
-                else:
-                    result.append(SecretResponse(
-                        provider=provider,
-                        available=False
-                    ))
+        configured = _list_synced()
+        for provider in SUPPORTED_PROVIDERS:
+            if provider in configured:
+                result.append(SecretResponse(
+                    provider=provider, available=True, synced_at=configured[provider]
+                ))
+            else:
+                result.append(SecretResponse(provider=provider, available=False))
     except Exception as e:
         logger.error(f"Failed to list secrets: {e}")
         # Return all as unavailable on error
@@ -439,15 +422,11 @@ async def delete_secret(
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
 
     try:
-        with get_secrets_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM llm_secrets WHERE provider = ?", (provider_lower,))
-            conn.commit()
-
-            if cursor.rowcount > 0:
-                logger.info(f"Deleted secret for provider: {provider_lower}")
-                return {"provider": provider_lower, "deleted": True}
-            return {"provider": provider_lower, "deleted": False, "message": "Not found"}
+        deleted = _delete_secret_row(provider_lower)
+        if deleted > 0:
+            logger.info(f"Deleted secret for provider: {provider_lower}")
+            return {"provider": provider_lower, "deleted": True}
+        return {"provider": provider_lower, "deleted": False, "message": "Not found"}
     except Exception as e:
         logger.error(f"Failed to delete secret for {provider_lower}: {e}")
         raise HTTPException(status_code=500, detail="Internal error")
