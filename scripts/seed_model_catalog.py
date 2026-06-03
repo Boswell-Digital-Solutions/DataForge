@@ -227,6 +227,38 @@ MODEL_CATALOG = [
         "supports_structured_output": True,
         "tier": "flagship",
     },
+    # DeepSeek — official API pricing
+    # (https://api-docs.deepseek.com/quick_start/pricing-details-usd, the source already
+    # approved in llm_intel_source_trust). input_cost_per_mtok is the cache-MISS price;
+    # cache_read_discount is the cache-hit ratio. DeepSeek has no batch API.
+    {
+        "model_key": "deepseek-chat",
+        "provider": "deepseek",
+        "model_id": "deepseek-chat",
+        "input_cost_per_mtok": Decimal("0.27"),
+        "output_cost_per_mtok": Decimal("1.10"),
+        "batch_input_cost": None,
+        "batch_output_cost": None,
+        "max_context": 64_000,
+        "cache_read_discount": Decimal("0.26"),
+        "supports_batch": False,
+        "supports_structured_output": True,
+        "tier": "workhorse",
+    },
+    {
+        "model_key": "deepseek-reasoner",
+        "provider": "deepseek",
+        "model_id": "deepseek-reasoner",
+        "input_cost_per_mtok": Decimal("0.55"),
+        "output_cost_per_mtok": Decimal("2.19"),
+        "batch_input_cost": None,
+        "batch_output_cost": None,
+        "max_context": 64_000,
+        "cache_read_discount": Decimal("0.25"),
+        "supports_batch": False,
+        "supports_structured_output": False,
+        "tier": "workhorse",
+    },
 ]
 
 
