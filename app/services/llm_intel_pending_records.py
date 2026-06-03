@@ -23,6 +23,7 @@ from app.models.llm_intel_pending_records_models import (
     LLMIntelSourceFingerprintRecord,
 )
 from app.models.llm_intel_pending_records_schemas import (
+    LLMIntelCandidateReviewItem,
     LLMIntelPendingRecordIngestRequest,
     LLMIntelPendingRecordIngestResponse,
     LLMIntelRunPendingRecordSummary,
@@ -59,6 +60,17 @@ BLOCKED_PENDING_PROMOTION_STATES = frozenset(
         "rollback_requested",
         "rollback_completed",
         "archived",
+    }
+)
+
+# Candidate promotion states still open for operator review in Forge_Command.
+REVIEWABLE_CANDIDATE_STATES = frozenset(
+    {
+        "candidate_detected",
+        "evidence_collected",
+        "drift_classified",
+        "more_evidence_required",
+        "deferred",
     }
 )
 
@@ -152,6 +164,98 @@ def build_run_summary(db: Session, run_id: str) -> LLMIntelRunPendingRecordSumma
         drift_report_ids=[row.drift_report_id for row in drift_reports],
         replay_manifest_ids=[row.replay_manifest_id for row in replay_manifests],
     )
+
+
+def list_candidate_review_feed(
+    db: Session,
+    *,
+    run_id: str | None = None,
+    provider_id: str | None = None,
+    states: set[str] | None = None,
+    limit: int = 200,
+) -> list[LLMIntelCandidateReviewItem]:
+    """Return reviewable pending candidates enriched with their drift diff (old/new),
+    impact class, and source trust — the read model for the Forge_Command operator
+    review surface. Read-only: this never changes promotion state."""
+    review_states = set(states) if states else set(REVIEWABLE_CANDIDATE_STATES)
+    query = db.query(LLMIntelPendingCandidateRecord).filter(
+        LLMIntelPendingCandidateRecord.promotion_state.in_(review_states)
+    )
+    if run_id:
+        query = query.filter(LLMIntelPendingCandidateRecord.run_id == run_id)
+    if provider_id:
+        query = query.filter(LLMIntelPendingCandidateRecord.provider_id == provider_id)
+    candidates = (
+        query.order_by(
+            LLMIntelPendingCandidateRecord.created_at.desc(),
+            LLMIntelPendingCandidateRecord.candidate_id.asc(),
+        )
+        .limit(limit)
+        .all()
+    )
+    if not candidates:
+        return []
+
+    candidate_ids = [row.candidate_id for row in candidates]
+    drift_by_candidate: dict[str, LLMIntelDriftReportRecord] = {}
+    for drift in (
+        db.query(LLMIntelDriftReportRecord)
+        .filter(LLMIntelDriftReportRecord.candidate_id.in_(candidate_ids))
+        .all()
+    ):
+        # One drift report per candidate in the weekly flow; keep the first seen.
+        drift_by_candidate.setdefault(drift.candidate_id, drift)
+
+    fingerprint_ids: set[str] = set()
+    for row in candidates:
+        fingerprint_ids.update(row.source_fingerprint_ids or [])
+    fingerprint_by_id: dict[str, LLMIntelSourceFingerprintRecord] = {}
+    if fingerprint_ids:
+        for fingerprint in (
+            db.query(LLMIntelSourceFingerprintRecord)
+            .filter(LLMIntelSourceFingerprintRecord.fingerprint_id.in_(fingerprint_ids))
+            .all()
+        ):
+            fingerprint_by_id[fingerprint.fingerprint_id] = fingerprint
+
+    items: list[LLMIntelCandidateReviewItem] = []
+    for row in candidates:
+        drift = drift_by_candidate.get(row.candidate_id)
+        fingerprints = [
+            fingerprint_by_id[fid]
+            for fid in (row.source_fingerprint_ids or [])
+            if fid in fingerprint_by_id
+        ]
+        trust_classes = sorted({fp.trust_class for fp in fingerprints})
+        source_urls = sorted(
+            {
+                url
+                for fp in fingerprints
+                if isinstance((url := (fp.payload or {}).get("source_url")), str) and url
+            }
+        )
+        items.append(
+            LLMIntelCandidateReviewItem(
+                candidate_id=row.candidate_id,
+                run_id=row.run_id,
+                provider_id=row.provider_id,
+                candidate_type=row.candidate_type,
+                claim_type=row.claim_type,
+                claim_path=row.claim_path,
+                promotion_state=row.promotion_state,
+                candidate_value=(row.payload or {}).get("candidate_value", {}),
+                old_value=(drift.payload or {}).get("old_value") if drift else None,
+                impact_class=drift.impact_class if drift else None,
+                drift_report_id=drift.drift_report_id if drift else None,
+                review_packet_id=f"review-{row.candidate_id}",
+                source_fingerprint_ids=list(row.source_fingerprint_ids or []),
+                trust_classes=trust_classes,
+                source_urls=source_urls,
+                has_official_source=any(tc == "OFFICIAL" for tc in trust_classes),
+                created_at=row.created_at.isoformat() if row.created_at else None,
+            )
+        )
+    return items
 
 
 def stable_hash(value: Any) -> str:

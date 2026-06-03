@@ -12,6 +12,7 @@ from app.services.llm_intel_pending_records import (
     PendingRecordConflictError,
     PendingRecordValidationError,
     build_run_summary,
+    list_candidate_review_feed,
     store_pending_record,
 )
 
@@ -241,6 +242,40 @@ def ingest_full_pending_record_set(db: Session) -> None:
     _post_record(db, "llm_intel_pricing_candidates", pricing_candidate())
     _post_record(db, "llm_intel_drift_reports", drift_report())
     _post_record(db, "llm_intel_replay_manifests", replay_manifest())
+
+
+@pytest.mark.unit
+def test_candidate_review_feed_enriches_with_drift_and_trust(db: Session) -> None:
+    ingest_full_pending_record_set(db)
+
+    items = list_candidate_review_feed(db)
+    assert len(items) == 1
+    item = items[0]
+    assert item.candidate_id == CANDIDATE_ID
+    assert item.provider_id == "deepseek"
+    assert item.candidate_value["amount"] == 0.27  # the new (extracted) price
+    assert item.old_value is not None and item.old_value["amount"] == 0.14  # prior truth
+    assert item.impact_class == "medium"
+    assert item.drift_report_id == DRIFT_REPORT_ID
+    assert item.trust_classes == ["OFFICIAL"]
+    assert item.has_official_source is True
+    assert item.review_packet_id == f"review-{CANDIDATE_ID}"
+    assert SOURCE_URL in item.source_urls
+
+
+@pytest.mark.unit
+def test_candidate_review_feed_filters_by_provider(db: Session) -> None:
+    ingest_full_pending_record_set(db)
+
+    assert list_candidate_review_feed(db, provider_id="deepseek")
+    assert list_candidate_review_feed(db, provider_id="openai") == []
+
+
+@pytest.mark.unit
+def test_candidate_review_feed_excludes_non_reviewable_states(db: Session) -> None:
+    ingest_full_pending_record_set(db)
+    # Default reviewable set excludes terminal states; restricting to one excludes ours.
+    assert list_candidate_review_feed(db, states={"promoted"}) == []
 
 
 @pytest.mark.unit

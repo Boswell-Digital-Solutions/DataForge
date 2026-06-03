@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.llm_intel_pending_records_schemas import (
+    LLMIntelCandidateReviewFeed,
     LLMIntelPendingRecordIngestRequest,
     LLMIntelPendingRecordIngestResponse,
     LLMIntelRunPendingRecordSummary,
@@ -15,6 +16,7 @@ from app.services.llm_intel_pending_records import (
     PendingRecordConflictError,
     PendingRecordValidationError,
     build_run_summary,
+    list_candidate_review_feed,
     store_pending_record,
 )
 
@@ -49,3 +51,18 @@ def pending_run_summary(
 ) -> LLMIntelRunPendingRecordSummary:
     """Return pending record ids stored for one LLM-intel weekly run."""
     return build_run_summary(db, run_id)
+
+
+@router.get("/review-feed", response_model=LLMIntelCandidateReviewFeed)
+def candidate_review_feed(
+    run_id: str | None = Query(default=None),
+    provider_id: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=1000),
+    db: Session = Depends(get_db),
+) -> LLMIntelCandidateReviewFeed:
+    """Reviewable pending candidates with their drift diff and source trust, for the
+    Forge_Command operator review surface. Read-only — promotion is applied separately."""
+    items = list_candidate_review_feed(
+        db, run_id=run_id, provider_id=provider_id, limit=limit
+    )
+    return LLMIntelCandidateReviewFeed(items=items, count=len(items))

@@ -48,6 +48,35 @@ class LLMIntelRunPendingRecordSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class LLMIntelCandidateReviewItem(BaseModel):
+    """One pending candidate enriched with its drift diff and source trust, for the
+    Forge_Command operator review surface. Read-only; promotion is a separate apply."""
+
+    candidate_id: str
+    run_id: str
+    provider_id: str
+    candidate_type: str
+    claim_type: str
+    claim_path: str
+    promotion_state: str
+    candidate_value: dict[str, Any]
+    old_value: dict[str, Any] | None = None
+    impact_class: str | None = None
+    drift_report_id: str | None = None
+    review_packet_id: str
+    source_fingerprint_ids: list[str] = Field(default_factory=list)
+    trust_classes: list[str] = Field(default_factory=list)
+    source_urls: list[str] = Field(default_factory=list)
+    has_official_source: bool = False
+    created_at: str | None = None
+
+
+class LLMIntelCandidateReviewFeed(BaseModel):
+    items: list[LLMIntelCandidateReviewItem]
+    count: int
+    promotion_application_allowed: Literal[False] = False
+
+
 class LLMIntelPromotionDecisionApplyRequest(BaseModel):
     payload: dict[str, Any] = Field(..., min_length=1)
 
