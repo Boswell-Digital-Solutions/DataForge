@@ -9,11 +9,14 @@ supersession lineage.
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.models.multi_provider_models import ModelCatalog
 from app.models.llm_intel_pending_records_models import (
     LLMIntelDriftReportRecord,
     LLMIntelPendingCandidateRecord,
@@ -34,11 +37,66 @@ from forge_contract_core.validators.families import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 CANDIDATE_RECORD_TYPES = {
     "model": "model_registry",
     "pricing": "pricing",
     "capability": "capability",
 }
+
+# A promoted pricing field projects onto these model_catalog columns (the read model
+# the pricing dashboard serves), keyed by the pricing candidate's `unit`.
+_PRICING_UNIT_TO_CATALOG_COLUMN = {
+    "1m_input_tokens": "input_cost_per_mtok",
+    "1m_output_tokens": "output_cost_per_mtok",
+}
+
+
+def _project_promoted_pricing_to_catalog(
+    db: Session, candidate: LLMIntelPendingCandidateRecord
+) -> None:
+    """Best-effort projection of a promoted pricing field onto the `model_catalog`
+    row the pricing dashboard reads.
+
+    Only updates a price on a model ALREADY in the catalog (the weekly price-change
+    path). New-model onboarding — materializing a full catalog row — needs the
+    model-registry claims (context/tier) and is handled separately. This never raises
+    into the promotion path: the LLMIntelPromotedRecord remains the canonical truth even
+    if the denormalized projection cannot be applied.
+    """
+    if candidate.candidate_type != "pricing":
+        return
+    try:
+        value = candidate.payload.get("candidate_value")
+        if not isinstance(value, dict):
+            return
+        model_key = value.get("model")
+        column = _PRICING_UNIT_TO_CATALOG_COLUMN.get(value.get("unit") or "")
+        amount = value.get("amount")
+        if not model_key or column is None or amount is None:
+            return
+        row = (
+            db.query(ModelCatalog)
+            .filter(ModelCatalog.model_key == model_key)
+            .first()
+        )
+        if row is None:
+            logger.info(
+                "llm_intel: promoted pricing for %r not projected — model not in "
+                "catalog (new-model onboarding is separate)",
+                model_key,
+            )
+            return
+        setattr(row, column, Decimal(str(amount)))
+        row.updated_by = "llm_intel_promotion"
+        logger.info(
+            "llm_intel: projected %s=%s onto model_catalog[%s]", column, amount, model_key
+        )
+    except Exception as exc:  # never break promotion on a projection failure
+        logger.warning(
+            "llm_intel: model_catalog pricing projection failed (non-fatal): %s", exc
+        )
 
 NON_PROMOTION_STATES_BY_DECISION = {
     "reject": "rejected",
@@ -164,6 +222,7 @@ def _apply_promotion_decision(
     decision_row.promoted_record_id = promoted_row.promoted_record_id
     decision_row.applied_at = promoted_row.promoted_at
     _mark_candidate_and_drift_reports(db, candidate, "promoted")
+    _project_promoted_pricing_to_catalog(db, candidate)
     db.commit()
 
     return _promotion_response(

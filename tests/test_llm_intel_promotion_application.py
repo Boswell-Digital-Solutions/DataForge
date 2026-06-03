@@ -55,6 +55,42 @@ def _apply(db: Session, payload: dict):
 
 
 @pytest.mark.unit
+def test_promotion_projects_pricing_onto_model_catalog(db: Session) -> None:
+    """Promoting a pricing candidate for a model already in the catalog projects the
+    new price onto model_catalog (the dashboard's read model) — the weekly price-change
+    path. The LLMIntelPromotedRecord remains the canonical truth."""
+    from decimal import Decimal
+
+    from app.models.multi_provider_models import ModelCatalog
+
+    db.add(
+        ModelCatalog(
+            model_key="deepseek-chat",
+            provider="deepseek",
+            model_id="deepseek-chat",
+            input_cost_per_mtok=Decimal("9.99"),  # sentinel; should be overwritten
+            output_cost_per_mtok=Decimal("1.10"),
+            max_context=64000,
+            cache_read_discount=Decimal("0.26"),
+            supports_batch=False,
+            supports_structured_output=True,
+            tier="workhorse",
+            is_active=True,
+        )
+    )
+    db.commit()
+
+    ingest_full_pending_record_set(db)
+    result = _apply(db, promotion_decision()).model_dump()
+    assert result["promotion_applied"] is True
+
+    db.expire_all()
+    row = db.query(ModelCatalog).filter(ModelCatalog.model_key == "deepseek-chat").one()
+    assert row.input_cost_per_mtok != Decimal("9.99")
+    assert row.updated_by == "llm_intel_promotion"
+
+
+@pytest.mark.unit
 def test_promotion_decision_approval_creates_dataforge_promoted_record(
     db: Session,
 ) -> None:
