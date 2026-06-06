@@ -1,5 +1,4 @@
 """
-from datetime import datetime, UTC
 LRU Context Cache
 
 Simple LRU (Least Recently Used) cache for BuiltContext.
@@ -8,6 +7,7 @@ Thread-safe async operations using asyncio.Lock.
 import asyncio
 import logging
 from collections import OrderedDict
+from datetime import datetime, UTC
 from typing import Optional
 
 from app.neuroforge.models import BuiltContext
@@ -61,8 +61,7 @@ class LRUContextCache:
             
             # Check expiration
             if context.cached_at:
-                import datetime
-                elapsed = (datetime.datetime.now(UTC) - context.cached_at).total_seconds()
+                elapsed = (datetime.now(UTC) - context.cached_at).total_seconds()
                 if elapsed > context.ttl_seconds:
                     logger.debug(f"Cache entry expired: {key}")
                     del self._cache[key]
