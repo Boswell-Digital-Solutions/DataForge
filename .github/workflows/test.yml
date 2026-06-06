@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
@@ -37,6 +37,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        # forge-telemetry is a nested local library (see Dockerfile); install it
+        # before requirements so app.api.search can import TelemetryClient and
+        # pytest can collect the suite instead of failing at conftest import.
+        pip install ./forge-telemetry
         pip install -r requirements.txt
         pip install pytest pytest-asyncio pytest-cov bandit safety mypy
     
@@ -95,7 +99,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
