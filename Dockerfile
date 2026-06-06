@@ -11,8 +11,11 @@ LABEL security="production-hardened"
 WORKDIR /app
 
 # Install system dependencies (minimal set for security)
+# git is required because requirements.txt installs forge-contract-core from a
+# git+https URL; without it pip fails with "Cannot find command 'git'".
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    git \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/* \
