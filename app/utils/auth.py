@@ -108,6 +108,24 @@ async def get_current_active_user(current_user: models.User = Depends(get_curren
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+async def require_pressforge_user(
+    current_user: models.User = Depends(get_current_user),
+) -> models.User:
+    """Fail-closed authentication baseline for PressForge routes.
+
+    Any active, authenticated DataForge user may currently access PressForge.
+    This reuses get_current_user() (so the JWT is decoded and the user looked up
+    exactly once) and only adds the active-user check. Returns 403 for inactive
+    users — note get_current_active_user() returns 400, so PressForge keeps its
+    own dependency rather than reusing that one.
+    """
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+    return current_user
+
 async def get_current_admin_user(current_user: models.User = Depends(get_current_active_user)):
     if not current_user.is_admin:
         raise HTTPException(

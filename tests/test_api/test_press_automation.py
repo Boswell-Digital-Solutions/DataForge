@@ -8,6 +8,18 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 
+@pytest.fixture(autouse=True)
+def authenticate_press_requests(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    """PressForge routes are now fail-closed; these regression tests exercise the
+    success path, so authenticate every request in this module. Kept local on
+    purpose — global auth in conftest would mask the missing-token behavior that
+    test_press_auth.py asserts."""
+    client.headers.update(auth_headers)
+
+
 @pytest.mark.unit
 class TestAutomationJobEndpoints:
     """Test automation job CRUD."""
