@@ -16,6 +16,7 @@ from sqlalchemy import func, and_, text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.utils.auth import require_pressforge_user
 from app.models.press_models import (
     PfJournalist, PfCampaign, PfMatchResult, PfPitch, PfOutreachEvent,
     PfCoverage, PfDomainReputation, PfAiAuditLog,
@@ -54,7 +55,15 @@ from app.models.press_schemas import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/press", tags=["press"])
+# Fail-closed baseline: every PressForge route requires an active authenticated
+# user. Machine-operated automation endpoints (automation/*, agent-logs, GEO
+# probes) may eventually need a dedicated service-to-service principal rather
+# than a human user token — that is intentionally out of scope here.
+router = APIRouter(
+    prefix="/api/v1/press",
+    tags=["press"],
+    dependencies=[Depends(require_pressforge_user)],
+)
 
 
 # ── Journalists ──────────────────────────────────────────────
