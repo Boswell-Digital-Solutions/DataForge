@@ -31,9 +31,6 @@ from app.api.agents_registry_router import router as agents_registry_router  # F
 from app.api.bugcheck_router import router as bugcheck_router  # BugCheck Agent persistence
 from app.api.experience_router import router as experience_router  # Agentic Reasoning: Experience Store
 from app.api.agent_memory_router import router as agent_memory_router  # Agent generic memory store
-from app.api.healing_proposal_router import (
-    router as healing_proposal_router,
-)  # Self-healing code-fix proposals (operator accept/reject)
 from app.api.runtime_promotion_candidate_router import router as runtime_promotion_candidate_router
 from app.api.runtime_promotion_router import router as runtime_promotion_router  # Runtime promotion receipt ingest
 from app.api.smithy_portfolio_router import router as smithy_portfolio_router  # Smithy Portfolio
@@ -282,7 +279,6 @@ app.include_router(authorforge_v2_router)  # AuthorForge V2: chapters, scenes, g
 app.include_router(neuroforge_router)  # NeuroForge inference logging & transparency
 app.include_router(experience_router)  # Agentic Reasoning: Experience Store (search, index, get)
 app.include_router(agent_memory_router)  # Agent generic memory store (store, search, get)
-app.include_router(healing_proposal_router)  # Self-healing code-fix proposals (store, list, get, decide)
 app.include_router(multi_provider_router)  # Multi-Provider Pipeline: model catalog, pricing, costs, batch
 app.include_router(rate_limits_router)  # Global rate limiting: XAI/MAID cross-run enforcement
 app.include_router(sentinel_router)  # Sentinel Agent: health sweeps, healing events
