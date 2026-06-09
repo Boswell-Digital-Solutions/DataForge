@@ -25,6 +25,7 @@ from app.api.diligence_router import router as diligence_router, ui_router as di
 from app.api.admin_keys_router import router as admin_keys_router, auth_info_router, rotation_router  # ForgeCommand Key Rotation
 from app.api.secrets_router import router as secrets_router  # LLM Provider Secrets (synced from Forge_Command)
 from app.api.tarcie_router import router as tarcie_router  # Tarcie friction capture ingest
+from app.api.context_pack_router import router as context_pack_router  # Governed precomputed context packs (serve-from-precomputed)
 from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
 from app.api.forge_run_router import router as forge_run_router  # ForgeAgents run persistence (Phase 2)
 from app.api.agents_registry_router import router as agents_registry_router  # ForgeAgents agent persistence
@@ -270,6 +271,7 @@ app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Ro
 app.include_router(rotation_router)  # Admin Token Rotation (72-hour auto-rotation)
 app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)
 app.include_router(tarcie_router)  # Tarcie friction capture ingest
+app.include_router(context_pack_router)  # Governed precomputed context packs (serve-from-precomputed)
 app.include_router(forge_run_router)  # ForgeAgents run persistence (Phase 2)
 app.include_router(agents_registry_router)  # ForgeAgents agent registry persistence
 app.include_router(bugcheck_router)  # BugCheck Agent persistence (runs, findings, enrichments)
