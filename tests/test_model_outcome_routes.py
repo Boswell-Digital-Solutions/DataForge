@@ -1,5 +1,17 @@
 """Route tests for the DataForge model-outcome receipt store (in-memory sqlite harness)."""
+import pytest
 from fastapi.testclient import TestClient
+
+from app.api.admin_keys_router import AuthContext, require_api_key
+from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def _service_auth():
+    """Satisfy the service-auth dependency (P0-5) for these route tests."""
+    app.dependency_overrides[require_api_key] = lambda: AuthContext(auth_mode="api_key")
+    yield
+    app.dependency_overrides.pop(require_api_key, None)
 
 
 def _outcome(model="deepseek-chat", cell="code_fix:bugfix_logic:python:local", reward=0.6, stage="verified", bundle="ctxb_1"):
@@ -50,3 +62,10 @@ def test_filter_by_routing_cell_and_model(client: TestClient):
 def test_reward_bounds_validated(client: TestClient):
     bad = _outcome(reward=1.5)
     assert client.post("/api/v1/model-outcomes", json=bad).status_code == 422
+
+
+def test_p0_5_unauthenticated_is_rejected(client: TestClient):
+    # Drop the auth override -> no key -> 401 (fail-closed; no anonymous receipts)
+    app.dependency_overrides.pop(require_api_key, None)
+    assert client.post("/api/v1/model-outcomes", json=_outcome()).status_code == 401
+    assert client.get("/api/v1/model-outcomes").status_code == 401

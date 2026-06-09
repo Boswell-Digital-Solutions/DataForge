@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.api.admin_keys_router import AuthContext, require_api_key
 from app.database import get_db
 from app.models.model_outcome_models import ModelOutcome
 
@@ -55,7 +56,11 @@ def _outcome_id(body: ModelOutcomeIn) -> str:
 
 
 @router.post("", status_code=201, response_model=ModelOutcomeStored)
-def store_outcome(body: ModelOutcomeIn, db: Session = Depends(get_db)) -> ModelOutcomeStored:
+def store_outcome(
+    body: ModelOutcomeIn,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_api_key),  # P0-5: service-authenticated ingest
+) -> ModelOutcomeStored:
     """Append a learning receipt. Idempotent per (bundle, model, stage) — first write wins."""
     oid = _outcome_id(body)
     if db.get(ModelOutcome, oid) is not None:
@@ -111,6 +116,7 @@ def list_outcomes(
     model_id: str | None = Query(None),
     limit: int = Query(1000, ge=1, le=10000),
     db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_api_key),  # P0-5: authenticated replay reads
 ) -> dict[str, Any]:
     """List receipts (for NeuroForge matrix replay). Ordered oldest-first for deterministic replay."""
     q = db.query(ModelOutcome)
