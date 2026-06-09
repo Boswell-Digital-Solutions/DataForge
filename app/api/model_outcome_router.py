@@ -110,19 +110,52 @@ def _row(o: ModelOutcome) -> dict[str, Any]:
     }
 
 
+def _make_cursor(row: ModelOutcome) -> str:
+    created = row.created_at
+    created_iso = created.isoformat() if isinstance(created, datetime) else str(created)
+    return f"{created_iso}|{row.outcome_id}"
+
+
+def _parse_cursor(cursor: str) -> tuple[datetime, str]:
+    created_iso, _, outcome_id = cursor.partition("|")
+    return datetime.fromisoformat(created_iso), outcome_id
+
+
 @router.get("")
 def list_outcomes(
+    cursor: str | None = Query(None, description="Opaque keyset cursor from a prior page's next_cursor"),
     routing_cell: str | None = Query(None),
     model_id: str | None = Query(None),
     limit: int = Query(1000, ge=1, le=10000),
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_api_key),  # P0-5: authenticated replay reads
 ) -> dict[str, Any]:
-    """List receipts (for NeuroForge matrix replay). Ordered oldest-first for deterministic replay."""
+    """List receipts for NeuroForge matrix replay — keyset-paginated (P0-8/P0-7).
+
+    Ordered by (created_at, outcome_id) for a deterministic, monotonic projection
+    cursor. ``next_cursor`` is non-null when more rows may exist; the caller pages
+    until it is null. This is the append-only log NeuroForge's projector replays so
+    multiple workers converge.
+    """
+    from sqlalchemy import and_, or_
+
     q = db.query(ModelOutcome)
     if routing_cell:
         q = q.filter(ModelOutcome.routing_cell == routing_cell)
     if model_id:
         q = q.filter(ModelOutcome.model_id == model_id)
-    rows = q.order_by(ModelOutcome.created_at.asc()).limit(limit).all()
-    return {"items": [_row(r) for r in rows], "count": len(rows)}
+    if cursor:
+        after_created, after_oid = _parse_cursor(cursor)
+        q = q.filter(
+            or_(
+                ModelOutcome.created_at > after_created,
+                and_(ModelOutcome.created_at == after_created, ModelOutcome.outcome_id > after_oid),
+            )
+        )
+    rows = (
+        q.order_by(ModelOutcome.created_at.asc(), ModelOutcome.outcome_id.asc())
+        .limit(limit)
+        .all()
+    )
+    next_cursor = _make_cursor(rows[-1]) if len(rows) == limit else None
+    return {"items": [_row(r) for r in rows], "count": len(rows), "next_cursor": next_cursor}
