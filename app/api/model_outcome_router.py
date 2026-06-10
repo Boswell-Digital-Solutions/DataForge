@@ -4,8 +4,9 @@ Append-only ground-truth code-fix outcomes. NeuroForge's Category Champion Matri
 is a replayable projection: it POSTs each outcome here (durable) and rebuilds from
 GET on startup, so shadow learning survives restarts/deploys.
 
-* POST /api/v1/model-outcomes        — store a receipt (idempotent per bundle+model+stage)
-* GET  /api/v1/model-outcomes        — list receipts (replay; filter by cell/model)
+* POST   /api/v1/model-outcomes      — store a receipt (idempotent per bundle+model+stage)
+* GET    /api/v1/model-outcomes      — list receipts (replay; keyset-paginated)
+* DELETE /api/v1/model-outcomes      — admin-only scrub by routing_cell (test pollution)
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.api.admin_keys_router import AuthContext, require_api_key
+from app.api.admin_keys_router import AuthContext, require_admin, require_api_key
 from app.database import get_db
 from app.models.model_outcome_models import ModelOutcome
 
@@ -159,3 +160,23 @@ def list_outcomes(
     )
     next_cursor = _make_cursor(rows[-1]) if len(rows) == limit else None
     return {"items": [_row(r) for r in rows], "count": len(rows), "next_cursor": next_cursor}
+
+
+@router.delete("")
+def delete_outcomes(
+    routing_cell: str = Query(..., min_length=1, description="Scrub every receipt in this cell"),
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_admin),  # operator authority — mutates durable truth
+) -> dict[str, Any]:
+    """Admin-only scrub of receipts by routing_cell (e.g. removing test pollution).
+
+    The store is otherwise append-only; this is an explicit, admin-gated operator
+    action. NeuroForge's matrix is a projection and re-converges on the next replay.
+    """
+    deleted = (
+        db.query(ModelOutcome)
+        .filter(ModelOutcome.routing_cell == routing_cell)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return {"deleted": int(deleted), "routing_cell": routing_cell}

@@ -2,7 +2,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.admin_keys_router import AuthContext, require_api_key
+from app.api.admin_keys_router import AuthContext, get_auth_context, require_admin, require_api_key
 from app.main import app
 
 
@@ -69,6 +69,32 @@ def test_p0_5_unauthenticated_is_rejected(client: TestClient):
     app.dependency_overrides.pop(require_api_key, None)
     assert client.post("/api/v1/model-outcomes", json=_outcome()).status_code == 401
     assert client.get("/api/v1/model-outcomes").status_code == 401
+
+
+def test_admin_can_scrub_cell(client: TestClient):
+    app.dependency_overrides[require_admin] = lambda: AuthContext(auth_mode="admin", is_admin=True)
+    try:
+        client.post("/api/v1/model-outcomes", json=_outcome(bundle="d1", cell="code_fix:junk:python:local"))
+        client.post("/api/v1/model-outcomes", json=_outcome(bundle="d2", cell="code_fix:junk:python:local"))
+        client.post("/api/v1/model-outcomes", json=_outcome(bundle="keep", cell="code_fix:bugfix_logic:python:local"))
+        r = client.request("DELETE", "/api/v1/model-outcomes", params={"routing_cell": "code_fix:junk:python:local"})
+        assert r.status_code == 200, r.text
+        assert r.json()["deleted"] == 2
+        # the untouched cell survives
+        kept = client.get("/api/v1/model-outcomes", params={"routing_cell": "code_fix:bugfix_logic:python:local"}).json()
+        assert kept["count"] == 1
+    finally:
+        app.dependency_overrides.pop(require_admin, None)
+
+
+def test_non_admin_cannot_delete(client: TestClient):
+    # authenticated but not admin -> 403 (require_admin)
+    app.dependency_overrides[get_auth_context] = lambda: AuthContext(auth_mode="api_key", is_admin=False)
+    try:
+        r = client.request("DELETE", "/api/v1/model-outcomes", params={"routing_cell": "code_fix:junk:python:local"})
+        assert r.status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_auth_context, None)
 
 
 def test_p0_8_keyset_pagination_returns_all_rows_once(client: TestClient):
