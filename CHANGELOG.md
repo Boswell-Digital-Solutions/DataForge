@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added - CSSA Phase 0 (Authority Lock)
+
+Landed the DataForge-resident authority artifacts for the ForgeAgents **Cloud Service Security
+Authority (CSSA)** subsystem. Documentation/acceptance only — per the Phase 0 "no advance" rule, **no
+contract schemas, Pydantic models, or `app/security/` code are introduced.**
+
+- `docs/cloud-security/CSSA_AUTHORITY_PLAN.md` — canonical authority model (invariants, identity/
+  entitlement/quota/data-boundary law, decision/authorization/outcome/incident contracts, 11-phase
+  rollout plan, verification matrix).
+- `docs/cloud-security/PHASE_0_ACCEPTANCE.md` — Phase 0 gate checklist, consistency review against
+  DataForge critical rules and telemetry trust laws, cross-repo ownership sign-off matrix, and
+  DataForge-side acceptance of the immutable-audit, quota-reservation, and quarantine boundaries.
+- `docs/cloud-security/OPEN_DECISIONS.md` — status/owners/resolutions for the seven open decisions;
+  signing authority identified (ForgeCommand for production, repo-trusted dev key for Phases 2–7).
+- `docs/cloud-security/README.md` — index and reading order.
+
+Phase 1 (Contract kernel) is gated on full countersignature of the ownership matrix.
+
+---
+
 ## [6.0.0] - 2026-02-24
 
 ### Added - Multi-Provider Pipeline Infrastructure
