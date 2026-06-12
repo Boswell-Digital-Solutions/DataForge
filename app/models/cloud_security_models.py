@@ -75,3 +75,44 @@ class CssaCounter(Base):
     counter = Column(String(128), primary_key=True)
     high_water = Column(BigInteger, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class CssaQuotaReservation(Base):
+    """Atomic quota reservation (authority plan §13; OPEN-3).
+
+    Lifecycle: reserved -> committed | released | expired. The reserve path
+    sums unexpired reserved + committed units per bucket inside one
+    transaction so concurrent reserves cannot overspend.
+    """
+
+    __tablename__ = "cssa_quota_reservations"
+
+    quota_reservation_id = Column(String(128), primary_key=True)
+    tenant_id = Column(String(128), nullable=True)
+    principal_id = Column(String(128), nullable=False)
+    service = Column(String(128), nullable=False)
+    quota_bucket = Column(String(256), nullable=False)
+    reserved_units = Column(BigInteger, nullable=False)
+    committed_units = Column(BigInteger, nullable=True)
+    unit_type = Column(String(32), nullable=False)
+    status = Column(String(32), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_cssa_quota_reservations_bucket_status", "quota_bucket", "status"),
+    )
+
+
+class CssaAuthorizationConsumption(Base):
+    """Durable single-use consumption ledger (plan §15.4, §31 Phase 6).
+
+    One row per consumed authorization; the primary key makes a replay a
+    constraint violation across process restarts, not just within one process.
+    """
+
+    __tablename__ = "cssa_authorization_consumptions"
+
+    authorization_id = Column(String(128), primary_key=True)
+    consumed_at = Column(DateTime(timezone=True), default=datetime.utcnow)
