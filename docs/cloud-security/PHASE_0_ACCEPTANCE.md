@@ -23,7 +23,7 @@ egress enforcement.
 | --- | --- | --- | --- |
 | 1 | No contradictions with ForgeAgents / DataForge critical rules | ✅ Accepted | §3 below |
 | 2 | No contradictions with telemetry trust laws | ✅ Accepted | §4 below |
-| 3 | Ownership accepted by ForgeCommand, NeuroForge, AuthorForge, DataForge maintainers | ⏳ Pending sign-off | §5 sign-off matrix |
+| 3 | Ownership accepted by ForgeCommand, NeuroForge, AuthorForge, DataForge maintainers | ✅ Closed 2026-06-12 | §5 sign-off matrix (all four countersigned) |
 | 4 | Immutable audit lifecycle accepted | ✅ Accepted | §6 below |
 | 5 | Quota reservation ownership accepted | ✅ Accepted | §6 below; OPEN-3 |
 | 6 | Quarantine boundary accepted | ✅ Accepted | §6 below; OPEN-4 |
@@ -96,14 +96,18 @@ invariants in §4. Sign-off is recorded by appending name, date, and commit SHA 
 
 | Maintainer group | Accepts (plan reference) | Status | Signed by / date |
 | --- | --- | --- | --- |
-| ForgeCommand | entitlement ownership, Stripe plan state, approval resolution, incident lifecycle, operator UI; consumes but does not rewrite authorization truth (§4.14, §11.3, §23, §30) | ⏳ Pending | _________ |
-| NeuroForge | routing optimization within the CSSA-bounded candidate set; cannot select a provider forbidden by data class/entitlement/residency/tier (§25, §30) | ⏳ Pending | _________ |
-| AuthorForge | advisory evaluation + governed execution integration; customer-local artifact ownership and origin-local quarantine (§24, §30) | ⏳ Pending | _________ |
+| ForgeCommand | entitlement ownership, Stripe plan state, approval resolution, incident lifecycle, operator UI; consumes but does not rewrite authorization truth (§4.14, §11.3, §23, §30) | ✅ Accepted | Charlie, 2026-06-09 — `Forge_Command/docs/plans/forgeagents_cssa_plan_set/01_PHASE_0_FORGECOMMAND_ACCEPTANCE.md` |
+| NeuroForge | routing optimization within the CSSA-bounded candidate set; cannot select a provider forbidden by data class/entitlement/residency/tier (§25, §30) | ✅ Accepted | Charlie, 2026-06-12 — `NeuroForge/docs/cloud-security/PHASE_0_ACCEPTANCE.md` (provider firewall already implemented + tested in-repo) |
+| AuthorForge | advisory evaluation + governed execution integration; customer-local artifact ownership and origin-local quarantine (§24, §30) | ✅ Accepted | Charlie, 2026-06-12 — `Author-Forge/docs/cloud-security/PHASE_0_ACCEPTANCE.md` (origin-local posture already shipped; OPEN-4 vault ownership accepted) |
 | DataForge | durable append-only security ledger + quota reservation persistence; storage availability and retention (§13, §22, §30) | ✅ Recorded in-repo | This branch / Phase 0 |
 
 > DataForge's acceptance is recorded by landing this document on the designated branch. The remaining
 > three groups sign in their own repositories or by countersigning this matrix; until then item 3 of
 > the gate stays ⏳ and the plan does not advance to Phase 1 ACTIVE work.
+>
+> **Update 2026-06-12:** all three counterpart records exist and are countersigned above; item 3 is
+> closed. Gate closure record: `ForgeAgents/docs/cloud-security/PHASE_0_CLOSURE.md`. Phase 1
+> (contract kernel) is open in ForgeAgents only.
 
 ---
 
