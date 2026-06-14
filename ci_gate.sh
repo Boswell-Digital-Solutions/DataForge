@@ -11,7 +11,9 @@
 #
 # The local pytest suite validates: intake validation, signature/identity,
 # acceptance/rejection, duplicate reconciliation, restricted visibility,
-# and unsupported-version behaviour.
+# unsupported-version behaviour, and triple-variant audit receipt persistence.
+# The bytecode gate validates app and test syntax while redirecting pycache
+# writes away from repo-local caches.
 #
 # Exit codes:
 #   0 — all gates pass
@@ -78,6 +80,17 @@ PYTHONPATH=".:forge-telemetry" "$PYTHON_LOCAL" -m pytest tests/test_proving_slic
     --tb=short
 
 echo ""
+# ── Gate 3: app/test bytecode compilation ────────────────────────────────────
+echo "=== Gate 3: app/test bytecode compile ==="
+BYTECODE_CACHE_ROOT="${PYTHONPYCACHEPREFIX:-}"
+if [[ -z "$BYTECODE_CACHE_ROOT" ]]; then
+    BYTECODE_CACHE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/dataforge-cloud-pycache.XXXXXX")"
+    trap 'rm -rf "$BYTECODE_CACHE_ROOT"' EXIT
+fi
+PYTHONPYCACHEPREFIX="$BYTECODE_CACHE_ROOT" "$PYTHON_LOCAL" -m compileall -q app tests
+
+echo ""
 echo "DataForge Cloud CI gate: PASSED"
 echo "  contract core gate report: $GATE_REPORT"
 echo "  local test report:         $LOCAL_REPORT"
+echo "  bytecode cache prefix:     $BYTECODE_CACHE_ROOT"

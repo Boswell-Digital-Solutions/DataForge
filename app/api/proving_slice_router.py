@@ -59,7 +59,7 @@ from app.models.proving_slice_schemas import (
 
 # Families the proving-slice intake route will accept from Local
 _INTAKE_ADMITTED_FAMILIES = frozenset(
-    {"source_drift_finding", "promotion_envelope"}
+    {"source_drift_finding", "promotion_envelope", "triple_variant_audit_receipt"}
 )
 
 router = APIRouter(

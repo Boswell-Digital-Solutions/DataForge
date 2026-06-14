@@ -10,6 +10,7 @@ to verify the rejection path is wired correctly.
 from __future__ import annotations
 
 import sys
+import json
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -24,19 +25,21 @@ from sqlalchemy.orm import Session
 from app.models.proving_slice_models import PSCloudIntakeRecord, PSCloudReceipt  # noqa: F401
 
 _CONTRACT_CORE = (
-    Path(__file__).parent.parent.parent.parent.parent
+    Path(__file__).resolve().parents[3]
     / "contracts"
     / "forge-contract-core"
 )
 if str(_CONTRACT_CORE) not in sys.path:
     sys.path.insert(0, str(_CONTRACT_CORE))
 
+from forge_contract_core.identity import compute_idempotency_key
 from forge_contract_core.validators.artifact import ArtifactValidationError
 
 _VALIDATE_PATH = "app.api.proving_slice_router.validate_artifact"
 
 INTAKE_URL = "/api/v1/proving-slice/intake"
 RECEIPT_URL = "/api/v1/proving-slice/receipts/by-artifact"
+TRIPLE_AUDIT_FIXTURES = _CONTRACT_CORE / "fixtures" / "triple_variant_audit"
 
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
@@ -74,6 +77,21 @@ def _valid_drift_artifact(**overrides: Any) -> dict:
     }
     base.update(overrides)
     return base
+
+
+def _triple_audit_fixture(name: str, *, canonical_idempotency: bool = True) -> dict:
+    """Load a deterministic contract-core triple-audit fixture for Cloud intake."""
+
+    artifact = json.loads((TRIPLE_AUDIT_FIXTURES / name).read_text(encoding="utf-8"))
+    artifact = {key: value for key, value in artifact.items() if not key.startswith("_")}
+    if canonical_idempotency:
+        artifact["idempotency_key"] = compute_idempotency_key(
+            artifact["artifact_family"],
+            artifact["artifact_id"],
+            artifact["artifact_version"],
+            artifact["lineage_root_id"],
+        )
+    return artifact
 
 
 # ── Accepted path ─────────────────────────────────────────────────────────────
@@ -252,6 +270,15 @@ class TestIntakeFamilyGate:
             resp = client.post(INTAKE_URL, json=artifact)
         assert resp.status_code == 200
 
+    def test_triple_variant_audit_receipt_is_admitted(self, client: TestClient):
+        artifact = _triple_audit_fixture("pass.clean-patch.json")
+        resp = client.post(INTAKE_URL, json=artifact)
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["payload"]["intake_outcome"] == "accepted"
+        assert body["payload"]["producer_identity"] == "ForgeAgents"
+
 
 # ── Receipt lookup ────────────────────────────────────────────────────────────
 
@@ -281,6 +308,86 @@ class TestReceiptLookup:
     def test_get_receipt_unknown_artifact_returns_404(self, client: TestClient):
         resp = client.get(f"{RECEIPT_URL}/00000000-0000-0000-0000-000000000000")
         assert resp.status_code == 404
+
+
+# ── Triple-variant audit receipt intake ───────────────────────────────────────
+
+class TestTripleVariantAuditIntake:
+    def test_valid_triple_audit_receipt_is_persisted_as_audit_truth(
+        self,
+        client: TestClient,
+        db: Session,
+    ):
+        artifact = _triple_audit_fixture("pass.clean-patch.json")
+
+        resp = client.post(INTAKE_URL, json=artifact)
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["payload"]["intake_outcome"] == "accepted"
+        assert body["payload"]["shared_record_ref"] == (
+            "triple_variant_audit_receipt:"
+            "11111111-1111-4111-8111-111111111111:v1:shared"
+        )
+
+        row = db.query(PSCloudIntakeRecord).filter_by(
+            artifact_id="11111111-1111-4111-8111-111111111111"
+        ).one()
+        assert row.artifact_family == "triple_variant_audit_receipt"
+        assert row.payload_json["final_status"] == "PASS"
+        assert row.payload_json["gate_decision"]["decision"] == "ALLOW_PROMOTION"
+
+    def test_blocked_triple_audit_receipt_is_still_persisted_without_promotion(
+        self,
+        client: TestClient,
+        db: Session,
+    ):
+        artifact = _triple_audit_fixture("fail.generated-instruction-drift.json")
+
+        resp = client.post(INTAKE_URL, json=artifact)
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["payload"]["intake_outcome"] == "accepted"
+
+        row = db.query(PSCloudIntakeRecord).filter_by(
+            artifact_id="11111111-1111-4111-8111-111111111114"
+        ).one()
+        assert row.payload_json["final_status"] == "BLOCKED_DRIFT_RISK"
+        assert row.payload_json["overall_confidence"] == 0.94
+        assert row.payload_json["gate_decision"]["decision"] == "BLOCK_PROMOTION"
+
+    def test_raw_fixture_idempotency_key_is_rejected_by_strict_intake(
+        self,
+        client: TestClient,
+    ):
+        artifact = _triple_audit_fixture("pass.clean-patch.json", canonical_idempotency=False)
+
+        resp = client.post(INTAKE_URL, json=artifact)
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["payload"]["intake_outcome"] == "rejected"
+        assert body["payload"]["rejection_class"] == "invalid_idempotency_key"
+
+    def test_duplicate_triple_audit_receipt_reconciles_without_second_row(
+        self,
+        client: TestClient,
+        db: Session,
+    ):
+        artifact = _triple_audit_fixture("pass.clean-patch.json")
+
+        first = client.post(INTAKE_URL, json=artifact).json()
+        second = client.post(INTAKE_URL, json=artifact).json()
+
+        assert first["payload"]["intake_outcome"] == "accepted"
+        assert second["payload"]["intake_outcome"] == "duplicate_reconciled"
+        assert (
+            db.query(PSCloudIntakeRecord)
+            .filter_by(idempotency_key=artifact["idempotency_key"])
+            .count()
+            == 1
+        )
 
 
 # ── Adversarial tests (§10.4) ─────────────────────────────────────────────────

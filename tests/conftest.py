@@ -16,6 +16,8 @@ from sqlalchemy.pool import StaticPool
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 os.environ.setdefault("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
 os.environ.setdefault("DATAFORGE_SKIP_STARTUP_DB_INIT", "1")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
+os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
 from app.database import Base, get_db, get_session_factory
 from app.main import app
