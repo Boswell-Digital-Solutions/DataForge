@@ -53,3 +53,9 @@ services:
         value: voyage
       - key: EMBEDDING_MODEL
         value: voyage-2
+      - key: NEUROFORGE_URL
+        sync: false  # Cloud NeuroForge base URL for embeddings (POST /api/v1/embed),
+                     # used by app/utils/embeddings.py for BOTH ingest + search query
+                     # embedding. Defaults to http://127.0.0.1:8000 if unset, which
+                     # 503s in prod. MUST be set to the deployed NeuroForge URL
+                     # (e.g. https://neuroforge-9lxc.onrender.com).
