@@ -5,25 +5,29 @@ for cloud sync operations. Tokens rotate every 72 hours by default.
 
 Security Model:
 - Current valid token required to rotate
-- Previous token remains valid for grace period (1 hour)
+- Previous token remains valid for grace period (1 hour) after rotation
 - Rotation events are logged for audit
-- Tokens stored encrypted in database
+- Only token HASHES are stored (sha256 + salt); the plaintext is returned once
+
+Storage (IMPORTANT): tokens live in the shared **Postgres** DB, not SQLite. The
+previous SQLite store (`tokens.db`) was on Render's ephemeral filesystem, so it was
+WIPED on every redeploy — DataForge then fell back to only the static env token and
+rejected Forge_Command's rotated token (401), permanently deadlocking the key sync.
+Postgres survives redeploys, so rotation stays in sync across deploys. (Mirrors the
+earlier secrets-store migration off ephemeral SQLite.)
 """
 
 import os
 import secrets
-import sqlite3
 import logging
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from typing import Optional
-from contextlib import contextmanager
+
+from sqlalchemy import text
+
+from app.database import engine
 
 logger = logging.getLogger(__name__)
-
-# Token storage path - default to persistent, secure location (not /tmp)
-_default_db_dir = os.path.join(os.environ.get("HOME", "/var/lib/dataforge"), ".dataforge")
-TOKEN_DB_PATH = os.environ.get("DATAFORGE_TOKEN_DB", os.path.join(_default_db_dir, "tokens.db"))
 
 # Rotation settings
 ROTATION_INTERVAL_HOURS = int(os.environ.get("TOKEN_ROTATION_HOURS", "72"))
@@ -34,62 +38,51 @@ GRACE_PERIOD_HOURS = int(os.environ.get("TOKEN_GRACE_PERIOD_HOURS", "1"))
 _DEV_FALLBACK_TOKEN_SALT = secrets.token_urlsafe(32)
 TOKEN_LENGTH = 48
 
+_tables_ready = False
 
-def _ensure_db():
-    """Initialize token database."""
-    db_path = Path(TOKEN_DB_PATH)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(TOKEN_DB_PATH)
-    cursor = conn.cursor()
+def _ensure_tables() -> None:
+    """Create the admin-token tables in Postgres if absent (idempotent).
 
-    # Admin tokens table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS admin_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            token_hash TEXT NOT NULL,
-            token_prefix TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            expires_at TEXT,
-            revoked_at TEXT,
-            rotated_from_id INTEGER,
-            source TEXT DEFAULT 'manual'
-        )
-    """)
-
-    # Rotation log for audit
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS rotation_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            old_token_id INTEGER,
-            new_token_id INTEGER,
-            rotated_at TEXT NOT NULL,
-            rotated_by TEXT,
-            reason TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-    logger.info(f"Token DB initialized: {TOKEN_DB_PATH}")
+    Durable store: survives Render redeploys (unlike the old ephemeral SQLite).
+    """
+    global _tables_ready
+    if _tables_ready:
+        return
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS admin_tokens (
+                id BIGSERIAL PRIMARY KEY,
+                token_hash TEXT NOT NULL,
+                token_prefix TEXT NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL,
+                expires_at TIMESTAMPTZ,
+                revoked_at TIMESTAMPTZ,
+                rotated_from_id BIGINT,
+                source TEXT DEFAULT 'manual'
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS admin_token_rotation_log (
+                id BIGSERIAL PRIMARY KEY,
+                old_token_id BIGINT,
+                new_token_id BIGINT,
+                rotated_at TIMESTAMPTZ NOT NULL,
+                rotated_by TEXT,
+                reason TEXT
+            )
+        """))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_admin_tokens_active "
+            "ON admin_tokens (created_at DESC) WHERE revoked_at IS NULL"
+        ))
+    _tables_ready = True
 
 
 try:
-    _ensure_db()
-except Exception as e:
-    logger.warning(f"Token DB init failed: {e}")
-
-
-@contextmanager
-def get_token_db():
-    """Get database connection."""
-    Path(TOKEN_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(TOKEN_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
+    _ensure_tables()
+except Exception as e:  # DB may not be reachable at import; created lazily on first use
+    logger.warning(f"Admin-token table init deferred: {e}")
 
 
 def _hash_token(token: str) -> str:
@@ -110,70 +103,61 @@ def _verify_token_hash(token: str, stored_hash: str) -> bool:
 
 
 def get_current_admin_token() -> Optional[str]:
-    """Get the current active admin token from database.
+    """Get the current active admin token PREFIX from the database.
 
-    Falls back to environment variable if no DB token exists.
+    Only hashes are stored, so this returns the prefix (for status/display). Falls
+    back to the environment variable when no DB token exists.
     """
     try:
-        with get_token_db() as conn:
-            cursor = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
-
-            cursor.execute("""
-                SELECT token_hash, token_prefix
+        _ensure_tables()
+        with engine.connect() as conn:
+            row = conn.execute(text("""
+                SELECT token_prefix
                 FROM admin_tokens
                 WHERE revoked_at IS NULL
-                AND (expires_at IS NULL OR expires_at > ?)
+                AND (expires_at IS NULL OR expires_at > :now)
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (now,))
-
-            row = cursor.fetchone()
+            """), {"now": datetime.now(timezone.utc)}).first()
             if row:
-                # Return the prefix (we can't return the actual token from hash)
-                return row["token_prefix"]
+                return row[0]
     except Exception as e:
         logger.debug(f"No DB token, using env: {e}")
 
-    # Fall back to environment variable
     return os.environ.get("ROTATION_ADMIN_TOKEN", "")
 
 
 def validate_admin_token(token: str) -> bool:
     """Validate an admin token.
 
-    Checks:
-    1. Current token in database
-    2. Previous token within grace period
-    3. Environment variable fallback
+    Accepts, in order:
+    1. The static env var ``ROTATION_ADMIN_TOKEN`` (bootstrap / backward compat).
+    2. Any non-revoked, non-expired token in the admin_tokens DB — i.e. the current
+       token (valid for the full rotation interval) AND a just-rotated-out previous
+       token still inside its grace window. Validity is governed by ``expires_at``
+       (set correctly at rotation), NOT by a created_at recency window.
     """
     if not token:
         return False
 
-    # Check environment variable first (for backward compatibility)
+    # 1. Env var (bootstrap / backward compatibility).
     env_token = os.environ.get("ROTATION_ADMIN_TOKEN", "")
-    if secrets.compare_digest(token, env_token):
+    if env_token and secrets.compare_digest(token, env_token):
         return True
 
+    # 2. Any active (non-revoked, non-expired) DB token.
     try:
-        with get_token_db() as conn:
-            cursor = conn.cursor()
-            now = datetime.now(timezone.utc)
-            grace_cutoff = (now - timedelta(hours=GRACE_PERIOD_HOURS)).isoformat()
-            now_str = now.isoformat()
-
-            # Check current and recent tokens
-            cursor.execute("""
+        _ensure_tables()
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
                 SELECT token_hash
                 FROM admin_tokens
                 WHERE revoked_at IS NULL
-                AND (expires_at IS NULL OR expires_at > ?)
-                AND created_at > ?
+                AND (expires_at IS NULL OR expires_at > :now)
                 ORDER BY created_at DESC
-            """, (now_str, grace_cutoff))
-
-            for row in cursor.fetchall():
-                if _verify_token_hash(token, row["token_hash"]):
+            """), {"now": datetime.now(timezone.utc)}).all()
+            for row in rows:
+                if _verify_token_hash(token, row[0]):
                     return True
     except Exception as e:
         logger.debug(f"Token validation DB error: {e}")
@@ -185,67 +169,60 @@ def rotate_admin_token(current_token: str, rotated_by: str = "system") -> tuple[
     """Rotate the admin token.
 
     Args:
-        current_token: Current valid token (for authentication)
-        rotated_by: Identifier of who/what initiated rotation
+        current_token: Current valid token (for authentication).
+        rotated_by: Identifier of who/what initiated rotation.
 
     Returns:
-        Tuple of (new_token, rotation_info)
+        Tuple of (new_token, rotation_info).
 
     Raises:
-        ValueError: If current token is invalid
+        ValueError: If current token is invalid.
     """
     if not validate_admin_token(current_token):
         raise ValueError("Invalid current token")
 
-    # Generate new token
+    _ensure_tables()
+
     new_token = f"forge-{secrets.token_urlsafe(TOKEN_LENGTH)}"
     token_hash = _hash_token(new_token)
     token_prefix = new_token[:16]
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=ROTATION_INTERVAL_HOURS + GRACE_PERIOD_HOURS)
+    grace_expires = now + timedelta(hours=GRACE_PERIOD_HOURS)
 
-    with get_token_db() as conn:
-        cursor = conn.cursor()
-
-        # Get current token ID
-        old_token_id = None
-        cursor.execute("""
+    with engine.begin() as conn:
+        # Current active token (will become the "previous" token in grace).
+        old = conn.execute(text("""
             SELECT id FROM admin_tokens
             WHERE revoked_at IS NULL
             ORDER BY created_at DESC
             LIMIT 1
-        """)
-        row = cursor.fetchone()
-        if row:
-            old_token_id = row["id"]
+        """)).first()
+        old_token_id = old[0] if old else None
 
-        # Insert new token
-        cursor.execute("""
+        new_token_id = conn.execute(text("""
             INSERT INTO admin_tokens
-            (token_hash, token_prefix, created_at, expires_at, rotated_from_id, source)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (token_hash, token_prefix, now.isoformat(), expires_at.isoformat(),
-              old_token_id, "auto_rotation"))
+                (token_hash, token_prefix, created_at, expires_at, rotated_from_id, source)
+            VALUES (:h, :p, :created, :expires, :from_id, 'auto_rotation')
+            RETURNING id
+        """), {
+            "h": token_hash, "p": token_prefix, "created": now,
+            "expires": expires_at, "from_id": old_token_id,
+        }).scalar_one()
 
-        new_token_id = cursor.lastrowid
+        conn.execute(text("""
+            INSERT INTO admin_token_rotation_log
+                (old_token_id, new_token_id, rotated_at, rotated_by, reason)
+            VALUES (:old, :new, :at, :by, 'scheduled_rotation')
+        """), {"old": old_token_id, "new": new_token_id, "at": now, "by": rotated_by})
 
-        # Log rotation
-        cursor.execute("""
-            INSERT INTO rotation_log
-            (old_token_id, new_token_id, rotated_at, rotated_by, reason)
-            VALUES (?, ?, ?, ?, ?)
-        """, (old_token_id, new_token_id, now.isoformat(), rotated_by, "scheduled_rotation"))
-
-        # Mark old token as expiring after grace period
+        # Old token keeps working only until the grace window closes.
         if old_token_id:
-            grace_expires = (now + timedelta(hours=GRACE_PERIOD_HOURS)).isoformat()
-            cursor.execute("""
+            conn.execute(text("""
                 UPDATE admin_tokens
-                SET expires_at = ?
-                WHERE id = ? AND (expires_at IS NULL OR expires_at > ?)
-            """, (grace_expires, old_token_id, grace_expires))
-
-        conn.commit()
+                SET expires_at = :grace
+                WHERE id = :id AND (expires_at IS NULL OR expires_at > :grace)
+            """), {"grace": grace_expires, "id": old_token_id})
 
     logger.info(f"Admin token rotated by {rotated_by}, new prefix: {token_prefix}")
 
@@ -262,38 +239,29 @@ def rotate_admin_token(current_token: str, rotated_by: str = "system") -> tuple[
 def get_rotation_status() -> dict:
     """Get current token rotation status."""
     try:
-        with get_token_db() as conn:
-            cursor = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
-
-            # Get current token info
-            cursor.execute("""
+        _ensure_tables()
+        now = datetime.now(timezone.utc)
+        with engine.connect() as conn:
+            row = conn.execute(text("""
                 SELECT id, token_prefix, created_at, expires_at
                 FROM admin_tokens
                 WHERE revoked_at IS NULL
-                AND (expires_at IS NULL OR expires_at > ?)
+                AND (expires_at IS NULL OR expires_at > :now)
                 ORDER BY created_at DESC
                 LIMIT 1
-            """, (now,))
+            """), {"now": now}).mappings().first()
 
-            row = cursor.fetchone()
-
-            # Get recent rotation count
-            cursor.execute("""
-                SELECT COUNT(*) as count
-                FROM rotation_log
-                WHERE rotated_at > ?
-            """, ((datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),))
-            rotation_count = cursor.fetchone()["count"]
+            rotation_count = conn.execute(text("""
+                SELECT COUNT(*) FROM admin_token_rotation_log WHERE rotated_at > :cutoff
+            """), {"cutoff": now - timedelta(days=30)}).scalar() or 0
 
             if row:
-                created_at = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                created_at = row["created_at"]
                 next_rotation = created_at + timedelta(hours=ROTATION_INTERVAL_HOURS)
-
                 return {
                     "current_token_prefix": row["token_prefix"],
-                    "created_at": row["created_at"],
-                    "expires_at": row["expires_at"],
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "expires_at": row["expires_at"].isoformat() if row["expires_at"] else None,
                     "next_rotation_at": next_rotation.isoformat(),
                     "rotation_interval_hours": ROTATION_INTERVAL_HOURS,
                     "grace_period_hours": GRACE_PERIOD_HOURS,
@@ -303,7 +271,7 @@ def get_rotation_status() -> dict:
     except Exception as e:
         logger.debug(f"Rotation status error: {e}")
 
-    # Fallback status when using env token
+    # Fallback status when using env token (no DB token yet).
     return {
         "current_token_prefix": "forge-admin-...",
         "created_at": None,
@@ -320,33 +288,32 @@ def get_rotation_status() -> dict:
 def get_rotation_history(limit: int = 10) -> list[dict]:
     """Get recent rotation history."""
     try:
-        with get_token_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        _ensure_tables()
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
                 SELECT
                     r.id,
                     r.rotated_at,
                     r.rotated_by,
                     r.reason,
-                    old.token_prefix as old_token_prefix,
-                    new.token_prefix as new_token_prefix
-                FROM rotation_log r
+                    old.token_prefix AS old_token_prefix,
+                    new.token_prefix AS new_token_prefix
+                FROM admin_token_rotation_log r
                 LEFT JOIN admin_tokens old ON r.old_token_id = old.id
                 LEFT JOIN admin_tokens new ON r.new_token_id = new.id
                 ORDER BY r.rotated_at DESC
-                LIMIT ?
-            """, (limit,))
-
+                LIMIT :limit
+            """), {"limit": limit}).mappings().all()
             return [
                 {
                     "id": row["id"],
-                    "rotated_at": row["rotated_at"],
+                    "rotated_at": row["rotated_at"].isoformat() if row["rotated_at"] else None,
                     "rotated_by": row["rotated_by"],
                     "reason": row["reason"],
                     "old_token_prefix": row["old_token_prefix"],
                     "new_token_prefix": row["new_token_prefix"],
                 }
-                for row in cursor.fetchall()
+                for row in rows
             ]
     except Exception as e:
         logger.debug(f"Rotation history error: {e}")
