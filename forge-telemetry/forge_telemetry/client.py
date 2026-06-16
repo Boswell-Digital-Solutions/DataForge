@@ -18,6 +18,27 @@ from .models import TelemetryEvent, ServiceType, SeverityLevel
 logger = logging.getLogger(__name__)
 
 
+def describe_target(dsn: Optional[str]) -> Dict[str, Optional[str]]:
+    """Non-secret identity of a Postgres DSN: host + port + db + Supabase project
+    ref. NEVER returns the password. Lets /health/telemetry show *which* DB
+    telemetry is bound to (compare project_ref against the DB the reader uses)
+    without leaking credentials."""
+    if not dsn:
+        return {"host": None, "port": None, "database": None, "project_ref": None}
+    try:
+        parts = urlparse(dsn)
+        user = parts.username or ""
+        ref = user.split(".", 1)[1] if "." in user else None  # supabase: postgres.<ref>
+        return {
+            "host": parts.hostname,
+            "port": str(parts.port) if parts.port else None,
+            "database": (parts.path or "/").lstrip("/") or None,
+            "project_ref": ref,
+        }
+    except Exception:
+        return {"host": None, "port": None, "database": None, "project_ref": None}
+
+
 class TelemetryClient:
     """
     Client for emitting telemetry events to the shared Forge events table.
@@ -40,6 +61,16 @@ class TelemetryClient:
         self.telemetry_required = telemetry_required if telemetry_required is not None else os.getenv("TELEMETRY_REQUIRED", "false").lower() in {
             "1", "true", "yes"
         }
+        # Observability fields, surfaced via status() / a service's /health/telemetry.
+        self.source_var: Optional[str] = None
+        self.emit_attempts = 0
+        self.emit_succeeded = 0
+        self.emit_failed = 0
+        self.last_error: Optional[str] = None
+        self.disabled_reason: Optional[str] = None
+        self.init_error: Optional[str] = None
+        self.target: Dict[str, Optional[str]] = describe_target(None)
+
         self.db_url, host, port = self._resolve_database_url(database_url)
         self.database_url = self.db_url
         self.enabled = bool(self.db_url)
@@ -50,6 +81,7 @@ class TelemetryClient:
             logger.info("Telemetry DB target host=%s port=%s", host, port or 5432)
 
         if self.enabled:
+            self.target = describe_target(self.db_url)
             try:
                 self.engine = create_engine(self.db_url)
                 with self.engine.connect() as connection:
@@ -59,10 +91,30 @@ class TelemetryClient:
                 return
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         elif self.telemetry_required:
+            self.disabled_reason = "no DSN — DATAFORGE_DATABASE_URL / DATABASE_BASE_URL+components unset"
             raise ValueError(
                 "Telemetry is required but no database configuration was found. "
                 "Set DATAFORGE_DATABASE_URL or DATABASE_BASE_URL + DATABASE_USER/DATABASE_PASSWORD/DATABASE_NAME."
             )
+        else:
+            self.disabled_reason = "no DSN — DATAFORGE_DATABASE_URL / DATABASE_BASE_URL+components unset"
+
+    def status(self) -> Dict[str, Any]:
+        """Non-secret runtime snapshot for a service's /health/telemetry endpoint —
+        never the password. Confirms telemetry is armed AND bound to the expected
+        DB (compare target.project_ref), and whether emits land or silently fail."""
+        return {
+            "enabled": self.enabled,
+            "disabled_reason": self.disabled_reason,
+            "init_error": self.init_error,
+            "source_var": self.source_var,
+            "target": self.target,
+            "emit_attempts": self.emit_attempts,
+            "emit_succeeded": self.emit_succeeded,
+            "emit_failed": self.emit_failed,
+            "last_error": self.last_error,
+            "telemetry_required": self.telemetry_required,
+        }
 
     def emit(
         self,
@@ -140,6 +192,7 @@ class TelemetryClient:
             return event.event_id
 
         import json
+        self.emit_attempts += 1
         db: Session = self.SessionLocal()
         try:
             is_sqlite = "sqlite" in self.database_url.lower()
@@ -192,10 +245,13 @@ class TelemetryClient:
                 })
 
             db.commit()
+            self.emit_succeeded += 1
             return event.event_id
         except Exception as e:
             db.rollback()
             # Don't fail the application if telemetry fails
+            self.emit_failed += 1
+            self.last_error = f"{type(e).__name__}: {e}"
             print(f"Telemetry emission failed: {e}")
             return event.event_id
         finally:
@@ -205,13 +261,20 @@ class TelemetryClient:
         self, provided_url: Optional[str]
     ) -> Tuple[Optional[str], Optional[str], Optional[int]]:
         if provided_url:
+            self.source_var = "explicit"
             return provided_url, *self._extract_host_port(provided_url)
         env_url = os.getenv("DATAFORGE_DATABASE_URL")
         if env_url:
+            self.source_var = "DATAFORGE_DATABASE_URL"
             return env_url, *self._extract_host_port(env_url)
-        return self._build_url_from_components()
+        built = self._build_url_from_components()
+        if built[0]:
+            self.source_var = "DATABASE_BASE_URL+components"
+        return built
 
     def _handle_connection_error(self, exc: Exception) -> None:
+        self.init_error = f"{type(exc).__name__}: {exc}"
+        self.disabled_reason = f"connect failed: {self.init_error}"
         if self.telemetry_required:
             raise ValueError(
                 "Telemetry is required but the database connection could not be established."

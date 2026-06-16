@@ -353,6 +353,21 @@ async def health_check():
     }
 
 
+@app.get("/health/telemetry", tags=["info"])
+async def telemetry_status():
+    """Non-secret telemetry diagnostic — is the forge_telemetry emitter armed and
+    bound to the shared events DB? Mirrors NeuroForge's /health/telemetry so any
+    emitter is verifiable with one curl (target.project_ref should match the DB
+    Forge_Command reads). Never returns the password."""
+    try:
+        from app.api.search import telemetry as _t
+    except Exception as exc:  # import/instantiation issue — report, don't crash
+        return {"enabled": False, "reason": f"telemetry client unavailable: {exc}"}
+    if _t is None:
+        return {"enabled": False, "reason": "telemetry client not initialized"}
+    return _t.status()
+
+
 @app.get("/health/render", tags=["info"])
 async def render_health_check():
     """
