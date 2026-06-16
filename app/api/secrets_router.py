@@ -25,11 +25,13 @@ from pydantic import BaseModel, Field
 
 from app.auth import (
     validate_api_key,
-    is_admin_token,
     is_emergency_key,
     ApiKeyInfo,
-    ROTATION_ADMIN_TOKEN,
 )
+# The rotatable admin-token validator (env var + current/grace DB tokens). Used by
+# secrets-sync auth so it tracks token rotation instead of drifting from the static
+# env var (the cause of the FC<->DataForge key-sync deadlock).
+from app.auth.token_rotation import validate_admin_token
 
 logger = logging.getLogger(__name__)
 
@@ -210,8 +212,12 @@ async def get_secrets_auth(
     if x_emergency_key and is_emergency_key(x_emergency_key):
         return SecretAuthContext(auth_mode="emergency", is_admin=True)
 
-    # Admin token grants write access
-    if x_admin_token and is_admin_token(x_admin_token):
+    # Admin token grants write access. Validate against the ROTATABLE token set
+    # (env var OR the current/grace tokens in the admin_tokens DB), not just the
+    # static env var — otherwise a rotated admin token is rejected here even though
+    # rotation accepts it, drifting secrets-sync auth out of sync (FC<->DataForge
+    # key-sync deadlock). validate_admin_token is the superset of is_admin_token.
+    if x_admin_token and validate_admin_token(x_admin_token):
         return SecretAuthContext(auth_mode="admin", is_admin=True)
 
     # Bearer token grants read access
