@@ -16,6 +16,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     git \
+    openssh-client \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -24,12 +25,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for running application (security best practice)
 RUN groupadd -r dataforge && useradd -r -g dataforge dataforge
 
-# Copy requirements and local packages for dependency install
+# Copy requirements for dependency install
 COPY requirements.txt .
-COPY forge-telemetry/ ./forge-telemetry/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir ./forge-telemetry \
+# Install Python dependencies. forge-telemetry is a private git+ssh dep in
+# requirements.txt, so this needs BuildKit SSH forwarding:
+#   DOCKER_BUILDKIT=1 docker build --ssh default .
+RUN --mount=type=ssh mkdir -p -m 0700 ~/.ssh \
+    && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null \
     && pip install --no-cache-dir -r requirements.txt \
     && pip cache purge
 

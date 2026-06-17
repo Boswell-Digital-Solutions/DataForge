@@ -34,13 +34,16 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
     
+    - name: Set up SSH for the private forge-telemetry dep
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.FORGE_TELEMETRY_DEPLOY_KEY }}
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # forge-telemetry is a nested local library (see Dockerfile); install it
-        # before requirements so app.api.search can import TelemetryClient and
-        # pytest can collect the suite instead of failing at conftest import.
-        pip install ./forge-telemetry
+        # forge-telemetry is a private git+ssh dep pinned in requirements.txt;
+        # the ssh-agent step above provides the deploy key so pip can fetch it.
         pip install -r requirements.txt
         pip install pytest pytest-asyncio pytest-cov bandit safety mypy
     

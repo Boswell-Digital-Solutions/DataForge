@@ -14,7 +14,6 @@ services:
     buildCommand: |
       python --version
       pip install --upgrade pip
-      pip install -e ./forge-telemetry
       pip install --no-cache-dir -r requirements.txt
       chmod +x scripts/preflight.sh && bash scripts/preflight.sh
       alembic upgrade head
