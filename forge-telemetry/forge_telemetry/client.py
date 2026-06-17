@@ -39,6 +39,44 @@ def describe_target(dsn: Optional[str]) -> Dict[str, Optional[str]]:
         return {"host": None, "port": None, "database": None, "project_ref": None}
 
 
+def _normalize_pg_dsn(url: Optional[str]) -> Optional[str]:
+    """Make a Postgres DSN safe to parse even if the password contains an
+    unescaped special char (most often '@').
+
+    urlsplit rpartitions the netloc, so it extracts host/user/password correctly;
+    SQLAlchemy's string parser (and libpq) split on the FIRST '@' and fold the
+    password tail into the host -> a misleading "Name or service not known" DNS
+    error. If the two disagree, rebuild from the parsed components (URL.create
+    re-encodes the raw password ONCE). A correctly percent-encoded password parses
+    identically and is left untouched (no double-encoding).
+    """
+    if not url:
+        return url
+    from sqlalchemy.engine.url import URL, make_url
+
+    url = url.strip()
+    parts = urlparse(url)
+    if not parts.hostname:
+        return url
+    try:
+        if make_url(url).host == parts.hostname:
+            return url
+    except Exception:
+        pass
+    try:
+        return URL.create(
+            drivername=parts.scheme or "postgresql",
+            username=parts.username,
+            password=parts.password,
+            host=parts.hostname,
+            port=parts.port,
+            database=(parts.path or "/").lstrip("/") or None,
+            query=dict(parse_qsl(parts.query)),
+        ).render_as_string(hide_password=False)
+    except Exception:
+        return url
+
+
 class TelemetryClient:
     """
     Client for emitting telemetry events to the shared Forge events table.
@@ -72,6 +110,8 @@ class TelemetryClient:
         self.target: Dict[str, Optional[str]] = describe_target(None)
 
         self.db_url, host, port = self._resolve_database_url(database_url)
+        # Auto-encode an unescaped special char (e.g. '@') in the password.
+        self.db_url = _normalize_pg_dsn(self.db_url)
         self.database_url = self.db_url
         self.enabled = bool(self.db_url)
         self.engine: Optional[Any] = None
