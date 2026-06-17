@@ -22,7 +22,7 @@ from app.utils.cache_governance import build_embed_cache_key, redis_set_with_ttl
 logger = logging.getLogger(__name__)
 
 # NeuroForge endpoint
-NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "http://127.0.0.1:8000")
+NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "https://neuroforge-9lxc.onrender.com")
 NEUROFORGE_EMBED_ENDPOINT = f"{NEUROFORGE_URL}/api/v1/embed"
 
 # Max texts per NeuroForge request

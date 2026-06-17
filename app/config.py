@@ -88,7 +88,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440
 # ============================================
 # All AI operations (embeddings, inference) route through NeuroForge.
 # API keys are managed by NeuroForge, not by DataForge.
-NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "http://127.0.0.1:8000")
+NEUROFORGE_URL = os.getenv("NEUROFORGE_URL", "https://neuroforge-9lxc.onrender.com")
 
 # Legacy API keys — kept for backward compatibility but NO LONGER USED
 # for embeddings. NeuroForge handles all provider routing.
