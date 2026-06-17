@@ -11,12 +11,11 @@ LABEL security="production-hardened"
 WORKDIR /app
 
 # Install system dependencies (minimal set for security)
-# git is required because requirements.txt installs forge-contract-core from a
-# git+https URL; without it pip fails with "Cannot find command 'git'".
+# git is required because requirements.txt installs packages from git+https
+# URLs; without it pip fails with "Cannot find command 'git'".
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     git \
-    openssh-client \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -28,13 +27,9 @@ RUN groupadd -r dataforge && useradd -r -g dataforge dataforge
 # Copy requirements for dependency install
 COPY requirements.txt .
 
-# Install Python dependencies. forge-telemetry is a private git+ssh dep in
-# requirements.txt, so this needs BuildKit SSH forwarding:
-#   DOCKER_BUILDKIT=1 docker build --ssh default .
-RUN --mount=type=ssh mkdir -p -m 0700 ~/.ssh \
-    && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null \
-    && pip install --no-cache-dir -r requirements.txt \
-    && pip cache purge
+# Install Python dependencies.
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip cache purge
 
 # Copy application code
 COPY --chown=dataforge:dataforge . .

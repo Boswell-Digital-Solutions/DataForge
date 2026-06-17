@@ -12,17 +12,13 @@ services:
     rootDir: .
     plan: free
     buildCommand: |
+      set -euo pipefail
       python --version
-      pip install --upgrade pip
-      # Load the SSH deploy key (base64 env var SSH_KEY) so pip can fetch the
-      # private forge-telemetry git+ssh dependency pinned in requirements.txt.
-      mkdir -p ~/.ssh && chmod 700 ~/.ssh
-      printf '%s' "$SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
-      chmod 600 ~/.ssh/id_ed25519
-      ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
-      pip install --no-cache-dir -r requirements.txt
-      chmod +x scripts/preflight.sh && bash scripts/preflight.sh
-      alembic upgrade head
+      python -m pip install --upgrade pip
+      python -m pip install --no-cache-dir -r requirements.txt
+      chmod +x scripts/preflight.sh
+      bash scripts/preflight.sh
+      python -m alembic upgrade head
     startCommand: gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-2} --bind 0.0.0.0:$PORT --timeout 60 --graceful-timeout 30 --keep-alive 5
     healthCheckPath: /health
     envVars:

@@ -34,18 +34,11 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
     
-    - name: Set up SSH for the private forge-telemetry dep
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.FORGE_TELEMETRY_DEPLOY_KEY }}
-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # forge-telemetry is a private git+ssh dep pinned in requirements.txt;
-        # the ssh-agent step above provides the deploy key so pip can fetch it.
-        pip install -r requirements.txt
-        pip install pytest pytest-asyncio pytest-cov bandit safety mypy
+        python -m pip install -r requirements.txt
+        python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
     
     - name: Run mypy type checking
       run: |
@@ -110,7 +103,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black isort
+        python -m pip install flake8 black isort
     
     - name: Check code format with black
       run: black --check app/ || true

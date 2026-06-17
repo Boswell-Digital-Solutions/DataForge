@@ -31,10 +31,12 @@ fail() {
 # Activate local venv if present and not already in one.
 if [[ -z "${VIRTUAL_ENV:-}" ]]; then
   for candidate in .venv venv; do
-    if [[ -f "$PROJECT_DIR/$candidate/bin/activate" ]]; then
+    if [[ -x "$PROJECT_DIR/$candidate/bin/python" ]]; then
       echo -e "${DIM}Activating $candidate...${RESET}"
-      # shellcheck source=/dev/null
-      source "$PROJECT_DIR/$candidate/bin/activate"
+      VIRTUAL_ENV="$(cd "$PROJECT_DIR/$candidate" && pwd)"
+      export VIRTUAL_ENV
+      export PATH="$VIRTUAL_ENV/bin:$PATH"
+      unset PYTHONHOME
       break
     fi
   done
@@ -44,7 +46,7 @@ echo "════════════════════════�
 echo " DATAFORGE PRE-FLIGHT CHECK"
 echo "═══════════════════════════════════════════"
 echo -e "${DIM}Python:    $(python3 --version)${RESET}"
-echo -e "${DIM}pip:       $(pip --version | cut -d' ' -f1-2)${RESET}"
+echo -e "${DIM}pip:       $(python3 -m pip --version | cut -d' ' -f1-2)${RESET}"
 echo -e "${DIM}Venv:      ${VIRTUAL_ENV:-system}${RESET}"
 echo -e "${DIM}Git SHA:   $(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')${RESET}"
 echo -e "${DIM}Dirty:     $(git diff --quiet 2>/dev/null && echo 'no' || echo 'YES')${RESET}"
@@ -52,11 +54,12 @@ echo -e "${DIM}Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)${RESET}"
 
 # ─── Phase 1: Dependencies ────────────────────────────────────────
 # On Render, deps are already installed by buildCommand before preflight runs.
-# Locally, the venv should already have deps installed.
-# Only attempt pip install if VIRTUAL_ENV is set or RENDER is set.
-if [[ -n "${VIRTUAL_ENV:-}" ]] || [[ "${RENDER:-}" == "true" ]]; then
+# Locally, refresh dependencies when a virtualenv is active.
+if [[ "${RENDER:-}" == "true" ]]; then
+  step "Skipping dependency install (Render buildCommand already installed requirements)"
+elif [[ -n "${VIRTUAL_ENV:-}" ]]; then
   step "Installing dependencies..."
-  pip install --quiet -r requirements.txt || fail "pip install"
+  python3 -m pip install --quiet -r requirements.txt || fail "pip install"
 else
   step "Skipping pip install (no venv active, not on Render)"
   echo "  Assuming dependencies are pre-installed."
@@ -64,10 +67,10 @@ fi
 
 # ─── Phase 2: Alembic Migration Check ─────────────────────────────
 step "Checking Alembic heads (single head required)..."
-if command -v alembic &>/dev/null; then
-  HEADS=$(alembic heads 2>/dev/null | wc -l)
+if python3 -m alembic --version &>/dev/null; then
+  HEADS=$(python3 -m alembic heads 2>/dev/null | wc -l)
   if [ "$HEADS" -gt 1 ]; then
-    alembic heads
+    python3 -m alembic heads
     fail "alembic: multiple heads detected ($HEADS). Merge before deploying."
   fi
   echo "  Single head confirmed."

@@ -15,9 +15,9 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
-# forge-telemetry: private canonical repo, pinned. Build env needs an SSH deploy key
-# (Render: account SSH key; Docker: DOCKER_BUILDKIT=1 docker build --ssh default).
-forge-telemetry @ git+ssh://git@github.com/Boswecw/forge-telemetry@03b83c138e51199c119949c05ab09b565f981627
+# forge-telemetry: canonical repo, pinned. Use HTTPS so Render builds do not
+# depend on SSH host-key/bootstrap state.
+forge-telemetry @ git+https://github.com/Boswecw/forge-telemetry.git@03b83c138e51199c119949c05ab09b565f981627
 git+https://github.com/Boswecw/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
