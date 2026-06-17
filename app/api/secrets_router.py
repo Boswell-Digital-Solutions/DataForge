@@ -38,8 +38,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/secrets", tags=["LLM Secrets"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
-# Supported LLM providers
-SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "deepseek", "ollama"}
+# Supported LLM providers (+ Voyage, embeddings only: NeuroForge's Anthropic
+# embedding lane routes to Voyage, so Forge_Command syncs a voyage key here too).
+SUPPORTED_PROVIDERS = {"openai", "anthropic", "google", "xai", "deepseek", "ollama", "voyage"}
 
 # Forge service admin tokens. Forge_Command generates + rotates these and syncs
 # them here; each service reads its OWN token (GET /secrets/{name}/value) to
