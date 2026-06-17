@@ -14,7 +14,12 @@ services:
     buildCommand: |
       python --version
       pip install --upgrade pip
-      pip install -e ./forge-telemetry
+      # Load the SSH deploy key (base64 env var SSH_KEY) so pip can fetch the
+      # private forge-telemetry git+ssh dependency pinned in requirements.txt.
+      mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      printf '%s' "$SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+      chmod 600 ~/.ssh/id_ed25519
+      ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
       pip install --no-cache-dir -r requirements.txt
       chmod +x scripts/preflight.sh && bash scripts/preflight.sh
       alembic upgrade head

@@ -75,7 +75,7 @@ echo ""
 echo "=== Gate 2: local proving-slice intake tests ==="
 LOCAL_REPORT="$REPORT_DIR/local_tests_$(date +%Y%m%d_%H%M%S).xml"
 cd "$SCRIPT_DIR"
-PYTHONPATH=".:forge-telemetry" "$PYTHON_LOCAL" -m pytest tests/test_proving_slice_intake.py -v \
+PYTHONPATH="." "$PYTHON_LOCAL" -m pytest tests/test_proving_slice_intake.py -v \
     --junit-xml="$LOCAL_REPORT" \
     --tb=short
 
