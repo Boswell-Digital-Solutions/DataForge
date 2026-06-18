@@ -24,6 +24,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.errors import OperationalError
 from app.models.bugcheck_models import (
     BugCheckRunModel,
     BugCheckFindingModel,
@@ -252,7 +253,12 @@ async def create_finding(
         raise HTTPException(status_code=404, detail="Run not found")
 
     if db_run.status == "finalized":
-        raise HTTPException(status_code=409, detail="Run is finalized")
+        # CRITICAL RULE #6: after FINALIZED, reject new findings with 409.
+        raise OperationalError(
+            status_code=409,
+            code="RUN_ALREADY_FINALIZED",
+            safe_message="Run is finalized",
+        )
 
     # Check for duplicate
     existing = db.query(BugCheckFindingModel).filter(
@@ -318,7 +324,12 @@ async def create_findings_batch(
         raise HTTPException(status_code=404, detail="Run not found")
 
     if db_run.status == "finalized":
-        raise HTTPException(status_code=409, detail="Run is finalized")
+        # CRITICAL RULE #6: after FINALIZED, reject new findings with 409.
+        raise OperationalError(
+            status_code=409,
+            code="RUN_ALREADY_FINALIZED",
+            safe_message="Run is finalized",
+        )
 
     count = 0
     for finding in findings:
@@ -503,9 +514,10 @@ async def create_lifecycle_event(
     # Validate state transition
     current_state = db_finding.lifecycle_state
     if current_state != event.from_state.value:
-        raise HTTPException(
+        raise OperationalError(
             status_code=409,
-            detail=f"Invalid transition: finding is in state {current_state}, not {event.from_state.value}"
+            code="INVALID_LIFECYCLE_TRANSITION",
+            safe_message=f"Invalid transition: finding is in state {current_state}, not {event.from_state.value}",
         )
 
     db_event = BugCheckLifecycleEventModel(

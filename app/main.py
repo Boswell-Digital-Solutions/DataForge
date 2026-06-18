@@ -52,6 +52,7 @@ from app.api.llm_intel_pending_records_router import router as llm_intel_pending
 from app.api.llm_intel_promotion_application_router import router as llm_intel_promotion_application_router  # LLM provider intelligence promotion application
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
+from app.errors import register_exception_handlers
 try:
     from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
     _HAS_COMPRESSION = True
@@ -192,6 +193,12 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
             if error.get("loc") == ("path", "project_id"):
                 return JSONResponse(status_code=404, content={"detail": "Project not found"})
     return await fastapi_request_validation_exception_handler(request, exc)
+
+
+# Register OperationalError.v1 handlers (BDS Useful Error Standard / ADR-006).
+# Wraps existing HTTPException raises into the structured envelope (legacy `detail`
+# preserved) and renders explicit OperationalError instances with full fields.
+register_exception_handlers(app)
 
 # Configure security headers middleware (must be added before CORS)
 main_logger.info("Adding security headers middleware...")
