@@ -1,4 +1,4 @@
-# §6 — API Layer
+# §4 — API Layer
 
 *Last updated: 2026-04-04*
 

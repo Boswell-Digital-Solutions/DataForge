@@ -1,4 +1,4 @@
-# §8 — Ecosystem Integration Contracts
+# §10 — Ecosystem Integration Contracts
 
 This section describes the current mounted integration boundary, not every historical router
 module present in the repo.

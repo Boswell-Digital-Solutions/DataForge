@@ -1,4 +1,5 @@
-<!-- Part of DataForge SYSTEM.md — do not edit SYSTEM.md directly; edit this file and rebuild. -->
+# §6 — PressForge Automation Schema
+
 ## 12. PressForge Automation Schema
 
 > 11 new `pf_*` tables and column additions supporting the PressForge automation loop: governed job execution, GEO visibility tracking, social draftsets, prompt packs, agentic governance, config-as-code, and campaign outcomes.

@@ -1,4 +1,4 @@
-# §4 — Project Structure
+# §3 — Project Structure
 
 ## Directory Tree
 
@@ -239,5 +239,3 @@ Redis-backed derived caching.
 47 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.
-
----

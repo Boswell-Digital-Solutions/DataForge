@@ -165,4 +165,4 @@ LOG_LEVEL=INFO
 ./scripts/context-bundle.sh --dry-run --preset testing --with-specs
 ```
 
-Full system documentation: root `SYSTEM.md` built from `doc/system/` (legacy `doc/dfSYSTEM.md` still mirrors the build output).
+Full system documentation: `doc/DTFSYSTEM.md` (designation DTF) built from `doc/system/` via `bash doc/system/BUILD.sh` — the canonical, fail-closed assembled reference.

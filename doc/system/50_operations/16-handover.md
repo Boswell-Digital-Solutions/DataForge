@@ -1,4 +1,4 @@
-# §11 — Handover, Critical Constraints & Migration Runbook
+# §16 — Handover, Critical Constraints & Migration Runbook
 
 ## Critical Invariants — Never Violate These
 

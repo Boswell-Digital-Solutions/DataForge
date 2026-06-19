@@ -1,4 +1,4 @@
-# §9 — Error Handling, Lifecycle & Access Control
+# §8 — Error Handling, Lifecycle & Access Control
 
 ## BugCheck Finding Lifecycle State Machine
 

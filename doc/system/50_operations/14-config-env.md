@@ -1,4 +1,4 @@
-# §5 — Configuration & Environment Variables
+# §14 — Configuration & Environment Variables
 
 All configuration is injected via environment variables. There are no config files read at runtime beyond `.env` (loaded by the application on startup via `python-dotenv` or equivalent). The canonical reference for all variables is `.env.example` at the repository root.
 
