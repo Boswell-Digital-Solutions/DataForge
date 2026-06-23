@@ -11,6 +11,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import logging
 
+from app.config import CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,12 +89,15 @@ def configure_cors(app: FastAPI, allowed_origins: list = None):
             "http://127.0.0.1:8000",
         ]
     
+    # Enumerate methods/headers instead of "*". A wildcard combined with
+    # allow_credentials=True is both insecure and rejected by browsers, and
+    # mirrors the live config in app/main.py (single source of truth in config.py).
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_methods=CORS_ALLOW_METHODS,
+        allow_headers=CORS_ALLOW_HEADERS,
         max_age=600,  # 10 minutes
     )
     logger.info(f"CORS configured with allowed origins: {allowed_origins}")
