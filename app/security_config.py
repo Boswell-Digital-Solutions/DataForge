@@ -8,7 +8,6 @@ and security best practices for DataForge.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 import logging
 
 from app.config import CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS

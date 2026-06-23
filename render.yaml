@@ -60,3 +60,37 @@ services:
                      # embedding. Defaults to http://127.0.0.1:8000 if unset, which
                      # 503s in prod. MUST be set to the deployed NeuroForge URL
                      # (e.g. https://neuroforge-9lxc.onrender.com).
+
+  # Scheduled pull of Supabase logs → redacted durable evidence in DataForge.
+  # NOTE: Render Cron Jobs require a paid plan. Free alternative: a scheduled
+  # GitHub Actions workflow running `python -m scripts.poll_supabase_logs --once`
+  # with the same env (DATAFORGE_DATABASE_URL + SUPABASE_* as repo secrets).
+  - type: cron
+    name: dataforge-supabase-log-poll
+    runtime: python
+    repo: https://github.com/Boswecw/DataForge.git
+    branch: master
+    rootDir: .
+    schedule: "*/10 * * * *"  # every 10 min; lookback/overlap make windows safe to re-pull
+    buildCommand: |
+      set -euo pipefail
+      python -m pip install --upgrade pip
+      python -m pip install --no-cache-dir -r requirements.txt
+    startCommand: python -m scripts.poll_supabase_logs --once
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.10"
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATAFORGE_DATABASE_URL
+        sync: false  # same Supabase connection string as the web service
+      - key: SUPABASE_PROJECT_REF
+        sync: false
+      - key: SUPABASE_ACCESS_TOKEN
+        sync: false  # Supabase Management API token (account → access tokens)
+      - key: SUPABASE_LOG_IDENTITY_SALT
+        generateValue: true  # one-way hashing of auth_user; stable per environment
+      - key: SUPABASE_LOG_SOURCE_TABLE
+        value: edge_logs
