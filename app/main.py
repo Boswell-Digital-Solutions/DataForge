@@ -41,6 +41,7 @@ from app.api.neuroforge_router import router as neuroforge_router  # NeuroForge 
 from app.api.multi_provider_router import router as multi_provider_router  # Multi-Provider Pipeline (catalog, pricing, costs, batch)
 from app.api.rate_limits_router import router as rate_limits_router  # Global rate limiting (XAI/MAID cross-run)
 from app.api.sentinel_router import router as sentinel_router  # Sentinel Agent (sweeps, healing events)
+from app.api.supabase_logs_router import router as supabase_logs_router  # Redacted Supabase log mirror (read-only)
 from app.api.cloud_security_router import router as cloud_security_router  # CSSA security ledger (append-only)
 from app.api.compression_router import router as compression_router  # Dictionary Compression (Phase 2)
 from app.api.press_router import router as press_router  # PressForge: journalist outreach (AuthorForge module)
@@ -294,6 +295,7 @@ app.include_router(agent_memory_router)  # Agent generic memory store (store, se
 app.include_router(multi_provider_router)  # Multi-Provider Pipeline: model catalog, pricing, costs, batch
 app.include_router(rate_limits_router)  # Global rate limiting: XAI/MAID cross-run enforcement
 app.include_router(sentinel_router)  # Sentinel Agent: health sweeps, healing events
+app.include_router(supabase_logs_router)  # Redacted Supabase log mirror: read-only feed for Sentinel anomaly sweeps
 app.include_router(cloud_security_router)  # CSSA security ledger: immutable decisions/authorizations/outcomes + anti-rollback counters
 app.include_router(compression_router)  # Dictionary Compression: CRUD for Zstd dictionaries
 app.include_router(press_router)  # PressForge: journalist outreach module
