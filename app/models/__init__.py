@@ -88,6 +88,7 @@ from .policy_envelope_schemas import (
     PolicyRunStateResponse, PolicyRunStateEnvelope,
 )
 from .sentinel_models import SentinelSweep, SentinelHealingEvent
+from .supabase_log_models import SupabaseLogEvent
 from .sentinel_schemas import (
     SweepType, SweepStatus, OverallStatus, SweepTrigger,
     HealingTier, HealingOutcome, DimensionResult,
@@ -295,6 +296,8 @@ __all__ = [
     "RateLimitConfigUpsert", "RateLimitStatusResponse", "RateLimitSummaryResponse",
     # Sentinel Agent Models
     "SentinelSweep", "SentinelHealingEvent",
+    # Supabase Log Events
+    "SupabaseLogEvent",
     # Sentinel Agent Schemas
     "SweepType", "SweepStatus", "OverallStatus", "SweepTrigger",
     "HealingTier", "HealingOutcome", "DimensionResult",
