@@ -15,21 +15,11 @@ services:
       set -euo pipefail
       python --version
       python -m pip install --upgrade pip
-      # Authenticate git so pip can clone the pinned private forge-* dependencies
-      # (forge-telemetry, forge_contract_core). Render's build container has no
-      # git credentials by default, so an unauthenticated clone fails with
-      # "could not read Username" and aborts the whole install. Provision the
-      # deploy key from the forge-telemetry-ssh env group (exposed as $SSH_KEY)
-      # and route github.com clones over SSH. The key is supplied by the attached
-      # env group, never hardcoded here.
-      if [ -n "${SSH_KEY:-}" ]; then
-        mkdir -p "$HOME/.ssh"
-        printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/forge_deploy_key"
-        chmod 600 "$HOME/.ssh/forge_deploy_key"
-        ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-        export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/forge_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-        git config --global url."git@github.com:".insteadOf "https://github.com/"
-      fi
+      # Authenticate git for the pinned private forge-* dependencies using the
+      # deploy key from the forge-telemetry-ssh env group ($SSH_KEY). Kept in a
+      # script so multi-line shell isn't mangled by dashboard/CLI newline
+      # handling. See scripts/render-git-auth.sh.
+      bash scripts/render-git-auth.sh
       python -m pip install --no-cache-dir -r requirements.txt
       chmod +x scripts/preflight.sh
       bash scripts/preflight.sh
@@ -93,16 +83,8 @@ services:
     buildCommand: |
       set -euo pipefail
       python -m pip install --upgrade pip
-      # Same private-dependency auth as the web service (see note there). Without
-      # the SSH deploy key the forge-* clones fail and the cron cannot build.
-      if [ -n "${SSH_KEY:-}" ]; then
-        mkdir -p "$HOME/.ssh"
-        printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/forge_deploy_key"
-        chmod 600 "$HOME/.ssh/forge_deploy_key"
-        ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-        export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/forge_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-        git config --global url."git@github.com:".insteadOf "https://github.com/"
-      fi
+      # Same private-dependency auth as the web service. See scripts/render-git-auth.sh.
+      bash scripts/render-git-auth.sh
       python -m pip install --no-cache-dir -r requirements.txt
     startCommand: python -m scripts.poll_supabase_logs --once
     envVars:
