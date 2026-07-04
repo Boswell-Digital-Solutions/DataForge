@@ -11,19 +11,10 @@ services:
     branch: master
     rootDir: .
     plan: free
-    buildCommand: |
-      set -euo pipefail
-      python --version
-      python -m pip install --upgrade pip
-      # Authenticate git for the pinned private forge-* dependencies using the
-      # deploy key from the forge-telemetry-ssh env group ($SSH_KEY). Kept in a
-      # script so multi-line shell isn't mangled by dashboard/CLI newline
-      # handling. See scripts/render-git-auth.sh.
-      bash scripts/render-git-auth.sh
-      python -m pip install --no-cache-dir -r requirements.txt
-      chmod +x scripts/preflight.sh
-      bash scripts/preflight.sh
-      python -m alembic upgrade head
+    # Single token so a dashboard Build Command override (which flattens
+    # newlines and breaks multi-line shell) can mirror this exactly:
+    #   bash scripts/render-build.sh
+    buildCommand: bash scripts/render-build.sh
     startCommand: gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --workers ${WEB_CONCURRENCY:-2} --bind 0.0.0.0:$PORT --timeout 60 --graceful-timeout 30 --keep-alive 5
     healthCheckPath: /health
     envVars:
