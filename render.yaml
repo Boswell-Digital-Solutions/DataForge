@@ -15,14 +15,11 @@ services:
       set -euo pipefail
       python --version
       python -m pip install --upgrade pip
-      # Authenticate git so pip can clone the pinned private forge-* dependencies.
-      # Render has no git credentials by default, so an unauthenticated HTTPS
-      # clone fails with "could not read Username" and aborts the whole install.
-      # Rewrite github.com HTTPS URLs to use GITHUB_TOKEN when it is set; the
-      # token is never hardcoded here (set it in the Render dashboard, sync:false).
-      if [ -n "${GITHUB_TOKEN:-}" ]; then
-        git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-      fi
+      # Authenticate git for the pinned private forge-* dependencies using the
+      # deploy key from the forge-telemetry-ssh env group ($SSH_KEY). Kept in a
+      # script so multi-line shell isn't mangled by dashboard/CLI newline
+      # handling. See scripts/render-git-auth.sh.
+      bash scripts/render-git-auth.sh
       python -m pip install --no-cache-dir -r requirements.txt
       chmod +x scripts/preflight.sh
       bash scripts/preflight.sh
@@ -34,10 +31,9 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - key: GITHUB_TOKEN
-        sync: false  # Read-only token (repo:read / contents:read) used at build
-                     # time to clone the pinned private forge-telemetry and
-                     # forge_contract_core git dependencies. Set in the dashboard.
+      - fromGroup: forge-telemetry-ssh  # provides $SSH_KEY (deploy key) used at
+                                        # build time to clone the private forge-*
+                                        # git dependencies over SSH.
       - key: DATAFORGE_DATABASE_URL
         sync: false  # Set Supabase connection string in Render dashboard
       - key: OPENAI_API_KEY
@@ -87,11 +83,8 @@ services:
     buildCommand: |
       set -euo pipefail
       python -m pip install --upgrade pip
-      # Same private-dependency auth as the web service (see note there). Without
-      # GITHUB_TOKEN the forge-* clones fail and the cron cannot build.
-      if [ -n "${GITHUB_TOKEN:-}" ]; then
-        git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-      fi
+      # Same private-dependency auth as the web service. See scripts/render-git-auth.sh.
+      bash scripts/render-git-auth.sh
       python -m pip install --no-cache-dir -r requirements.txt
     startCommand: python -m scripts.poll_supabase_logs --once
     envVars:
@@ -99,9 +92,9 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - key: GITHUB_TOKEN
-        sync: false  # Read-only token to clone the pinned private forge-* git
-                     # dependencies at build time (same as the web service).
+      - fromGroup: forge-telemetry-ssh  # provides $SSH_KEY (deploy key) to clone
+                                        # the private forge-* git dependencies
+                                        # over SSH (same as the web service).
       - key: LOG_LEVEL
         value: INFO
       - key: DATAFORGE_DATABASE_URL
