@@ -28,10 +28,13 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from sqlalchemy.exc import OperationalError
+
 # Allow direct invocation (python scripts/poll_supabase_logs.py).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import (  # noqa: E402
+    DATABASE_URL_IS_DEFAULT,
     SUPABASE_ACCESS_TOKEN,
     SUPABASE_API_BASE,
     SUPABASE_LOG_IDENTITY_SALT,
@@ -201,6 +204,21 @@ def main(argv: list[str] | None = None) -> int:
         stats = persist(session, rows, source_cursor=cursor_label, dry_run=args.dry_run)
         logger.info("Done: %s", stats)
         return 0
+    except OperationalError:
+        session.rollback()
+        if DATABASE_URL_IS_DEFAULT:
+            # No DB URL was configured, so we fell back to the localhost dev
+            # default and could not connect. Surface the real cause instead of a
+            # cryptic psycopg2 "connection refused" traceback.
+            logger.error(
+                "Could not connect to the database: no connection string is "
+                "configured, so the localhost dev default was used. Set "
+                "DATAFORGE_DATABASE_URL (or DATABASE_URL) to the Supabase "
+                "connection string in the cron environment."
+            )
+        else:
+            logger.exception("Supabase log poll failed: database connection error")
+        return 1
     except Exception:
         session.rollback()
         logger.exception("Supabase log poll failed")
