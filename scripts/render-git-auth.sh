@@ -23,8 +23,30 @@ fi
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh"
 
-printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/forge_deploy_key"
-chmod 600 "$HOME/.ssh/forge_deploy_key"
+key_file="$HOME/.ssh/forge_deploy_key"
+# Write the key, tolerating common env-var mangling. A valid PEM/OpenSSH key
+# needs REAL newlines; env storage sometimes flattens them (single line, or
+# literal backslash-n) or adds CRLF. Normalise both cases; strip CR either way.
+if [[ "$SSH_KEY" == *$'\n'* ]]; then
+  printf '%s\n' "$SSH_KEY" | tr -d '\r' > "$key_file"     # already multi-line
+else
+  printf '%b\n' "$SSH_KEY" | tr -d '\r' > "$key_file"     # expand literal \n
+fi
+chmod 600 "$key_file"
+
+# Fail fast with an actionable message instead of a cryptic "error in libcrypto"
+# during the clone. Only validate when ssh-keygen is available, so a missing
+# tool can never reject a good key. Never prints key material.
+if command -v ssh-keygen >/dev/null 2>&1; then
+  if ! ssh-keygen -y -f "$key_file" </dev/null >/dev/null 2>&1; then
+    echo "render-git-auth: ERROR — SSH_KEY did not parse as a valid private key." >&2
+    echo "  In the forge-telemetry-ssh env group, SSH_KEY must be the COMPLETE key:" >&2
+    echo "  a '-----BEGIN ... PRIVATE KEY-----' line, the base64 body, and a" >&2
+    echo "  '-----END ... PRIVATE KEY-----' line — each on its own line (real" >&2
+    echo "  newlines), no surrounding quotes, unencrypted (no passphrase)." >&2
+    exit 1
+  fi
+fi
 
 ssh-keyscan github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
 
