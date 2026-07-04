@@ -50,7 +50,23 @@ RATE_LIMIT_ADMIN = "100/minute"  # 100 admin operations per minute
 # ============================================
 # Database Configuration
 # ============================================
-DATABASE_URL = os.getenv("DATAFORGE_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/dataforge")
+# Local development default. Only used when neither DATAFORGE_DATABASE_URL nor
+# the conventional DATABASE_URL is set — a Render/Heroku-style platform injects
+# DATABASE_URL, and operators commonly set that name by habit, so honor it as a
+# fallback to avoid a silent connection-refused against a non-existent localhost
+# Postgres (the failure mode of the Supabase log-poll cron).
+_LOCAL_DB_DEFAULT = "postgresql://postgres:postgres@localhost:5432/dataforge"
+DATABASE_URL = (
+    os.getenv("DATAFORGE_DATABASE_URL")
+    or os.getenv("DATABASE_URL")
+    or _LOCAL_DB_DEFAULT
+)
+# True when no DB URL was configured and we fell back to the localhost dev
+# default. Callers (e.g. cron scripts) can use this to fail fast with a clear
+# message instead of a cryptic "connection refused" traceback.
+DATABASE_URL_IS_DEFAULT = not (
+    os.getenv("DATAFORGE_DATABASE_URL") or os.getenv("DATABASE_URL")
+)
 DB_CONNECT_TIMEOUT_SECONDS = int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "5"))
 DB_STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "10000"))
 DB_LOCK_TIMEOUT_MS = int(os.getenv("DB_LOCK_TIMEOUT_MS", "5000"))
@@ -191,9 +207,17 @@ def validate_config():
         )
 
     # Check database URL
+    is_production = "production" in os.getenv("ENVIRONMENT", "development").lower()
     if not DATABASE_URL:
-        errors.append("DATAFORGE_DATABASE_URL must be set")
-    elif "localhost" in DATABASE_URL and "production" in os.getenv("ENVIRONMENT", "development").lower():
+        errors.append("DATAFORGE_DATABASE_URL (or DATABASE_URL) must be set")
+    elif DATABASE_URL_IS_DEFAULT and is_production:
+        errors.append(
+            "No database URL configured in production — falling back to the "
+            "localhost dev default, which will fail with 'connection refused'. "
+            "Set DATAFORGE_DATABASE_URL (or DATABASE_URL) to the Supabase "
+            "connection string."
+        )
+    elif "localhost" in DATABASE_URL and is_production:
         warnings.append("WARNING: Using localhost database URL in production environment")
 
     # Warn about default database credentials (if using Docker default)
