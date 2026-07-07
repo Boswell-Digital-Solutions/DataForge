@@ -163,6 +163,46 @@ async def get_run(
     return _run_to_response(db_run)
 
 
+@router.get(
+    "/runs",
+    response_model=list[BugCheckRunResponse],
+    summary="List BugCheck runs",
+)
+async def list_runs(
+    limit: int = Query(20, ge=1, le=100, description="Max runs to return"),
+    status: Optional[str] = Query(None, description="Filter by run status"),
+    target: Optional[str] = Query(None, description="Filter by target service"),
+    db: Session = Depends(get_db),
+):
+    """List recent BugCheck runs, newest first.
+
+    Runs are ordered by ``started_at`` descending. ``status`` filters at the
+    database level; ``target`` filters by membership in the run's target list
+    (stored as JSON), applied over a bounded scan so ``limit`` still bounds the
+    result set.
+    """
+    query = db.query(BugCheckRunModel)
+
+    if status:
+        query = query.filter(BugCheckRunModel.status == status)
+
+    query = query.order_by(BugCheckRunModel.started_at.desc())
+
+    if target:
+        # targets is a JSON array; membership isn't portably expressible in SQL
+        # across SQLite/Postgres, so filter in Python over a bounded scan.
+        db_runs = []
+        for db_run in query.limit(limit * 20).all():
+            if target in (db_run.targets or []):
+                db_runs.append(db_run)
+                if len(db_runs) >= limit:
+                    break
+    else:
+        db_runs = query.limit(limit).all()
+
+    return [_run_to_response(db_run) for db_run in db_runs]
+
+
 @router.patch(
     "/runs/{run_id}",
     status_code=200,
