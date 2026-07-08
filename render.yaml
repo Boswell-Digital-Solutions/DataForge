@@ -22,9 +22,11 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - fromGroup: forge-telemetry-ssh  # provides $SSH_KEY (deploy key) used at
-                                        # build time to clone the private forge-*
-                                        # git dependencies over SSH.
+      - fromGroup: forge-telemetry-ssh  # deploy key used at build time to clone
+                                        # the private forge-* git deps over SSH.
+                                        # Set SSH_KEY_B64 = `base64 -w0 < key`
+                                        # (mangle-proof) — preferred over the raw
+                                        # SSH_KEY PEM. See scripts/render-git-auth.sh.
       - key: DATAFORGE_DATABASE_URL
         sync: false  # Set Supabase connection string in Render dashboard
       - key: OPENAI_API_KEY
@@ -83,9 +85,10 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - fromGroup: forge-telemetry-ssh  # provides $SSH_KEY (deploy key) to clone
-                                        # the private forge-* git dependencies
-                                        # over SSH (same as the web service).
+      - fromGroup: forge-telemetry-ssh  # deploy key to clone the private forge-*
+                                        # git deps over SSH (same as web service).
+                                        # Prefer SSH_KEY_B64 (`base64 -w0 < key`)
+                                        # over raw SSH_KEY. See render-git-auth.sh.
       - key: LOG_LEVEL
         value: INFO
       - key: DATAFORGE_DATABASE_URL
