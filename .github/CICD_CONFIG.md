@@ -93,9 +93,9 @@ VOYAGE_API_KEY: your-voyage-api-key
 Add these to your README.md:
 
 ```markdown
-[![Test Suite](https://github.com/Boswecw/DataForge/actions/workflows/test.yml/badge.svg)](https://github.com/Boswecw/DataForge/actions/workflows/test.yml)
-[![Security Scanning](https://github.com/Boswecw/DataForge/actions/workflows/security.yml/badge.svg)](https://github.com/Boswecw/DataForge/actions/workflows/security.yml)
-[![Docker Build](https://github.com/Boswecw/DataForge/actions/workflows/docker.yml/badge.svg)](https://github.com/Boswecw/DataForge/actions/workflows/docker.yml)
+[![Test Suite](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/test.yml/badge.svg)](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/test.yml)
+[![Security Scanning](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/security.yml/badge.svg)](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/security.yml)
+[![Docker Build](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/docker.yml/badge.svg)](https://github.com/Boswell-Digital-Solutions/DataForge/actions/workflows/docker.yml)
 ```
 
 ## Continuous Integration Workflow
