@@ -142,11 +142,11 @@ alembic revision --autogenerate -m "description"
 
 | Repo | GitHub | Purpose |
 |------|--------|---------|
-| DataForge | Boswecw/DataForge | Core data API (this repo) |
-| NeuroForge | Boswecw/NeuroForge | AI/ML services |
-| Forge-Agents | Boswecw/Forge-Agents | Agent framework |
-| Forge-Command | Boswecw/Forge-Command | Desktop frontend |
-| rake | Boswecw/rake | Data pipelines |
+| DataForge | Boswell-Digital-Solutions/DataForge | Core data API (this repo) |
+| NeuroForge | Boswell-Digital-Solutions/NeuroForge | AI/ML services |
+| Forge-Agents | Boswell-Digital-Solutions/Forge-Agents | Agent framework |
+| Forge-Command | Boswell-Digital-Solutions/Forge-Command | Desktop frontend |
+| rake | Boswell-Digital-Solutions/rake | Data pipelines |
 
 ## Notes for Development
 

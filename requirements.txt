@@ -17,8 +17,8 @@ pgvector==0.2.4
 
 # forge-telemetry: canonical repo, pinned. Use HTTPS so Render builds do not
 # depend on SSH host-key/bootstrap state.
-forge-telemetry @ git+https://github.com/Boswecw/forge-telemetry.git@27fe24966a2cc049b2de39993c4ca1f19f08670b
-git+https://github.com/Boswecw/forge_contract_core.git@master#egg=forge-contract-core
+forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@27fe24966a2cc049b2de39993c4ca1f19f08670b
+git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression

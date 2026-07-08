@@ -7,7 +7,7 @@ services:
   - type: web
     name: dataforge
     runtime: python
-    repo: https://github.com/Boswecw/DataForge.git
+    repo: https://github.com/Boswell-Digital-Solutions/DataForge.git
     branch: master
     rootDir: .
     plan: free
@@ -69,7 +69,7 @@ services:
   - type: cron
     name: dataforge-supabase-log-poll
     runtime: python
-    repo: https://github.com/Boswecw/DataForge.git
+    repo: https://github.com/Boswell-Digital-Solutions/DataForge.git
     branch: master
     rootDir: .
     schedule: "*/10 * * * *"  # every 10 min; lookback/overlap make windows safe to re-pull
