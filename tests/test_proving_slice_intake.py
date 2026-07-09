@@ -24,13 +24,23 @@ from sqlalchemy.orm import Session
 # These imports must happen at collection time (before fixtures run).
 from app.models.proving_slice_models import PSCloudIntakeRecord, PSCloudReceipt  # noqa: F401
 
-_CONTRACT_CORE = (
+# Resolve the contract-core fixture corpus. Prefer the monorepo checkout
+# (contracts/forge-contract-core, a sibling of this repo); otherwise fall back to
+# the pip-installed forge_contract_core, whose data corpus (fixtures/) ships at
+# the install root. Standalone deploys (e.g. Render) have no monorepo checkout.
+_MONO_CONTRACT_CORE = (
     Path(__file__).resolve().parents[3]
     / "contracts"
     / "forge-contract-core"
 )
-if str(_CONTRACT_CORE) not in sys.path:
-    sys.path.insert(0, str(_CONTRACT_CORE))
+if _MONO_CONTRACT_CORE.exists():
+    if str(_MONO_CONTRACT_CORE) not in sys.path:
+        sys.path.insert(0, str(_MONO_CONTRACT_CORE))
+    _FIXTURES_ROOT = _MONO_CONTRACT_CORE / "fixtures"
+else:
+    import forge_contract_core as _fcc
+
+    _FIXTURES_ROOT = Path(_fcc.__file__).resolve().parent.parent / "fixtures"
 
 from forge_contract_core.identity import compute_idempotency_key
 from forge_contract_core.validators.artifact import ArtifactValidationError
@@ -39,7 +49,7 @@ _VALIDATE_PATH = "app.api.proving_slice_router.validate_artifact"
 
 INTAKE_URL = "/api/v1/proving-slice/intake"
 RECEIPT_URL = "/api/v1/proving-slice/receipts/by-artifact"
-TRIPLE_AUDIT_FIXTURES = _CONTRACT_CORE / "fixtures" / "triple_variant_audit"
+TRIPLE_AUDIT_FIXTURES = _FIXTURES_ROOT / "triple_variant_audit"
 
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
