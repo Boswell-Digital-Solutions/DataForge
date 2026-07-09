@@ -26,7 +26,17 @@ set -euo pipefail
 
 TOKEN="${FORGE_TELEMETRY_TOKEN:-${GITHUB_TOKEN:-}}"
 if [ -z "${TOKEN}" ]; then
-  echo "render-git-auth: no FORGE_TELEMETRY_TOKEN / GITHUB_TOKEN set — skipping (assuming deps are reachable)."
+  # On Render (RENDER=true) a missing token is fatal — without it pip's clone of
+  # the private repos fails later with a cryptic "could not read Username". Fail
+  # here with an actionable message instead. Locally it's a no-op (the developer's
+  # own git credentials reach the repos).
+  if [ -n "${RENDER:-}" ]; then
+    echo "render-git-auth: ERROR — FORGE_TELEMETRY_TOKEN / GITHUB_TOKEN is not set on this Render service." >&2
+    echo "  The private forge-* dependencies cannot be cloned without it. Add a GitHub token" >&2
+    echo "  with Contents:Read on forge-telemetry + forge_contract_core as FORGE_TELEMETRY_TOKEN." >&2
+    exit 1
+  fi
+  echo "render-git-auth: no FORGE_TELEMETRY_TOKEN / GITHUB_TOKEN set — skipping (local build; deps assumed reachable)."
   exit 0
 fi
 
