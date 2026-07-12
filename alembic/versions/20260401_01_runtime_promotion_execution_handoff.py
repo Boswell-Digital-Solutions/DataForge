@@ -46,7 +46,7 @@ def upgrade() -> None:
         ["trace_id"],
     )
     op.create_index(
-        "ix_runtime_promotion_approval_decisions_root_decision_artifact_id",
+        "ix_runtime_promotion_approval_decisions_root_artifact_id",
         "runtime_promotion_approval_decisions",
         ["root_decision_artifact_id"],
     )
@@ -125,7 +125,7 @@ def upgrade() -> None:
         ["trace_id"],
     )
     op.create_index(
-        "ix_runtime_promotion_execution_requests_root_decision_artifact_id",
+        "ix_runtime_promotion_execution_requests_root_artifact_id",
         "runtime_promotion_execution_requests",
         ["root_decision_artifact_id"],
     )
@@ -208,7 +208,7 @@ def upgrade() -> None:
         ["trace_id"],
     )
     op.create_index(
-        "ix_runtime_promotion_execution_statuses_root_decision_artifact_id",
+        "ix_runtime_promotion_execution_statuses_root_artifact_id",
         "runtime_promotion_execution_statuses",
         ["root_decision_artifact_id"],
     )
@@ -279,7 +279,7 @@ def downgrade() -> None:
         table_name="runtime_promotion_execution_statuses",
     )
     op.drop_index(
-        "ix_runtime_promotion_execution_statuses_root_decision_artifact_id",
+        "ix_runtime_promotion_execution_statuses_root_artifact_id",
         table_name="runtime_promotion_execution_statuses",
     )
     op.drop_index(
@@ -325,7 +325,7 @@ def downgrade() -> None:
         table_name="runtime_promotion_execution_requests",
     )
     op.drop_index(
-        "ix_runtime_promotion_execution_requests_root_decision_artifact_id",
+        "ix_runtime_promotion_execution_requests_root_artifact_id",
         table_name="runtime_promotion_execution_requests",
     )
     op.drop_index(
@@ -363,7 +363,7 @@ def downgrade() -> None:
         table_name="runtime_promotion_approval_decisions",
     )
     op.drop_index(
-        "ix_runtime_promotion_approval_decisions_root_decision_artifact_id",
+        "ix_runtime_promotion_approval_decisions_root_artifact_id",
         table_name="runtime_promotion_approval_decisions",
     )
     op.drop_index(
