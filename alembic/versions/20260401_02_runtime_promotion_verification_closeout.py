@@ -58,7 +58,7 @@ def upgrade() -> None:
         ["trace_id"],
     )
     op.create_index(
-        "ix_runtime_promotion_verification_results_root_decision_artifact_id",
+        "ix_runtime_promotion_verification_results_root_artifact_id",
         "runtime_promotion_verification_results",
         ["root_decision_artifact_id"],
     )
@@ -129,7 +129,7 @@ def downgrade() -> None:
         table_name="runtime_promotion_verification_results",
     )
     op.drop_index(
-        "ix_runtime_promotion_verification_results_root_decision_artifact_id",
+        "ix_runtime_promotion_verification_results_root_artifact_id",
         table_name="runtime_promotion_verification_results",
     )
     op.drop_index(
