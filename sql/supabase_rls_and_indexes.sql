@@ -12,6 +12,17 @@
 -- NOTE: the two credential tables (llm_secrets, api_keys) also enable RLS in
 -- application code at creation (app/api/secrets_router.py, app/auth/api_keys.py),
 -- so they self-protect on a fresh DB even before this script is run.
+--
+-- DRIFT WARNING (2026-07-11): because this script lives outside the deploy
+-- pipeline, ten tables created by migrations after this script was first run
+-- (20260606_01 .. 20260623_01) shipped with RLS disabled and tripped
+-- Supabase's rls_disabled_in_public advisor. The fix is now a real Alembic
+-- migration -- alembic/versions/20260711_01_enable_rls_on_drifted_public_tables.py
+-- -- which runs automatically on every deploy via `alembic upgrade head`
+-- (scripts/render-build.sh) and re-scans pg_tables each time, so it cannot
+-- drift the same way this script did. This script is kept for the one-time
+-- PK/index sections (2-3) and as a historical record; it does not need to be
+-- re-run by hand for RLS going forward.
 -- ============================================================================
 
 
