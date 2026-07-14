@@ -148,6 +148,10 @@ class TestRLSEnabledOnDriftedTables:
         missing = sorted(name for name, enabled in rls_status.items() if not enabled)
         assert missing == [], f"public tables missing RLS: {missing}"
 
+    def test_agent_registry_is_created_with_rls(self, rls_status: dict[str, bool]):
+        """The ForgeAgents registry must be provisioned by Alembic, not ORM side effects."""
+        assert rls_status.get("agent_registry") is True
+
 
 class TestOwnerRoleBypassesRLS:
     """The migration must not break the app's own Postgres-owner-role access path."""
