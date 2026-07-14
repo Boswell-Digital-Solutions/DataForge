@@ -58,13 +58,13 @@ The current contract is defined by:
 |---------|---------------|
 | Runtime posture | Resident FastAPI service |
 | Default port | `8001` |
-| Mounted router objects | `35` |
-| Router modules in source | `39` |
-| Alembic migrations | `47` |
-| Python files under `app/` | `175` |
-| Pytest files | `39` |
-| Collected tests | `565` via `PYTHONPATH=. ./.venv/bin/pytest --collect-only -q` on 2026-04-03 |
-| Canonical docs | `doc/system/` plus generated root `SYSTEM.md` |
+| Mounted router objects | `46` |
+| Python modules under `app/api/` | `62` |
+| Alembic migrations | `62` |
+| Python files under `app/` | `210` |
+| Pytest files | `54` |
+| Collected tests | `730` via `pytest --collect-only -q` on 2026-07-14 |
+| Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Nested repo boundary | `forge-telemetry/` is a separate git repo with its own docs stack |
 
 ## What DataForge Owns

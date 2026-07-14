@@ -25,7 +25,11 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / Tarcie | `/api/diligence`, `/api/v1/events`, `/ingest/tarcie` | Compliance review records, append-only events, friction ingest |
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/events:batch`, `/ingest/tarcie` | Compliance review records, BuildGuard events, authenticated generic operational telemetry, friction ingest |
+
+Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
+never receive DataForge/PostgreSQL credentials. The request event is the shared
+`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON complexity bounds.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 ## BugCheck Contract

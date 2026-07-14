@@ -9,7 +9,7 @@ not a bootstrap repo or passive library.
 - **Runtime posture:** Resident HTTP service
 - **Default port:** `8001`
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
-- **Mounted router objects:** `35` from `app/main.py` (audit: 2026-04-03)
+- **Mounted router objects:** `46` from `app/main.py` (audit: 2026-07-14)
 - **Router modules in source:** `39`
 - **Alembic migrations:** `47`
 - **Python files under `app/`:** `175`

@@ -7,7 +7,7 @@
 **Port:** 8001
 **Location:** `/home/charlie/Forge/ecosystem/DataForge/`
 **Entry point:** `app/main.py`
-**Status:** Resident FastAPI service; documentation refreshed against the 2026-04-03 working tree (`35` mounted router objects, `47` Alembic migrations, `39` pytest files / `565` collected tests)
+**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-14 working tree (`46` mounted router objects, `62` Alembic migrations, `54` pytest files / `730` collected tests)
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
@@ -25,10 +25,10 @@ DataForge (Source of Truth)
 ├── PostgreSQL 13+ with pgvector extension (1536-dim IVFFlat index)
 ├── Redis 6+ (cache, sessions, rate limiting, distributed lock)
 ├── Hybrid search: semantic cosine distance + BM25 keyword → RRF fusion (+40% accuracy)
-├── 35 mounted router objects in `app/main.py`
+├── 46 mounted router objects in `app/main.py`
 ├── Additional router modules exist in `app/api/` and stay inactive until explicitly mounted
-├── 175 Python files under `app/` plus a separate nested `forge-telemetry/` library repo
-├── 47 Alembic migration files under `alembic/versions/`
+├── 210 Python files under `app/` plus a separate nested `forge-telemetry/` library repo
+├── 62 Alembic migration files under `alembic/versions/`
 ├── Modular `app/models/` layout with domain-specific `*_models.py` and `*_schemas.py` files
 └── Policy/runtime governance surfaces: promotion receipts, policy envelopes, rate limits, Sentinel, secrets, press, private source
 ```
@@ -102,7 +102,7 @@ curl http://localhost:8001/health
 | Content & Planning | `projects_router`, `authorforge_v2_router`, `smithy_planning_router`, `smithy_portfolio_router` | AuthorForge and Forge:SMITH persistence surfaces |
 | Runtime Governance | `runtime_promotion_router`, `runtime_promotion_candidate_router`, `policy_envelope_router`, `diligence_router`, `diligence_ui_router` | Promotion receipts, candidate review, policy evidence, diligence workflows |
 | Agent & Run Persistence | `forge_run_router`, `agents_registry_router`, `bugcheck_router`, `runs_router`, `experience_router` | Agent registry, run evidence, BugCheck findings, experience storage |
-| Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `tarcie_router`, `secrets_router` | Cross-product persistence and operator-facing integrations |
+| Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `telemetry_router`, `tarcie_router`, `secrets_router` | Cross-product persistence, authenticated operational telemetry, and operator-facing integrations |
 | Platform Surfaces | `multi_provider_router`, `rate_limits_router`, `sentinel_router`, `compression_router`, `press_router`, `private_source_router`, `fpvs_router` | Pricing/catalog, cross-run rate limits, health sweeps, compression, press, private-source profiles, health/version probes |
 
 Source-present but not mounted by default in `app/main.py`: `api_deployment_router`, `auth_revocation_router`, `auth_secure_router`, `cache_replication_router`, `dlq_router`, `rate_limit_router`, `replication_router`, `tracing_router`.
