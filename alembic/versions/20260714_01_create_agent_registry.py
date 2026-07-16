@@ -11,7 +11,6 @@ Create Date: 2026-07-14
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 revision = "20260714_01"
@@ -21,81 +20,77 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "agent_registry",
-        sa.Column("id", sa.String(length=36), nullable=False),
-        sa.Column("name", sa.String(length=100), nullable=False),
-        sa.Column("agent_type", sa.String(length=20), nullable=False),
-        sa.Column("status", sa.String(length=20), nullable=False),
-        sa.Column("user_id", sa.String(length=36), nullable=True),
-        sa.Column(
-            "agent_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False
-        ),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=True,
-        ),
-        sa.PrimaryKeyConstraint("id"),
+    conn = op.get_bind()
+
+    conn.execute(
+        sa.text(
+            """
+            CREATE TABLE IF NOT EXISTS public.agent_registry (
+                id VARCHAR(36) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                agent_type VARCHAR(20) NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                user_id VARCHAR(36),
+                agent_data JSONB NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                updated_at TIMESTAMPTZ DEFAULT now(),
+                PRIMARY KEY (id)
+            )
+            """
+        )
     )
-    op.create_index(
-        "ix_agent_registry_agent_type",
-        "agent_registry",
-        ["agent_type"],
+    conn.execute(
+        sa.text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_agent_registry_agent_type
+            ON public.agent_registry (agent_type)
+            """
+        )
     )
-    op.create_index(
-        "ix_agent_registry_created_at",
-        "agent_registry",
-        ["created_at"],
+    conn.execute(
+        sa.text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_agent_registry_created_at
+            ON public.agent_registry (created_at)
+            """
+        )
     )
-    op.create_index(
-        "ix_agent_registry_name",
-        "agent_registry",
-        ["name"],
-        unique=True,
+    conn.execute(
+        sa.text(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS ix_agent_registry_name
+            ON public.agent_registry (name)
+            """
+        )
     )
-    op.create_index(
-        "ix_agent_registry_status",
-        "agent_registry",
-        ["status"],
+    conn.execute(
+        sa.text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_agent_registry_status
+            ON public.agent_registry (status)
+            """
+        )
     )
-    op.create_index(
-        "ix_agent_registry_user_id",
-        "agent_registry",
-        ["user_id"],
+    conn.execute(
+        sa.text(
+            """
+            CREATE INDEX IF NOT EXISTS ix_agent_registry_user_id
+            ON public.agent_registry (user_id)
+            """
+        )
     )
 
     # Match the deny-by-default posture of every durable DataForge table.
     # The application owner role bypasses RLS; Supabase Data API roles do not.
-    op.execute("ALTER TABLE public.agent_registry ENABLE ROW LEVEL SECURITY")
+    conn.execute(sa.text("ALTER TABLE public.agent_registry ENABLE ROW LEVEL SECURITY"))
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_agent_registry_user_id",
-        table_name="agent_registry",
-    )
-    op.drop_index(
-        "ix_agent_registry_status",
-        table_name="agent_registry",
-    )
-    op.drop_index(
-        "ix_agent_registry_name",
-        table_name="agent_registry",
-    )
-    op.drop_index(
-        "ix_agent_registry_created_at",
-        table_name="agent_registry",
-    )
-    op.drop_index(
-        "ix_agent_registry_agent_type",
-        table_name="agent_registry",
-    )
-    op.drop_table("agent_registry")
+    conn = op.get_bind()
+
+    conn.execute(sa.text("DROP INDEX IF EXISTS ix_agent_registry_user_id"))
+    conn.execute(sa.text("DROP INDEX IF EXISTS ix_agent_registry_status"))
+    conn.execute(sa.text("DROP INDEX IF EXISTS ix_agent_registry_name"))
+    conn.execute(sa.text("DROP INDEX IF EXISTS ix_agent_registry_created_at"))
+    conn.execute(sa.text("DROP INDEX IF EXISTS ix_agent_registry_agent_type"))
+    conn.execute(sa.text("DROP TABLE IF EXISTS public.agent_registry"))
