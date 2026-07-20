@@ -18,8 +18,8 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 from app.database import engine
-from app.api import search_router, admin_router, auth_router, projects_router, runs_router, vibeforge_router, learning_router, teams_router
-from app.api.authorforge_v2_router import router as authorforge_v2_router
+from app.api import search_router, admin_router, auth_router, runs_router, vibeforge_router, learning_router, teams_router
+from app.api.authorforge_boundary_router import router as authorforge_boundary_router
 from app.api.routes.events_router import router as events_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.api.admin_keys_router import router as admin_keys_router, auth_info_router, rotation_router  # ForgeCommand Key Rotation
@@ -189,11 +189,17 @@ app = FastAPI(
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Preserve legacy 404 semantics for invalid project path IDs."""
-    if request.url.path.startswith("/api/projects/"):
-        for error in exc.errors():
-            if error.get("loc") == ("path", "project_id"):
-                return JSONResponse(status_code=404, content={"detail": "Project not found"})
+    """Sanitize rejected analytics payloads; preserve other FastAPI behavior."""
+    if request.url.path == "/api/v1/events/authorforge-analytics":
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": {
+                    "code": "authorforge_analytics_envelope_rejected",
+                    "message": "Payload is not an approved content-free analytics envelope.",
+                }
+            },
+        )
     return await fastapi_request_validation_exception_handler(request, exc)
 
 
@@ -268,7 +274,7 @@ app.include_router(search_router.router)
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)
 app.include_router(auth_router.legacy_router)
-app.include_router(projects_router.router)  # AuthorForge projects API
+app.include_router(authorforge_boundary_router)  # AuthorForge content is local-only; retired API fails closed
 app.include_router(diligence_router)  # Due Diligence API
 app.include_router(diligence_ui_router)  # Due Diligence UI
 app.include_router(runtime_promotion_router)  # Runtime promotion receipt ingest
@@ -289,7 +295,6 @@ app.include_router(agents_registry_router)  # ForgeAgents agent registry persist
 app.include_router(bugcheck_router)  # BugCheck Agent persistence (runs, findings, enrichments)
 app.include_router(smithy_portfolio_router)  # Smithy Portfolio & Competency module
 app.include_router(smithy_planning_router)  # Smithy Planning Sessions persistence
-app.include_router(authorforge_v2_router)  # AuthorForge V2: chapters, scenes, graph, maps, covers
 app.include_router(neuroforge_router)  # NeuroForge inference logging & transparency
 app.include_router(experience_router)  # Agentic Reasoning: Experience Store (search, index, get)
 app.include_router(agent_memory_router)  # Agent generic memory store (store, search, get)

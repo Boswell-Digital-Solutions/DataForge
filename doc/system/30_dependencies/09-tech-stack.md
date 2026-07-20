@@ -23,7 +23,7 @@
 |-----------|---------|-------|
 | SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
-| Alembic | 1.13.1 | Schema migrations; 47 version files in `alembic/versions/` as of 2026-04-03 |
+| Alembic | 1.13.1 | Schema migrations; 59 version files in `alembic/versions/` as of 2026-07-20 |
 
 ## Data Validation
 

@@ -78,7 +78,17 @@ else
   echo "  alembic not found — skipping (install deps first)."
 fi
 
-# ─── Phase 3: Tests ───────────────────────────────────────────────
+# ─── Phase 3: Production-boundary Tests ──────────────────────────
+step "Running poller and AuthorForge boundary tests..."
+python3 -m pytest \
+  tests/test_unit/test_supabase_log_ingest.py \
+  tests/test_unit/test_supabase_log_poller.py \
+  tests/test_unit/test_authorforge_analytics.py \
+  tests/test_unit/test_authorforge_boundary_audit.py \
+  -x --tb=short -q \
+  || fail "production-boundary pytest"
+
+# ─── Phase 4: Existing Tests ─────────────────────────────────────
 # Exclude tests requiring live infrastructure (PostgreSQL, Redis, pgvector).
 # The db_session fixture is undefined without a running database, causing 194+ errors.
 step "Running pytest (unit tests)..."

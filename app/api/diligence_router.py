@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import models
-from app.models.authorforge_models import Project as AuthorForgeProject
 from app.models.diligence_models import DiligenceProject as DiligenceProjectModel
 from app.models.diligence_models import FindingStatus
 from app.models.diligence_schemas import (
@@ -102,32 +101,10 @@ def _resolve_legacy_diligence_project_id(
     if diligence_project:
         return diligence_project.id
 
-    source_project = db.query(AuthorForgeProject).filter(
-        AuthorForgeProject.id == legacy_project_id,
-        AuthorForgeProject.user_id == current_user_id,
-    ).first()
-    if not source_project:
-        return None
-
-    diligence_projects = db.query(DiligenceProjectModel).filter(
-        DiligenceProjectModel.user_id == current_user_id
-    ).all()
-    for candidate in diligence_projects:
-        metadata = candidate.project_metadata or {}
-        if metadata.get("source_project_id") == source_project.id:
-            return candidate.id
-
-    created_project = diligence_crud.create_project(
-        db,
-        user_id=current_user_id,
-        project=DiligenceProjectCreate(
-            name=source_project.name,
-            description=source_project.description,
-            tags=["legacy_authorforge_project"],
-            project_metadata={"source_project_id": source_project.id},
-        ),
-    )
-    return created_project.id
+    # Historical behavior queried the legacy AuthorForge ``projects`` table and
+    # copied its title/description into diligence.  That crosses the local-only
+    # AuthorForge content boundary, so this compatibility fallback is retired.
+    return None
 
 
 def _normalize_legacy_finding_severity(severity: str) -> FindingSeverityEnum:

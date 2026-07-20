@@ -1,5 +1,9 @@
 # Load Testing Guide - DataForge
 
+> The checked-in legacy load scripts still contain `/api/projects` scenarios. That route is now
+> a `410 Gone` boundary tombstone; do not treat those scenarios or historical numbers as an
+> AuthorForge content API benchmark.
+
 This guide explains how to run comprehensive load tests on the DataForge API using multiple tools.
 
 ## Quick Start
@@ -149,7 +153,7 @@ Concurrent Users: 25
 
 Endpoint                      Requests    Success Rate    Avg (ms)       P95 (ms)
 --------------------------------------------------------------------------------
-/api/projects                    125         95.2%        182.3         340.1
+/api/projects (410 tombstone)    125        100.0%         25.0          60.0
 /api/search                       89         98.1%        245.7         512.3
 /api/diligence                    67         92.1%        512.8         1023.4
 --------------------------------------------------------------------------------
@@ -197,8 +201,8 @@ locust -f tests/load/locustfile.py \
 
 | Endpoint            | P50   | P95    | P99    | Max   |
 | ------------------- | ----- | ------ | ------ | ----- |
-| GET /api/projects   | 100ms | 300ms  | 500ms  | 1s    |
-| POST /api/projects  | 200ms | 500ms  | 1000ms | 2s    |
+| GET /api/projects (410 tombstone) | 25ms | 75ms | 150ms | 300ms |
+| POST /api/projects (410 tombstone) | 25ms | 75ms | 150ms | 300ms |
 | GET /api/search     | 300ms | 1000ms | 2000ms | 3s    |
 | POST /api/diligence | 400ms | 1000ms | 2000ms | 3s    |
 | GET /health         | 50ms  | 100ms  | 150ms  | 300ms |

@@ -23,7 +23,7 @@ contract, persistence/retrieval authority, write-boundary invariants, fail-close
 posture, and ecosystem contracts; *snapshot facts* are dated, audit-derived
 counts (mounted routers, Alembic migrations, Python/test files, collected tests).
 See §11 for the scope and authority boundary and §12 for ownership and
-designation doctrine. The nested `forge-telemetry/` repo is documented separately.
+designation doctrine. The sibling `../forge-telemetry/` repo is documented separately.
 
 | Part | File | Contents |
 | --- | --- | --- |
@@ -57,20 +57,20 @@ bash doc/system/BUILD.sh
 
 ## Service Identity
 
-**DataForge** is the resident FastAPI service that owns durable ecosystem truth. It is
+**DataForge** is the resident FastAPI service that owns approved durable ecosystem truth. It is
 the persistence, retrieval, and governance evidence boundary behind the rest of Forge,
 not a bootstrap repo or passive library.
 
 - **Runtime posture:** Resident HTTP service
 - **Default port:** `8001`
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
-- **Mounted router objects:** `35` from `app/main.py` (audit: 2026-04-03)
-- **Router modules in source:** `39`
-- **Alembic migrations:** `47`
-- **Python files under `app/`:** `175`
-- **Pytest files:** `39`
-- **Collected tests:** `565` via `PYTHONPATH=. ./.venv/bin/pytest --collect-only -q`
-- **Nested repo boundary:** `forge-telemetry/` is a separate git repo with its own documentation stack
+- **Mounted router objects:** `44` from `app/main.py` (audit: 2026-07-20)
+- **Router modules in source:** `50`
+- **Alembic migrations:** `59`
+- **Python files under `app/`:** `210`
+- **Pytest files:** `55`
+- **Collected tests:** `761` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
 
@@ -81,21 +81,25 @@ Every major Forge runtime writes authoritative records into DataForge:
 
 - **NeuroForge** persists inference records, model-routing evidence, and learning data.
 - **VibeForge** persists projects, sessions, outcomes, analytics, and preferences.
-- **AuthorForge** persists project, chapter, scene, manuscript, map, and asset state.
+- **AuthorForge is the explicit local-authority exception.** Its embedded database is the
+  exclusive source of truth for projects and all user-authored content. DataForge may persist
+  only the strict, minimized `AuthorForgeAnalyticsEnvelope.v1` telemetry contract.
 - **ForgeAgents / BugCheck** persist agent definitions, run evidence, findings, enrichments, and lifecycle events.
 - **Forge:SMITH** persists planning sessions, deliverables, portfolio projects, and evaluations.
 - **ForgeCommand** depends on DataForge for execution evidence, key control, secret sync, and governance-adjacent state.
 - **Sentinel / Press / private-source / runtime-governance surfaces** persist sweep records, automation records, profile state, policy envelopes, and promotion receipts.
 
-If a service cannot persist required durable state to DataForge, the operation is not complete.
-That fail-closed posture is intentional.
+If a service cannot persist DataForge-owned durable state to DataForge, the operation is not
+complete. That fail-closed posture is intentional. It must never be interpreted as authority
+to copy AuthorForge content out of AuthorForge's embedded database.
 
 ## Current Service Role
 
 ### 1. Durable Persistence
-PostgreSQL remains the authority boundary for documents, runs, findings, planning state,
-authoring assets, pricing data, policy ledgers, press automation records, and private-source
-profiles.
+PostgreSQL remains the authority boundary for DataForge corpus documents, runs, findings,
+planning state, pricing data, policy ledgers, press automation records, and private-source
+profiles. AuthorForge manuscripts, chapters, scenes, notes, research, worldbuilding,
+attachments, embeddings, prompts, responses, and identity are outside this boundary.
 
 ### 2. Hybrid Retrieval
 DataForge stores chunked documents with vector embeddings and full-text indexes, then
@@ -128,7 +132,9 @@ downgrading authority decisions.
 - **Not an orchestrator.** ForgeCommand remains the ecosystem operator/control plane.
 - **Not an autonomous healer.** Sentinel data is persisted here, but DataForge does not itself perform autonomous repair.
 - **Not the live OAuth2/TOTP gateway on the default mounted surface.** Those secure auth modules exist in source only until explicitly wired in `app/main.py`.
-- **Not the `forge-telemetry` codebase.** The nested repo is versioned and documented separately.
+- **Not the `forge-telemetry` codebase.** The sibling repo is versioned and documented separately.
+- **Not AuthorForge's cloud content backend.** `/api/projects` is a fail-closed `410` tombstone;
+  it does not parse, serve, sync, or persist AuthorForge content.
 
 *See §11 for the invariants that must remain true across future changes.*
 
@@ -142,7 +148,7 @@ downgrading authority decisions.
 DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── 35 mounted router objects plus app-level health/admin/docs routes
+│   ├── 44 mounted router objects plus app-level health/admin/docs routes
 │   ├── Lifespan handler (config validation, pgvector startup checks, readiness posture)
 │   ├── Correlation, timeout, and security-header middleware
 │   ├── HTML admin/diligence views plus JSON API surfaces
@@ -151,7 +157,7 @@ DataForge (default port 8001)
 ├── Mounted Service Domains
 │   ├── Search and content admin
 │   ├── Auth compatibility, admin key control, token rotation
-│   ├── AuthorForge, VibeForge, NeuroForge, Forge:SMITH, Teams
+│   ├── AuthorForge analytics-only intake; VibeForge, NeuroForge, Forge:SMITH, Teams
 │   ├── ForgeAgents, BugCheck, experience store, run persistence
 │   ├── Diligence UI/API, Tarcie ingest, events/audit surfaces
 │   ├── Runtime promotion, policy envelopes, rate-limit governance
@@ -170,7 +176,7 @@ DataForge (default port 8001)
 │   ├── Embedding pipeline (`app/utils/embeddings.py`)
 │   ├── Cache governance + corpus versioning
 │   ├── Auth, encryption, tracing, resilience, and failover helpers
-│   └── Nested `forge-telemetry/` library boundary for shared telemetry concerns
+│   └── Sibling `../forge-telemetry/` library boundary for shared telemetry concerns
 │
 └── Storage Layer
     ├── PostgreSQL 13+ — canonical relational store and authority boundary
@@ -185,6 +191,10 @@ is whatever `app.main:app` includes. Source-present but unmounted routers such a
 `auth_secure_router`, `tracing_router`, `api_deployment_router`, `replication_router`,
 `cache_replication_router`, `dlq_router`, and `rate_limit_router` remain implementation
 inventory only until explicitly registered in `app/main.py`.
+
+The legacy `projects_router` and `authorforge_v2_router` are also source-present but retired.
+They must not be remounted. The only AuthorForge paths in the live service are the content-free
+analytics intake and the `/api/projects` tombstone that returns `410 Gone` without parsing a body.
 
 ## Hybrid Search Architecture
 
@@ -286,13 +296,16 @@ Domain A (e.g., NeuroForge)
 ├── Chunks (embedded, domain-indexed)
 └── Search (domain-filtered by default)
 
-Domain B (e.g., AuthorForge)
+Domain B (e.g., a DataForge-owned knowledge corpus)
 ├── Documents
 ├── Chunks
 └── Search
 ```
 
 **Isolation mechanism:** Domain foreign keys on Document and Chunk models. Search queries accept `domain_id` filter. Without explicit domain filtering, cross-domain search is possible (authorized use cases only).
+
+AuthorForge user content is not a DataForge search domain. It must never be chunked, embedded,
+indexed, or routed through this pipeline.
 
 ## Execution Index Architecture
 
@@ -407,17 +420,17 @@ server-rendered HTML plus JSON APIs.
 
 ## Directory Tree
 
-*Last updated: 2026-04-04*
+*Last updated: 2026-07-20*
 
 ```
 DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 47 migration version files (hash-prefixed Alembic names)
+│   └── versions/                     # 59 migration version files (hash-prefixed Alembic names)
 │
-├── app/                              # Main application package (175 Python files)
-│   ├── main.py                       # FastAPI app + lifespan + router registration (35 mounted routers)
+├── app/                              # Main application package (210 Python files)
+│   ├── main.py                       # FastAPI app + lifespan + router registration (44 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
@@ -428,8 +441,10 @@ DataForge/
 │   │   ├── schemas.py                # Core: auth, search, user/domain/document/tag schemas
 │   │   ├── agentic_reasoning_models.py / _schemas.py   # Experience store, gate analytics, skill nomination
 │   │   ├── agent_registry_schemas.py                   # Agent definition persistence
-│   │   ├── authorforge_models.py / _schemas.py         # AuthorForge v1 state
-│   │   ├── authorforge_v2_models.py / _schemas.py      # AuthorForge v2 state
+│   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
+│   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
+│   │   ├── authorforge_analytics_schemas.py            # Strict content-free analytics v1
+│   │   ├── telemetry_models.py                         # Existing canonical events mapping
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
@@ -453,7 +468,7 @@ DataForge/
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
-│   ├── api/                          # Router modules (40+ files; 35 mounted in main.py)
+│   ├── api/                          # 50 router modules; 44 mounted objects in main.py
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
 │   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
 │   │   ├── admin_keys_router.py      # Service-key governance
@@ -468,10 +483,12 @@ DataForge/
 │   │   │                             # NeuroForge inference record persistence
 │   │   ├── multi_provider_router.py / multi_provider_crud.py
 │   │   │                             # Provider pricing catalog and batch queue
+│   │   ├── authorforge_boundary_router.py
+│   │   │                             # Mounted 410 tombstone for retired content API
 │   │   ├── projects_router.py / projects_crud.py
-│   │   │                             # AuthorForge v1 projects
+│   │   │                             # Legacy AuthorForge v1; not mounted
 │   │   ├── authorforge_v2_router.py / authorforge_v2_crud.py
-│   │   │                             # AuthorForge v2 state
+│   │   │                             # Legacy AuthorForge v2; not mounted
 │   │   ├── smithy_planning_router.py / smithy_planning_crud.py
 │   │   ├── smithy_portfolio_router.py / smithy_portfolio_crud.py
 │   │   ├── sentinel_router.py        # Sentinel sweep/healing records
@@ -487,7 +504,7 @@ DataForge/
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
 │   │   ├── fpvs_router.py            # Health/version probe surface
-│   │   ├── routes/events_router.py   # Audit event append
+│   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
 │   │        auth_secure_router, cache_replication_router, dlq_router,
 │   │        rate_limit_router, replication_router, tracing_router)
@@ -537,6 +554,9 @@ DataForge/
 │
 ├── scripts/
 │   ├── create_admin.py               # Interactive CLI: create initial admin user
+│   ├── poll_supabase_logs.py         # Scheduled, redacted Supabase log poll
+│   ├── audit_authorforge_boundary.py # Read-only legacy metadata audit (IDs/counts only)
+│   ├── render-cron-build.sh          # Render cron build/preflight
 │   └── seed_model_catalog.py         # Seed canonical model catalog + retire stale xAI aliases
 │
 ├── templates/
@@ -544,7 +564,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 39 test files, 565 collected tests as of 2026-04-03
+├── tests/                            # 55 test files, 761 collected tests as of 2026-07-20
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -556,13 +576,7 @@ DataForge/
 │   ├── test_authorforge_api.py
 │   ├── test_lifecycle.py
 │   ├── test_compliance_gdpr.py
-│   └── ... (39 files total)
-│
-├── forge-telemetry/                  # Nested git repo; shared telemetry library with its own docs stack
-│   ├── doc/system/                   # Separate library system docs
-│   ├── forge_telemetry/              # Published package surface
-│   ├── scripts/context-bundle.sh     # Selective context loader for the nested repo
-│   └── CLAUDE.md                     # Nested repo working instructions
+│   └── ... (55 files total)
 │
 ├── alembic.ini                       # Alembic configuration
 ├── docker-compose.yml                # Local dev: PostgreSQL + Redis + DataForge
@@ -578,7 +592,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 35 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 44 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware. Router modules that exist in `app/api/` but are not included here are source-present only and should not be documented as live API surface.
 
@@ -641,7 +655,7 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-47 migration files covering the base schema plus later domain additions, pgvector support,
+59 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.
 
@@ -649,10 +663,10 @@ Always run `alembic upgrade head` after pulling new code.
 
 # §4 — API Layer
 
-*Last updated: 2026-04-04*
+*Last updated: 2026-07-20*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-04-04 confirmed `36` mounted router objects plus app-level docs, HTML views, and
+on 2026-07-20 confirmed `44` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 
@@ -681,7 +695,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Auth compatibility and operator key control | `/auth`, `/api/auth`, `/auth/whoami`, `/admin/api-keys`, `/admin/token` | `POST /auth/token`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /admin/api-keys/generate`, `POST /admin/token/rotate` | Live mounted auth is JWT/login compatibility plus admin key/token tooling |
 | NeuroForge and learning | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | `POST /api/neuroforge/inferences`, `POST /api/neuroforge/routing-decisions`, `POST /api/v1/runs`, `GET /api/v1/learning/model-performance` | Inference, routing, run logging, and learning feedback |
 | VibeForge and team state | `/api/vibeforge`, `/api/teams` | `POST /api/vibeforge/projects`, `POST /api/vibeforge/sessions`, `GET /api/teams/{team_id}`, `GET /api/teams/{team_id}/insights` | Project/session persistence and team insights |
-| AuthorForge content graph | `/api/projects` | `POST /api/projects`, `POST /api/projects/{project_id}/chapters`, `POST /api/projects/manuscripts`, `GET /api/projects/{project_id}/map/settings` | Large mounted authoring/content surface with chapters, scenes, maps, assets, collections, arcs, and alerts |
+| AuthorForge boundary | `/api/projects`, `/api/v1/events/authorforge-analytics` | All `/api/projects` methods return `410`; `POST /api/v1/events/authorforge-analytics` accepts only `AuthorForgeAnalyticsEnvelope.v1` | AuthorForge content stays in its embedded DB; only minimized analytics can enter DataForge |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
@@ -700,6 +714,10 @@ Credential requirements vary by router. The live mounted service currently uses 
 | JWT bearer | `/api/auth/me` and many user-facing CRUD surfaces |
 | Admin token / emergency key / admin headers | `/admin/api-keys/*`, `/admin/token/*`, `/secrets/*` |
 | Service API keys / scoped run credentials | BugCheck, event, policy, promotion, pricing, rate-limit, and integration surfaces as enforced by their handlers |
+
+AuthorForge analytics requires a database-backed Bearer key whose metadata has
+`service=authorforge` and a `scopes` list containing `analytics:write`. A general event key or
+JWT is insufficient.
 
 The repo contains a richer secure auth stack in `auth_secure_router.py`, but that router is
 not mounted and therefore is not part of the live contract.
@@ -726,6 +744,10 @@ live app surface:
 - Do not document `/metrics` as a supported root route until a mounted route actually exposes it.
 - Preserve the distinction between HTML operator pages and JSON APIs.
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
+- Never remount `projects_router` or `authorforge_v2_router`. The `/api/projects` tombstone must
+  reject before body parsing, and rejected analytics payloads must not be echoed or logged.
+- `AuthorForgeAnalyticsEnvelope.v1` is strict and closed: no arbitrary metadata, user content,
+  raw logs, paths, identity, prompts/responses, attachments, or embeddings.
 
 ---
 
@@ -1118,6 +1140,33 @@ After these additions, PressForge uses **21 `pf_*` tables** total:
 ---
 
 # §7 — Backend Internals
+
+## AuthorForge Analytics Boundary
+
+`POST /api/v1/events/authorforge-analytics` validates the closed
+`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the existing canonical
+`events` table (`service=authorforge`). Only named enums, bounded counts/timings/costs, opaque
+build/model identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no
+free-form metadata/metrics container. Validation responses are generic and do not include the
+rejected input.
+
+The retired AuthorForge content models remain registered in Alembic solely to recognize
+pre-existing tables. Runtime package initializers do not eagerly import them, and the content
+routers are not mounted. `scripts/audit_authorforge_boundary.py` is the only supported legacy
+inspection path: it selects table existence, counts, primary-key column names, and bounded IDs;
+it never selects content columns and never mutates records. It also flags historical `pf_*`
+tables that contain explicit AuthorForge links or content-capable fields for human ownership
+review without automatically classifying those rows as boundary violations.
+
+## Supabase Log Poll Runtime
+
+`scripts/poll_supabase_logs.py` performs configuration, connectivity, migration-table, and API
+preflights before persistence. It uses the current unified `/analytics/endpoints/logs` stream
+with source-filtered ClickHouse SQL, supplies explicit start/end timestamps, minimizes the
+upstream SQL projection, clamps the query to Supabase's maximum 24-hour window, redacts before storage,
+and deduplicates by source log ID. Failures use stable non-sensitive categories (configuration,
+authentication, authorization, rate limiting, upstream, network, payload schema, database, and
+database migration) without logging tokens or upstream response bodies.
 
 ## Vector Search Engine
 
@@ -1682,7 +1731,7 @@ surface are re-audited.
 |-----------|---------|-------|
 | SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
-| Alembic | 1.13.1 | Schema migrations; 47 version files in `alembic/versions/` as of 2026-04-03 |
+| Alembic | 1.13.1 | Schema migrations; 59 version files in `alembic/versions/` as of 2026-07-20 |
 
 ## Data Validation
 
@@ -1771,7 +1820,8 @@ module present in the repo.
 
 1. **Every durable-write caller authenticates.** Unauthenticated writes are not part of the contract.
 2. **Scope is enforced, not implied.** Run-scoped and admin-scoped flows remain explicit.
-3. **DataForge is the record.** Downstream services may cache, but they do not own truth.
+3. **DataForge is the record for DataForge-owned domains.** AuthorForge content is the explicit
+   exception and remains authoritative only in AuthorForge's embedded database.
 4. **Unavailable means unavailable.** Readiness failure should block authority-dependent work.
 
 ## Current Integration Map
@@ -1780,7 +1830,7 @@ module present in the repo.
 |---------------------|--------------------------|-------------------------------------|
 | NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | Inference persistence, routing decisions, execution logs, learning feedback |
 | VibeForge | `/api/vibeforge`, `/api/teams` | Project/session/outcome persistence plus team insights |
-| AuthorForge | `/api/projects` | Project, chapter, scene, manuscript, map, asset, collection, and story structure persistence |
+| AuthorForge | `/api/v1/events/authorforge-analytics`; `/api/projects` tombstone | Strict minimized analytics only; no content persistence, retrieval, or sync |
 | ForgeAgents | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/experience` | Agent registry, run evidence, execution history, experience store |
 | BugCheck | `/api/v1/bugcheck` | Run creation, finding ingest, enrichments, lifecycle events, progress |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | Planning session state, deliverables, portfolio, evaluation evidence |
@@ -1824,16 +1874,23 @@ Representative mounted routes:
 - `GET /api/v1/learning/model-performance`
 - `GET /api/v1/learning/recommendations/*`
 
-## Authoring, Planning, and Portfolio State
+## AuthorForge Analytics and Local Content Authority
 
-Mounted authoring and planning surfaces now span:
+AuthorForge must not send manuscripts, chapters, scenes, notes, research, worldbuilding,
+attachments, embeddings, prompts, responses, filesystem paths, raw logs, or identity to
+DataForge. The only permitted write is `AuthorForgeAnalyticsEnvelope.v1` with a dedicated
+`analytics:write` AuthorForge key. Identifiers must be rotatable pseudonyms with the documented
+prefixes. The `/api/projects` family is retired and returns `410 Gone`.
 
-- `POST /api/projects` and the broader `/api/projects/{project_id}/...` family
+## Planning and Portfolio State
+
+Other mounted planning/project surfaces span:
+
 - `POST /api/vibeforge/projects` and `/api/vibeforge/sessions`
 - `POST /api/v1/smithy/planning/sessions`
 - `POST /api/v1/smithy/portfolio/projects`
 
-These surfaces are no longer "future integrations"; they are part of the live mounted app.
+These non-AuthorForge surfaces are part of the live mounted app.
 
 ## Operator Control and Governance
 
@@ -1896,15 +1953,17 @@ public-release or production-certification status.
 
 DataForge is the **durable-truth boundary** for the Forge ecosystem — the
 resident FastAPI persistence, retrieval, and governance-evidence service. Its
-authority is durable and ecosystem-wide: state written here is the *canonical
-record*, not a convenience mirror. Every major Forge runtime persists its
-authoritative records into DataForge, and if a service cannot persist required
+authority is durable and ecosystem-wide for approved DataForge domains: state written here is
+the *canonical record*, not a convenience mirror. Forge runtimes persist DataForge-owned
+authoritative records into DataForge, and if a service cannot persist required DataForge-owned
 durable state here, the operation is **not complete** (fail-closed by design).
+**AuthorForge user content is the explicit exception:** its embedded database is the exclusive
+authority and no sync/copy path into DataForge is permitted.
 
 ## What DataForge Owns
 
-- **Durable persistence** — PostgreSQL is the authority boundary for documents,
-  runs, findings, planning state, authoring assets, pricing/catalog data, policy
+- **Durable persistence** — PostgreSQL is the authority boundary for DataForge documents,
+  runs, findings, planning state, pricing/catalog data, policy
   ledgers, press-automation records, and private-source profiles.
 - **Hybrid retrieval** — chunked documents with pgvector embeddings + full-text
   indexes, served as semantic, keyword, and RRF-fused search.
@@ -1929,8 +1988,12 @@ durable state here, the operation is **not complete** (fail-closed by design).
   authoritative ready signal.
 - **The live OAuth2/TOTP gateway** on the default mounted surface (those secure
   modules are source-only until explicitly wired).
-- **The `forge-telemetry/` codebase.** That nested repo is versioned and
+- **The `../forge-telemetry/` codebase.** That sibling repo is versioned and
   documented separately and is out of this documentation boundary.
+- **AuthorForge user content or identity.** Projects, manuscripts, chapters, scenes, notes,
+  research, worldbuilding, attachments, embeddings, prompts, responses, raw logs, paths, and
+  identity remain in AuthorForge's embedded database. DataForge owns only approved minimized
+  analytics received through `AuthorForgeAnalyticsEnvelope.v1`.
 
 ## Write-Boundary / Access-Control Authority
 
@@ -1983,7 +2046,7 @@ designated, and changed.
 | `doc/DTFSYSTEM.md` compiled artifact | DataForge repository — generated, never hand-edited |
 | `DTF` designation | ForgeCommand designation registry (governed registry state, not local repo opinion) |
 | Ecosystem composite compiled system reference | ForgeCommand |
-| `forge-telemetry/` documentation | The nested `forge-telemetry` repo (separate boundary) |
+| `../forge-telemetry/` documentation | The sibling `forge-telemetry` repo (separate boundary) |
 
 The operating context is a single-operator governed environment: compliance
 state must be explicit, visible, and reconstructable; remediation is bounded and
@@ -2076,7 +2139,8 @@ production-certification claims.
   (a dimension change is a migration, not a config tweak) and search quality is
   not silently degraded.
 - **C4** — proof the access-control matrix still holds (ForgeCommand/BugCheck/
-  XAI/VibeForge write scopes), run-immutability (409 after FINALIZED), and the
+  XAI/VibeForge write scopes), the AuthorForge analytics-only/local-content boundary,
+  run-immutability (409 after FINALIZED), and the
   audit log remains append-only + HMAC-signed.
 - **C5** — the governance-evidence table/flow with operator-review surfacing.
 - **C6** — the env/setting reflected in §14 (Configuration), with secrets sourced
@@ -2095,9 +2159,10 @@ curl -s localhost:8001/ready                   # fail-closed readiness (DB + pgv
 
 ## Source-of-Truth / Fail-Closed Rules
 
-DataForge stays the canonical durable record (§11): a change must not introduce a
-path where a service's authoritative state is considered complete without being
-persisted here. Readiness stays DB/pgvector-driven; Redis remains derived state.
+DataForge stays the canonical durable record for its approved domains (§11): a change must not
+introduce a path where DataForge-owned state is considered complete without being persisted
+here. This rule never authorizes AuthorForge content ingestion; that content must remain local
+and any cloud attempt must fail closed. Readiness stays DB/pgvector-driven; Redis remains derived state.
 The mounted surface is the live contract — adding a router to source without
 mounting it does not change the contract (note it as source-present-not-mounted).
 
@@ -2263,6 +2328,45 @@ The app-level config currently exposes:
 |----------|------|---------|-------|
 | `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | Base URL for NeuroForge embedding/inference integration |
 
+## Render Build Authentication
+
+| Variable | Required on Render | Notes |
+|----------|--------------------|-------|
+| `FORGE_TELEMETRY_TOKEN` | YES | Preferred build-only GitHub token with `Contents:Read` on the pinned `forge-telemetry` and `forge_contract_core` repositories |
+| `GITHUB_TOKEN` | Fallback | Accepted only when `FORGE_TELEMETRY_TOKEN` is absent |
+
+The build uses HTTPS token rewriting in `scripts/render-git-auth.sh`; it does not consume
+`SSH_KEY` or `SSH_KEY_B64`. Never print either token. The web build is the sole Render migration
+runner. The cron build verifies exactly one Alembic head and its runtime preflight verifies the
+`supabase_log_events` table, but the cron does not run migrations concurrently.
+
+## Supabase Log Poller
+
+| Variable | Required for cron | Notes |
+|----------|-------------------|-------|
+| `DATAFORGE_DATABASE_URL` | YES | Same migrated PostgreSQL authority as the web service |
+| `SUPABASE_PROJECT_REF` | YES | Lowercase Supabase project reference |
+| `SUPABASE_ACCESS_TOKEN` | YES | Management API PAT/OAuth token with analytics-log read permission |
+| `SUPABASE_LOG_IDENTITY_SALT` | Recommended | One-way identity hashing; raw identity is dropped when absent |
+| `SUPABASE_LOG_SOURCE_TABLE` | NO | Fixed allow-listed source; default `edge_logs` |
+| `SUPABASE_LOG_POLL_LOOKBACK_SECONDS` | NO | Empty-table lookback; must be 1–86,340 seconds |
+| `SUPABASE_LOG_POLL_OVERLAP_SECONDS` | NO | Cursor overlap for safe retry/deduplication |
+| `SUPABASE_LOG_POLL_MAX_ROWS` | NO | Per-poll cap; must be 1–10,000 |
+
+The configured token needs the `analytics:read` OAuth scope or
+`analytics_logs_read` fine-grained permission. The poller uses Supabase's current unified logs
+endpoint and ClickHouse SQL; do not revert it to the deprecated `logs.all` endpoint.
+
+Operational failures appear only as `poller_failed category=<category> code=<code>`. Diagnose
+using those values and variable *names*; do not paste token values or raw upstream bodies.
+
+## AuthorForge Analytics Writer
+
+`API_KEY_SALT` is required for the database-backed API key system in production. Create a
+dedicated AuthorForge key whose metadata contains `service: authorforge` and whose `scopes`
+array contains `analytics:write`. Do not reuse a general-purpose event/admin key. There are no
+environment variables for AuthorForge content sync because content sync is prohibited.
+
 ---
 
 ## Full `.env.example` Reference
@@ -2275,6 +2379,7 @@ REDIS_URL=redis://localhost:6379/0
 # Security
 SECRET_KEY=<generate-with-secrets.token_hex-32>
 JWT_SECRET_KEY=<same-as-SECRET_KEY>
+API_KEY_SALT=<generate-long-random-value>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
@@ -2298,6 +2403,15 @@ MAX_EMBEDDING_INPUT_LENGTH=8000
 # Logging
 LOG_LEVEL=INFO
 
+# Render build-only private dependency auth
+FORGE_TELEMETRY_TOKEN=<github-fine-grained-read-token>
+
+# Supabase log cron only
+SUPABASE_PROJECT_REF=<project-ref>
+SUPABASE_ACCESS_TOKEN=<management-api-token>
+SUPABASE_LOG_IDENTITY_SALT=<generate-long-random-value>
+SUPABASE_LOG_SOURCE_TABLE=edge_logs
+
 # Cache Governance
 DOC_FETCH_CACHE_TTL=600
 SEARCH_RESULTS_CACHE_TTL=300
@@ -2320,16 +2434,16 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §15 — Testing
 
-*Last updated: 2026-04-04*
+*Last updated: 2026-07-20*
 
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `40` |
-| Total tests collected | `594` (565 baseline + 29 proving-slice) |
-| Inventory command | `PYTHONPATH=. venv/bin/python -m pytest --collect-only -q` |
-| Inventory audit date | `2026-04-04` |
+| Total test files | `55` |
+| Total tests collected | `761` |
+| Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
+| Inventory audit date | `2026-07-20` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
 This section intentionally documents what is currently observable from the repository. It
@@ -2361,6 +2475,18 @@ without PostgreSQL or Redis.
 ### Proving-Slice Intake
 
 - `tests/test_proving_slice_intake.py` — 29 tests covering accepted (8), rejected (5), duplicate/idempotency (3), family gate (3), receipt lookup (4), and adversarial (6). Adversarial tests exercise real contract-core validation without patching. No live DB required (SQLite in-memory via conftest).
+
+### Production Boundary Regression
+
+- `tests/test_unit/test_supabase_log_poller.py` — config/API/database failure categories,
+  bounded query windows, redaction, and idempotent retry.
+- `tests/test_unit/test_supabase_log_ingest.py` — allow-listing, sensitive-field removal, and
+  identity pseudonymization.
+- `tests/test_unit/test_authorforge_analytics.py` — strict envelope allow-list, size/cardinality
+  bounds, content/identity rejection, idempotent canonical event persistence, generic rejection
+  responses, and mounted-route inventory.
+- `tests/test_unit/test_authorforge_boundary_audit.py` — synthetic proof that the read-only audit
+  reports IDs/counts/categories without reading or outputting content fields.
 
 ### Runtime / Governance / Persistence
 
@@ -2420,6 +2546,16 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
 .venv/bin/pytest tests/test_policy_envelope_router.py tests/test_runtime_promotion_candidates.py -v
 ```
 
+### Focused Poller and AuthorForge Boundary
+
+```bash
+.venv/bin/pytest \
+  tests/test_unit/test_supabase_log_ingest.py \
+  tests/test_unit/test_supabase_log_poller.py \
+  tests/test_unit/test_authorforge_analytics.py \
+  tests/test_unit/test_authorforge_boundary_audit.py -q
+```
+
 ## Environment Notes
 
 - Many tests expect a real PostgreSQL database and, for some cases, Redis or pgvector support.
@@ -2447,7 +2583,7 @@ phase summaries.
 
 These are architectural invariants, not guidelines. Violating them causes data loss, security breaches, or ecosystem-wide consistency failures.
 
-### 1. DataForge Is the Only Source of Truth
+### 1. DataForge Is the Source of Truth for Its Approved Domains
 
 No service maintains authoritative state outside DataForge/Postgres. There is no "eventually
 consistent" model. There is no "local cache that syncs later." If the authoritative write fails,
@@ -2459,6 +2595,10 @@ RIGHT: Service attempts DataForge write; if it fails, the operation fails
 ```
 
 Redis is explicitly derived state only. It can accelerate reads, but it cannot own authority.
+
+AuthorForge is the explicit exception. Its embedded database is the exclusive authority for
+all AuthorForge user content and identity. DataForge receives only the strict minimized
+`AuthorForgeAnalyticsEnvelope.v1`; never remount the legacy content routers or add a sync path.
 
 ### 2. Cache Must Never Decide Authority
 
@@ -2510,7 +2650,7 @@ key unless the re-encryption path is implemented and reviewed in the repo you ar
 | XAI/MAID (run_token) | Enrichment artifacts | Findings, lifecycle transitions, run records |
 | VibeForge (user_token) | User decisions (lifecycle transitions) | Findings, run records, enrichments |
 | NeuroForge (API key) | Run results, inference records, performance metrics | BugCheck data |
-| AuthorForge (API key) | Project content hierarchy | BugCheck data, run records |
+| AuthorForge (dedicated scoped API key) | Strict minimized `AuthorForgeAnalyticsEnvelope.v1` only | All user content/identity, arbitrary metadata, BugCheck data, run records |
 | SMITH (API key) | Planning sessions, portfolio, governance events | BugCheck findings |
 | Sentinel (API key) | Sweep records, healing events | BugCheck data, run records |
 | Pricing Monitor (API key) | Pricing snapshots, alerts, monitor runs | BugCheck data |
@@ -2752,7 +2892,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/DataForge/tests/` | 39 test files; 565 collected tests in the 2026-04-03 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 55 test files; 761 collected tests in the 2026-07-20 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
@@ -2764,13 +2904,13 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 
 ## Documentation Audit Note
 
-The current canonical reference is the generated root `SYSTEM.md` assembled from `doc/system/`.
+The current canonical reference is generated `doc/DTFSYSTEM.md`, assembled from `doc/system/`.
 When older phase summaries or historical completion documents conflict with the generated
 system docs, the generated system docs win.
 
 ---
 
-*Forge Documentation Protocol v1 — Last updated: 2026-04-03*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-20*
 
 ---
 

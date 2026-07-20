@@ -7,11 +7,14 @@
 **Port:** 8001
 **Location:** `/home/charlie/Forge/ecosystem/DataForge/`
 **Entry point:** `app/main.py`
-**Status:** Resident FastAPI service; documentation refreshed against the 2026-04-03 working tree (`35` mounted router objects, `47` Alembic migrations, `39` pytest files / `565` collected tests)
+**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-20 working tree (`44` mounted router objects, `59` Alembic migrations, `55` pytest files / `761` collected tests)
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
-1. **DataForge owns all durable state.** All Forge services (ForgeAgents, NeuroForge, VibeForge, AuthorForge, Forge:SMITH) write to DataForge. Nowhere else.
+1. **DataForge owns approved DataForge-domain durable state.** AuthorForge is the explicit
+   exception: its embedded database exclusively owns projects and user content. DataForge may
+   receive only strict minimized `AuthorForgeAnalyticsEnvelope.v1` telemetry—never content,
+   identity, paths, raw logs, prompts/responses, attachments, or embeddings.
 2. **BugCheck writes findings only.** Requires `run_token` scoped to `{run_id, targets, mode, scope, commit_sha}`.
 3. **BugCheck NEVER writes lifecycle transitions.** Only ForgeCommand writes those.
 4. **VibeForge NEVER writes findings.** Only user decisions.
@@ -21,14 +24,14 @@
 ## Architecture at a Glance
 
 ```
-DataForge (Source of Truth)
+DataForge (Source of Truth for approved domains; AuthorForge content stays local)
 ├── PostgreSQL 13+ with pgvector extension (1536-dim IVFFlat index)
 ├── Redis 6+ (cache, sessions, rate limiting, distributed lock)
 ├── Hybrid search: semantic cosine distance + BM25 keyword → RRF fusion (+40% accuracy)
-├── 35 mounted router objects in `app/main.py`
+├── 44 mounted router objects in `app/main.py`
 ├── Additional router modules exist in `app/api/` and stay inactive until explicitly mounted
-├── 175 Python files under `app/` plus a separate nested `forge-telemetry/` library repo
-├── 47 Alembic migration files under `alembic/versions/`
+├── 210 Python files under `app/` plus a separate sibling `../forge-telemetry/` library repo
+├── 59 Alembic migration files under `alembic/versions/`
 ├── Modular `app/models/` layout with domain-specific `*_models.py` and `*_schemas.py` files
 └── Policy/runtime governance surfaces: promotion receipts, policy envelopes, rate limits, Sentinel, secrets, press, private source
 ```
@@ -41,7 +44,7 @@ DataForge (Source of Truth)
 | `app/database.py` | SQLAlchemy engine + synchronous session dependency |
 | `app/models/models.py` | Core shared ORM tables only |
 | `app/models/schemas.py` | Core shared schemas only |
-| `app/models/` | Full modular model/schema catalog across authoring, BugCheck, policy, press, rate limits, Sentinel, private source, and provider governance |
+| `app/models/` | Modular model/schema catalog; AuthorForge content mappings are legacy migration/audit-only |
 | `app/api/search_router.py` | Public search: `POST /api/search`, `GET /api/search/stats` |
 | `app/api/admin_router.py` | Admin CRUD: domains, documents (auto-chunk+embed), tags |
 | `app/api/auth_router.py` | `/auth/token` plus legacy `/api/auth` login/register/refresh/me routes |
@@ -49,10 +52,10 @@ DataForge (Source of Truth)
 | `app/api/search.py` | Vector similarity + BM25 hybrid search logic |
 | `app/utils/embeddings.py` | Text chunking (500 tokens, 50 overlap) + embedding generation |
 | `app/utils/auth.py` | JWT signing + bcrypt password hashing |
-| `alembic/` | Database migrations (`47` migration files as of 2026-04-03) |
+| `alembic/` | Database migrations (`59` migration files as of 2026-07-20) |
 | `scripts/create_admin.py` | Interactive admin user creation |
 | `templates/admin.html` | Self-contained admin UI (no external deps) |
-| `forge-telemetry/` | Nested shared-library repo with its own documentation boundary and build surfaces |
+| `../forge-telemetry/` | Sibling shared-library repo with its own documentation boundary and build surfaces |
 
 ## Tech Stack
 
@@ -64,7 +67,7 @@ DataForge (Source of Truth)
 - **Embeddings:** Voyage AI voyage-large-2 (recommended), OpenAI, Cohere fallback
 - **Auth:** python-jose 3.3.0 (JWT/JWE/JWS), passlib + bcrypt 4.1.2
 - **Migrations:** Alembic 1.13.1
-- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `39` repo test files / `565` collected tests (`PYTHONPATH=. ./.venv/bin/pytest --collect-only -q` on 2026-04-03)
+- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `55` repo test files / `761` collected tests (`./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-20)
 
 ## Development Commands
 
@@ -99,13 +102,18 @@ curl http://localhost:8001/health
 |--------|----------------|---------|
 | Search & Admin | `search_router`, `admin_router` | Hybrid retrieval plus core document/domain CRUD |
 | Auth & Key Control | `auth_router`, `admin_keys_router`, `auth_info_router`, `rotation_router` | JWT/login compatibility, service-key governance, admin token rotation |
-| Content & Planning | `projects_router`, `authorforge_v2_router`, `smithy_planning_router`, `smithy_portfolio_router` | AuthorForge and Forge:SMITH persistence surfaces |
+| AuthorForge Boundary | `authorforge_boundary_router`, `events_router` | `410` content tombstone plus strict analytics-only intake |
+| Planning | `smithy_planning_router`, `smithy_portfolio_router` | Forge:SMITH persistence surfaces |
 | Runtime Governance | `runtime_promotion_router`, `runtime_promotion_candidate_router`, `policy_envelope_router`, `diligence_router`, `diligence_ui_router` | Promotion receipts, candidate review, policy evidence, diligence workflows |
 | Agent & Run Persistence | `forge_run_router`, `agents_registry_router`, `bugcheck_router`, `runs_router`, `experience_router` | Agent registry, run evidence, BugCheck findings, experience storage |
 | Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `tarcie_router`, `secrets_router` | Cross-product persistence and operator-facing integrations |
 | Platform Surfaces | `multi_provider_router`, `rate_limits_router`, `sentinel_router`, `compression_router`, `press_router`, `private_source_router`, `fpvs_router` | Pricing/catalog, cross-run rate limits, health sweeps, compression, press, private-source profiles, health/version probes |
 
-Source-present but not mounted by default in `app/main.py`: `api_deployment_router`, `auth_revocation_router`, `auth_secure_router`, `cache_replication_router`, `dlq_router`, `rate_limit_router`, `replication_router`, `tracing_router`.
+Source-present but not mounted by default in `app/main.py`: `projects_router`,
+`authorforge_v2_router`, `api_deployment_router`, `auth_revocation_router`,
+`auth_secure_router`, `cache_replication_router`, `dlq_router`, `rate_limit_router`,
+`replication_router`, `tracing_router`. The two AuthorForge content routers are retired and must
+not be remounted.
 
 ## Environment Variables (Critical)
 

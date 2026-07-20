@@ -1,5 +1,32 @@
 # §7 — Backend Internals
 
+## AuthorForge Analytics Boundary
+
+`POST /api/v1/events/authorforge-analytics` validates the closed
+`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the existing canonical
+`events` table (`service=authorforge`). Only named enums, bounded counts/timings/costs, opaque
+build/model identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no
+free-form metadata/metrics container. Validation responses are generic and do not include the
+rejected input.
+
+The retired AuthorForge content models remain registered in Alembic solely to recognize
+pre-existing tables. Runtime package initializers do not eagerly import them, and the content
+routers are not mounted. `scripts/audit_authorforge_boundary.py` is the only supported legacy
+inspection path: it selects table existence, counts, primary-key column names, and bounded IDs;
+it never selects content columns and never mutates records. It also flags historical `pf_*`
+tables that contain explicit AuthorForge links or content-capable fields for human ownership
+review without automatically classifying those rows as boundary violations.
+
+## Supabase Log Poll Runtime
+
+`scripts/poll_supabase_logs.py` performs configuration, connectivity, migration-table, and API
+preflights before persistence. It uses the current unified `/analytics/endpoints/logs` stream
+with source-filtered ClickHouse SQL, supplies explicit start/end timestamps, minimizes the
+upstream SQL projection, clamps the query to Supabase's maximum 24-hour window, redacts before storage,
+and deduplicates by source log ID. Failures use stable non-sensitive categories (configuration,
+authentication, authorization, rate limiting, upstream, network, payload schema, database, and
+database migration) without logging tokens or upstream response bodies.
+
 ## Vector Search Engine
 
 ### Overview

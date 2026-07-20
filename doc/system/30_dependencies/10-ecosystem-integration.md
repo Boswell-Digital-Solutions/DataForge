@@ -7,7 +7,8 @@ module present in the repo.
 
 1. **Every durable-write caller authenticates.** Unauthenticated writes are not part of the contract.
 2. **Scope is enforced, not implied.** Run-scoped and admin-scoped flows remain explicit.
-3. **DataForge is the record.** Downstream services may cache, but they do not own truth.
+3. **DataForge is the record for DataForge-owned domains.** AuthorForge content is the explicit
+   exception and remains authoritative only in AuthorForge's embedded database.
 4. **Unavailable means unavailable.** Readiness failure should block authority-dependent work.
 
 ## Current Integration Map
@@ -16,7 +17,7 @@ module present in the repo.
 |---------------------|--------------------------|-------------------------------------|
 | NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | Inference persistence, routing decisions, execution logs, learning feedback |
 | VibeForge | `/api/vibeforge`, `/api/teams` | Project/session/outcome persistence plus team insights |
-| AuthorForge | `/api/projects` | Project, chapter, scene, manuscript, map, asset, collection, and story structure persistence |
+| AuthorForge | `/api/v1/events/authorforge-analytics`; `/api/projects` tombstone | Strict minimized analytics only; no content persistence, retrieval, or sync |
 | ForgeAgents | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/experience` | Agent registry, run evidence, execution history, experience store |
 | BugCheck | `/api/v1/bugcheck` | Run creation, finding ingest, enrichments, lifecycle events, progress |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | Planning session state, deliverables, portfolio, evaluation evidence |
@@ -60,16 +61,23 @@ Representative mounted routes:
 - `GET /api/v1/learning/model-performance`
 - `GET /api/v1/learning/recommendations/*`
 
-## Authoring, Planning, and Portfolio State
+## AuthorForge Analytics and Local Content Authority
 
-Mounted authoring and planning surfaces now span:
+AuthorForge must not send manuscripts, chapters, scenes, notes, research, worldbuilding,
+attachments, embeddings, prompts, responses, filesystem paths, raw logs, or identity to
+DataForge. The only permitted write is `AuthorForgeAnalyticsEnvelope.v1` with a dedicated
+`analytics:write` AuthorForge key. Identifiers must be rotatable pseudonyms with the documented
+prefixes. The `/api/projects` family is retired and returns `410 Gone`.
 
-- `POST /api/projects` and the broader `/api/projects/{project_id}/...` family
+## Planning and Portfolio State
+
+Other mounted planning/project surfaces span:
+
 - `POST /api/vibeforge/projects` and `/api/vibeforge/sessions`
 - `POST /api/v1/smithy/planning/sessions`
 - `POST /api/v1/smithy/portfolio/projects`
 
-These surfaces are no longer "future integrations"; they are part of the live mounted app.
+These non-AuthorForge surfaces are part of the live mounted app.
 
 ## Operator Control and Governance
 

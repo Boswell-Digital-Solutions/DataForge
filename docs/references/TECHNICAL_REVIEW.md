@@ -1,5 +1,9 @@
 # DataForge - Technical Due Diligence Review
 
+> **Historical review, superseded 2026-07-20.** The AuthorForge content API described below is
+> retired. AuthorForge content stays in its embedded database; DataForge accepts strict
+> minimized analytics only.
+
 **Date:** November 19, 2025  
 **Reviewer:** GitHub Copilot  
 **Status:** TECHNICAL REVIEW COMPLETE  

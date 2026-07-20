@@ -14,15 +14,17 @@ public-release or production-certification status.
 
 DataForge is the **durable-truth boundary** for the Forge ecosystem — the
 resident FastAPI persistence, retrieval, and governance-evidence service. Its
-authority is durable and ecosystem-wide: state written here is the *canonical
-record*, not a convenience mirror. Every major Forge runtime persists its
-authoritative records into DataForge, and if a service cannot persist required
+authority is durable and ecosystem-wide for approved DataForge domains: state written here is
+the *canonical record*, not a convenience mirror. Forge runtimes persist DataForge-owned
+authoritative records into DataForge, and if a service cannot persist required DataForge-owned
 durable state here, the operation is **not complete** (fail-closed by design).
+**AuthorForge user content is the explicit exception:** its embedded database is the exclusive
+authority and no sync/copy path into DataForge is permitted.
 
 ## What DataForge Owns
 
-- **Durable persistence** — PostgreSQL is the authority boundary for documents,
-  runs, findings, planning state, authoring assets, pricing/catalog data, policy
+- **Durable persistence** — PostgreSQL is the authority boundary for DataForge documents,
+  runs, findings, planning state, pricing/catalog data, policy
   ledgers, press-automation records, and private-source profiles.
 - **Hybrid retrieval** — chunked documents with pgvector embeddings + full-text
   indexes, served as semantic, keyword, and RRF-fused search.
@@ -47,8 +49,12 @@ durable state here, the operation is **not complete** (fail-closed by design).
   authoritative ready signal.
 - **The live OAuth2/TOTP gateway** on the default mounted surface (those secure
   modules are source-only until explicitly wired).
-- **The `forge-telemetry/` codebase.** That nested repo is versioned and
+- **The `../forge-telemetry/` codebase.** That sibling repo is versioned and
   documented separately and is out of this documentation boundary.
+- **AuthorForge user content or identity.** Projects, manuscripts, chapters, scenes, notes,
+  research, worldbuilding, attachments, embeddings, prompts, responses, raw logs, paths, and
+  identity remain in AuthorForge's embedded database. DataForge owns only approved minimized
+  analytics received through `AuthorForgeAnalyticsEnvelope.v1`.
 
 ## Write-Boundary / Access-Control Authority
 

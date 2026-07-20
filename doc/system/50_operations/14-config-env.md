@@ -145,6 +145,45 @@ The app-level config currently exposes:
 |----------|------|---------|-------|
 | `NEUROFORGE_URL` | str | `http://127.0.0.1:8000` | Base URL for NeuroForge embedding/inference integration |
 
+## Render Build Authentication
+
+| Variable | Required on Render | Notes |
+|----------|--------------------|-------|
+| `FORGE_TELEMETRY_TOKEN` | YES | Preferred build-only GitHub token with `Contents:Read` on the pinned `forge-telemetry` and `forge_contract_core` repositories |
+| `GITHUB_TOKEN` | Fallback | Accepted only when `FORGE_TELEMETRY_TOKEN` is absent |
+
+The build uses HTTPS token rewriting in `scripts/render-git-auth.sh`; it does not consume
+`SSH_KEY` or `SSH_KEY_B64`. Never print either token. The web build is the sole Render migration
+runner. The cron build verifies exactly one Alembic head and its runtime preflight verifies the
+`supabase_log_events` table, but the cron does not run migrations concurrently.
+
+## Supabase Log Poller
+
+| Variable | Required for cron | Notes |
+|----------|-------------------|-------|
+| `DATAFORGE_DATABASE_URL` | YES | Same migrated PostgreSQL authority as the web service |
+| `SUPABASE_PROJECT_REF` | YES | Lowercase Supabase project reference |
+| `SUPABASE_ACCESS_TOKEN` | YES | Management API PAT/OAuth token with analytics-log read permission |
+| `SUPABASE_LOG_IDENTITY_SALT` | Recommended | One-way identity hashing; raw identity is dropped when absent |
+| `SUPABASE_LOG_SOURCE_TABLE` | NO | Fixed allow-listed source; default `edge_logs` |
+| `SUPABASE_LOG_POLL_LOOKBACK_SECONDS` | NO | Empty-table lookback; must be 1–86,340 seconds |
+| `SUPABASE_LOG_POLL_OVERLAP_SECONDS` | NO | Cursor overlap for safe retry/deduplication |
+| `SUPABASE_LOG_POLL_MAX_ROWS` | NO | Per-poll cap; must be 1–10,000 |
+
+The configured token needs the `analytics:read` OAuth scope or
+`analytics_logs_read` fine-grained permission. The poller uses Supabase's current unified logs
+endpoint and ClickHouse SQL; do not revert it to the deprecated `logs.all` endpoint.
+
+Operational failures appear only as `poller_failed category=<category> code=<code>`. Diagnose
+using those values and variable *names*; do not paste token values or raw upstream bodies.
+
+## AuthorForge Analytics Writer
+
+`API_KEY_SALT` is required for the database-backed API key system in production. Create a
+dedicated AuthorForge key whose metadata contains `service: authorforge` and whose `scopes`
+array contains `analytics:write`. Do not reuse a general-purpose event/admin key. There are no
+environment variables for AuthorForge content sync because content sync is prohibited.
+
 ---
 
 ## Full `.env.example` Reference
@@ -157,6 +196,7 @@ REDIS_URL=redis://localhost:6379/0
 # Security
 SECRET_KEY=<generate-with-secrets.token_hex-32>
 JWT_SECRET_KEY=<same-as-SECRET_KEY>
+API_KEY_SALT=<generate-long-random-value>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
@@ -179,6 +219,15 @@ MAX_EMBEDDING_INPUT_LENGTH=8000
 
 # Logging
 LOG_LEVEL=INFO
+
+# Render build-only private dependency auth
+FORGE_TELEMETRY_TOKEN=<github-fine-grained-read-token>
+
+# Supabase log cron only
+SUPABASE_PROJECT_REF=<project-ref>
+SUPABASE_ACCESS_TOKEN=<management-api-token>
+SUPABASE_LOG_IDENTITY_SALT=<generate-long-random-value>
+SUPABASE_LOG_SOURCE_TABLE=edge_logs
 
 # Cache Governance
 DOC_FETCH_CACHE_TTL=600

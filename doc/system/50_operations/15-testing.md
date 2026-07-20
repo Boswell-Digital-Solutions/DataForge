@@ -1,15 +1,15 @@
 # §15 — Testing
 
-*Last updated: 2026-04-04*
+*Last updated: 2026-07-20*
 
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `40` |
-| Total tests collected | `594` (565 baseline + 29 proving-slice) |
-| Inventory command | `PYTHONPATH=. venv/bin/python -m pytest --collect-only -q` |
-| Inventory audit date | `2026-04-04` |
+| Total test files | `55` |
+| Total tests collected | `761` |
+| Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
+| Inventory audit date | `2026-07-20` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
 This section intentionally documents what is currently observable from the repository. It
@@ -41,6 +41,18 @@ without PostgreSQL or Redis.
 ### Proving-Slice Intake
 
 - `tests/test_proving_slice_intake.py` — 29 tests covering accepted (8), rejected (5), duplicate/idempotency (3), family gate (3), receipt lookup (4), and adversarial (6). Adversarial tests exercise real contract-core validation without patching. No live DB required (SQLite in-memory via conftest).
+
+### Production Boundary Regression
+
+- `tests/test_unit/test_supabase_log_poller.py` — config/API/database failure categories,
+  bounded query windows, redaction, and idempotent retry.
+- `tests/test_unit/test_supabase_log_ingest.py` — allow-listing, sensitive-field removal, and
+  identity pseudonymization.
+- `tests/test_unit/test_authorforge_analytics.py` — strict envelope allow-list, size/cardinality
+  bounds, content/identity rejection, idempotent canonical event persistence, generic rejection
+  responses, and mounted-route inventory.
+- `tests/test_unit/test_authorforge_boundary_audit.py` — synthetic proof that the read-only audit
+  reports IDs/counts/categories without reading or outputting content fields.
 
 ### Runtime / Governance / Persistence
 
@@ -98,6 +110,16 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
 
 ```bash
 .venv/bin/pytest tests/test_policy_envelope_router.py tests/test_runtime_promotion_candidates.py -v
+```
+
+### Focused Poller and AuthorForge Boundary
+
+```bash
+.venv/bin/pytest \
+  tests/test_unit/test_supabase_log_ingest.py \
+  tests/test_unit/test_supabase_log_poller.py \
+  tests/test_unit/test_authorforge_analytics.py \
+  tests/test_unit/test_authorforge_boundary_audit.py -q
 ```
 
 ## Environment Notes

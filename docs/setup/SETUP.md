@@ -260,7 +260,9 @@ curl -X POST http://localhost:8788/api/search \
 
 ## Integration with Client Applications
 
-DataForge is designed to be consumed by client applications like AuthorForge.
+DataForge is designed to be consumed by approved client applications. AuthorForge is limited
+to the dedicated strict analytics endpoint; it must not use the search or document-ingest
+surfaces for user content.
 
 ### Python Example
 
@@ -432,7 +434,7 @@ sudo systemctl status dataforge
 
 1. **Populate your knowledge base** with domains and documents
 2. **Test semantic search** to verify embeddings are working
-3. **Integrate with your client application** (e.g., AuthorForge)
+3. **Integrate with an approved DataForge-owned client surface**
 4. **Monitor performance** using `/api/search/stats`
 5. **Set up backups** for your PostgreSQL database
 

@@ -1,5 +1,8 @@
 # Priority 2 Task 1: Test Expansion - EXECUTIVE SUMMARY
 
+> **Historical snapshot.** `/api/projects` performance claims below do not describe a live
+> AuthorForge API; the route family is now a `410 Gone` content-boundary tombstone.
+
 **Status:** ✅ **100% COMPLETE**
 **Date Completed:** 2025
 **Total Effort:** 3,055 new lines of code and documentation

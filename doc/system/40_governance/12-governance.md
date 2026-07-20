@@ -15,7 +15,7 @@ designated, and changed.
 | `doc/DTFSYSTEM.md` compiled artifact | DataForge repository — generated, never hand-edited |
 | `DTF` designation | ForgeCommand designation registry (governed registry state, not local repo opinion) |
 | Ecosystem composite compiled system reference | ForgeCommand |
-| `forge-telemetry/` documentation | The nested `forge-telemetry` repo (separate boundary) |
+| `../forge-telemetry/` documentation | The sibling `forge-telemetry` repo (separate boundary) |
 
 The operating context is a single-operator governed environment: compliance
 state must be explicit, visible, and reconstructable; remediation is bounded and

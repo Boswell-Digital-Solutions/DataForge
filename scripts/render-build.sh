@@ -19,8 +19,8 @@ cd "$(dirname "$0")/.."
 python --version
 python -m pip install --upgrade pip
 
-# Provision SSH auth for the private forge-* git dependencies ($SSH_KEY
-# from the forge-telemetry-ssh env group). No-op when SSH_KEY is unset.
+# Provision token auth for the private forge-* git dependencies. On Render,
+# FORGE_TELEMETRY_TOKEN is required and must have read access to both repos.
 bash scripts/render-git-auth.sh
 
 python -m pip install --no-cache-dir -r requirements.txt

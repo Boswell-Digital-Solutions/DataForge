@@ -1,5 +1,8 @@
 # Priority 2 Task 1: Quick Reference Card
 
+> Historical test-expansion card. `/api/projects` is now a `410 Gone` content-boundary
+> tombstone, not an AuthorForge CRUD surface.
+
 ## Status: Updated for the 2026-03-01 runtime
 
 ---
@@ -110,8 +113,8 @@ open htmlcov/index.html
 
 | Endpoint            | P95 Target | Status |
 | ------------------- | ---------- | ------ |
-| GET /api/projects   | < 300ms    | ✅     |
-| POST /api/projects  | < 500ms    | ✅     |
+| GET /api/projects (410 tombstone) | < 300ms | boundary only |
+| POST /api/projects (410 tombstone) | < 300ms | boundary only |
 | GET /api/search     | < 1000ms   | ✅     |
 | POST /api/diligence | < 1000ms   | ✅     |
 | GET /health         | < 100ms    | ✅     |

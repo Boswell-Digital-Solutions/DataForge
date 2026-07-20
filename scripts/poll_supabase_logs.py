@@ -24,11 +24,15 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
+from enum import Enum
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Callable
 
-from sqlalchemy.exc import OperationalError
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 
 # Allow direct invocation (python scripts/poll_supabase_logs.py).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -53,6 +57,99 @@ logging.basicConfig(
 )
 logger = logging.getLogger("poll_supabase_logs")
 
+SUPABASE_LOG_TABLE = "supabase_log_events"
+MAX_SUPABASE_LOG_WINDOW_SECONDS = 86_340  # safely below the API's 24-hour cap
+MAX_POLL_ROWS = 10_000
+_PROJECT_REF_RE = re.compile(r"^[a-z0-9]{8,40}$")
+_SUPPORTED_LOG_SOURCES = frozenset(
+    {
+        "auth_logs",
+        "edge_logs",
+        "function_edge_logs",
+        "function_logs",
+        "postgres_logs",
+        "postgrest_logs",
+        "realtime_logs",
+        "storage_logs",
+        "supavisor_logs",
+    }
+)
+
+
+class FailureCategory(str, Enum):
+    """Stable, non-sensitive failure categories for cron diagnostics."""
+
+    CONFIGURATION = "configuration"
+    AUTHENTICATION = "authentication"
+    AUTHORIZATION = "authorization"
+    RATE_LIMITING = "rate_limiting"
+    UPSTREAM_FAILURE = "upstream_failure"
+    NETWORK_FAILURE = "network_failure"
+    PAYLOAD_SCHEMA_FAILURE = "payload_schema_failure"
+    DATABASE_FAILURE = "database_failure"
+    DATABASE_MIGRATION_FAILURE = "database_migration_failure"
+
+
+class PollerFailure(RuntimeError):
+    """A deliberately sanitized operational failure."""
+
+    def __init__(self, category: FailureCategory, code: str):
+        self.category = category
+        self.code = code
+        super().__init__(f"category={category.value} code={code}")
+
+
+def validate_required_configuration(*, api_mode: bool) -> None:
+    """Fail before network or database use when required names are absent/unsafe."""
+    if DATABASE_URL_IS_DEFAULT:
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "database_url_missing"
+        )
+    if not api_mode:
+        return
+    if not SUPABASE_PROJECT_REF:
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "supabase_project_ref_missing"
+        )
+    if not SUPABASE_ACCESS_TOKEN:
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "supabase_access_token_missing"
+        )
+    if not _PROJECT_REF_RE.fullmatch(SUPABASE_PROJECT_REF):
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "supabase_project_ref_invalid"
+        )
+    if SUPABASE_LOG_SOURCE_TABLE not in _SUPPORTED_LOG_SOURCES:
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "supabase_log_source_not_allowed"
+        )
+    if not SUPABASE_API_BASE.startswith("https://"):
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "supabase_api_https_required"
+        )
+
+
+def check_database_preflight(session) -> None:
+    """Verify connectivity and the migrated table without reading event content."""
+    try:
+        session.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise PollerFailure(
+            FailureCategory.DATABASE_FAILURE, "database_connectivity_failed"
+        ) from exc
+
+    try:
+        table_exists = inspect(session.get_bind()).has_table(SUPABASE_LOG_TABLE)
+    except SQLAlchemyError as exc:
+        raise PollerFailure(
+            FailureCategory.DATABASE_FAILURE, "database_schema_check_failed"
+        ) from exc
+    if not table_exists:
+        raise PollerFailure(
+            FailureCategory.DATABASE_MIGRATION_FAILURE,
+            "supabase_log_events_table_missing",
+        )
+
 
 # ---------------------------------------------------------------------------
 # Sources
@@ -61,53 +158,144 @@ logger = logging.getLogger("poll_supabase_logs")
 
 def load_from_file(path: str) -> list[dict]:
     """Load raw log rows from a Supabase Logs-Explorer JSON export."""
-    data = json.loads(Path(path).read_text())
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "input_file_invalid"
+        ) from exc
     if isinstance(data, dict):  # tolerate {"result": [...]} or {"data": [...]}
         data = data.get("result") or data.get("data") or []
     if not isinstance(data, list):
-        raise ValueError(f"Expected a JSON array of log rows in {path}")
-    logger.info("Loaded %d raw rows from %s", len(data), path)
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "input_rows_not_array"
+        )
+    if any(not isinstance(row, dict) for row in data):
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "input_row_not_object"
+        )
+    logger.info("Loaded %d raw rows from a local export", len(data))
     return data
 
 
-def fetch_from_api(since: datetime, limit: int) -> list[dict]:
+def fetch_from_api(
+    since: datetime,
+    limit: int,
+    *,
+    http_get: Callable | None = None,
+) -> list[dict]:
     """Pull rows from the Supabase Management API analytics logs endpoint.
 
-    NOTE: the analytics SQL schema is project/source specific. The source table
-    and SQL are overridable (SUPABASE_LOG_SOURCE_TABLE) so this can be tuned
-    without code changes; the redaction/allow-list pipeline is identical
-    regardless of where the rows come from. Top-level id/timestamp/event_message
-    are the fields relied on for classification.
+    The current endpoint exposes one ClickHouse ``logs`` stream. The configured
+    source is selected from a fixed allow-list and interpolated only after config
+    validation. Top-level id/timestamp/event_message are the minimized fields
+    relied on for classification.
     """
     import httpx
 
-    if not SUPABASE_PROJECT_REF or not SUPABASE_ACCESS_TOKEN:
-        raise SystemExit(
-            "SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are required for API "
-            "mode. Set them (cron env) or use --input-file for a local export."
+    validate_required_configuration(api_mode=True)
+
+    if not 1 <= limit <= MAX_POLL_ROWS:
+        raise PollerFailure(FailureCategory.CONFIGURATION, "poll_limit_invalid")
+
+    until = datetime.now(tz=timezone.utc)
+    normalized_since = since.astimezone(timezone.utc)
+    oldest_supported = until - timedelta(seconds=MAX_SUPABASE_LOG_WINDOW_SECONDS)
+    if normalized_since < oldest_supported:
+        # The analytics endpoint rejects windows over 24 hours. Prefer a
+        # bounded recent window over a permanently failing/stuck cron cursor.
+        normalized_since = oldest_supported
+        logger.warning("Poll cursor exceeded the API window and was safely clamped")
+    if normalized_since > until:
+        raise PollerFailure(
+            FailureCategory.CONFIGURATION, "poll_cursor_in_future"
         )
 
-    iso = since.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    # Current Supabase unified logs endpoint uses ClickHouse SQL over one `logs`
+    # table. The API timestamp parameters define the cursor window, so the SQL
+    # needs only source filtering, ordering, projection, and a bounded limit.
     sql = (
-        f"select id, timestamp, event_message, metadata "
-        f"from {SUPABASE_LOG_SOURCE_TABLE} "
-        f"where timestamp > '{iso}' "
+        f"select id, timestamp, event_message, source as log_type "
+        f"from logs "
+        f"where source = '{SUPABASE_LOG_SOURCE_TABLE}' "
         f"order by timestamp asc limit {int(limit)}"
     )
-    url = f"{SUPABASE_API_BASE}/v1/projects/{SUPABASE_PROJECT_REF}/analytics/endpoints/logs.all"
-    logger.info("Querying Supabase analytics since %s (source=%s)", iso, SUPABASE_LOG_SOURCE_TABLE)
-
-    resp = httpx.get(
-        url,
-        params={"sql": sql},
-        headers={"Authorization": f"Bearer {SUPABASE_ACCESS_TOKEN}"},
-        timeout=30.0,
+    url = f"{SUPABASE_API_BASE}/v1/projects/{SUPABASE_PROJECT_REF}/analytics/endpoints/logs"
+    logger.info(
+        "Checking Supabase log API access (source=%s)",
+        SUPABASE_LOG_SOURCE_TABLE,
     )
-    resp.raise_for_status()
-    payload = resp.json()
+
+    try:
+        get = http_get or httpx.get
+        resp = get(
+            url,
+            params={
+                "sql": sql,
+                "iso_timestamp_start": normalized_since.isoformat(),
+                "iso_timestamp_end": until.isoformat(),
+            },
+            headers={"Authorization": f"Bearer {SUPABASE_ACCESS_TOKEN}"},
+            timeout=30.0,
+        )
+    except (httpx.RequestError, TimeoutError, OSError) as exc:
+        raise PollerFailure(
+            FailureCategory.NETWORK_FAILURE, "supabase_api_unreachable"
+        ) from exc
+
+    status_code = int(resp.status_code)
+    if status_code == 401:
+        raise PollerFailure(
+            FailureCategory.AUTHENTICATION, "supabase_token_rejected"
+        )
+    if status_code == 403:
+        raise PollerFailure(
+            FailureCategory.AUTHORIZATION, "supabase_logs_access_forbidden"
+        )
+    if status_code == 402:
+        raise PollerFailure(
+            FailureCategory.AUTHORIZATION, "supabase_logs_plan_required"
+        )
+    if status_code == 404:
+        raise PollerFailure(
+            FailureCategory.UPSTREAM_FAILURE, "supabase_project_or_endpoint_not_found"
+        )
+    if status_code == 429:
+        raise PollerFailure(
+            FailureCategory.RATE_LIMITING, "supabase_logs_rate_limited"
+        )
+    if status_code >= 500:
+        raise PollerFailure(
+            FailureCategory.UPSTREAM_FAILURE, "supabase_api_server_error"
+        )
+    if status_code >= 400:
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "supabase_log_query_rejected"
+        )
+
+    try:
+        payload = resp.json()
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "supabase_response_not_json"
+        ) from exc
+    if isinstance(payload, dict) and payload.get("error"):
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE, "supabase_query_error"
+        )
     rows = payload.get("result", payload) if isinstance(payload, dict) else payload
     if not isinstance(rows, list):
-        raise ValueError("Unexpected analytics API response shape (no result array)")
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE,
+            "supabase_result_array_missing",
+        )
+    if any(not isinstance(row, dict) for row in rows):
+        raise PollerFailure(
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE,
+            "supabase_result_row_invalid",
+        )
+    for row in rows:
+        row.setdefault("log_type", SUPABASE_LOG_SOURCE_TABLE)
     logger.info("Fetched %d raw rows from Supabase API", len(rows))
     return rows
 
@@ -185,43 +373,93 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lookback-seconds", type=int, default=SUPABASE_LOG_POLL_LOOKBACK_SECONDS,
                         help="On an empty table, how far back to start.")
     parser.add_argument("--dry-run", action="store_true", help="Redact + filter but do not write.")
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Validate configuration, database/table, and API access; do not ingest.",
+    )
     args = parser.parse_args(argv)
+
+    if not isinstance(args.limit, int) or not 1 <= args.limit <= MAX_POLL_ROWS:
+        logger.error(
+            "poller_failed category=%s code=%s",
+            FailureCategory.CONFIGURATION.value,
+            "poll_limit_invalid",
+        )
+        return 1
+    if (
+        not isinstance(args.lookback_seconds, int)
+        or not 1 <= args.lookback_seconds <= MAX_SUPABASE_LOG_WINDOW_SECONDS
+    ):
+        logger.error(
+            "poller_failed category=%s code=%s",
+            FailureCategory.CONFIGURATION.value,
+            "poll_lookback_invalid",
+        )
+        return 1
+    if (
+        not isinstance(SUPABASE_LOG_POLL_OVERLAP_SECONDS, int)
+        or not 0
+        <= SUPABASE_LOG_POLL_OVERLAP_SECONDS
+        <= MAX_SUPABASE_LOG_WINDOW_SECONDS
+    ):
+        logger.error(
+            "poller_failed category=%s code=%s",
+            FailureCategory.CONFIGURATION.value,
+            "poll_overlap_invalid",
+        )
+        return 1
 
     session = SessionLocal()
     try:
+        validate_required_configuration(api_mode=not bool(args.input_file))
+        check_database_preflight(session)
+
         if args.input_file:
             rows = load_from_file(args.input_file)
-            cursor_label = f"file:{Path(args.input_file).name}"
+            cursor_label = "local-export"
         else:
             cursor = get_cursor(session)
             if cursor:
                 since = cursor - timedelta(seconds=SUPABASE_LOG_POLL_OVERLAP_SECONDS)
             else:
                 since = datetime.now(tz=timezone.utc) - timedelta(seconds=args.lookback_seconds)
-            rows = fetch_from_api(since, args.limit)
+            rows = fetch_from_api(since, 1 if args.preflight_only else args.limit)
             cursor_label = since.strftime("%Y%m%dT%H%M%SZ")
+
+        logger.info(
+            "Poller preflight passed (configuration, database, table%s)",
+            ", supabase_api" if not args.input_file else "",
+        )
+        if args.preflight_only:
+            return 0
 
         stats = persist(session, rows, source_cursor=cursor_label, dry_run=args.dry_run)
         logger.info("Done: %s", stats)
         return 0
-    except OperationalError:
+    except PollerFailure as exc:
         session.rollback()
-        if DATABASE_URL_IS_DEFAULT:
-            # No DB URL was configured, so we fell back to the localhost dev
-            # default and could not connect. Surface the real cause instead of a
-            # cryptic psycopg2 "connection refused" traceback.
-            logger.error(
-                "Could not connect to the database: no connection string is "
-                "configured, so the localhost dev default was used. Set "
-                "DATAFORGE_DATABASE_URL (or DATABASE_URL) to the Supabase "
-                "connection string in the cron environment."
-            )
-        else:
-            logger.exception("Supabase log poll failed: database connection error")
+        logger.error(
+            "poller_failed category=%s code=%s",
+            exc.category.value,
+            exc.code,
+        )
+        return 1
+    except SQLAlchemyError:
+        session.rollback()
+        logger.error(
+            "poller_failed category=%s code=%s",
+            FailureCategory.DATABASE_FAILURE.value,
+            "database_operation_failed",
+        )
         return 1
     except Exception:
         session.rollback()
-        logger.exception("Supabase log poll failed")
+        logger.error(
+            "poller_failed category=%s code=%s",
+            FailureCategory.PAYLOAD_SCHEMA_FAILURE.value,
+            "unexpected_internal_failure",
+        )
         return 1
     finally:
         session.close()

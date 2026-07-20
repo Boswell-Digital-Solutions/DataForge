@@ -1,5 +1,8 @@
 # DataForge - Priority 1 Fixes Complete ✅
 
+> **ARCHIVED SNAPSHOT:** References to AuthorForge cloud tables are historical only and must not
+> be used to reactivate content persistence.
+
 **Date:** November 19, 2025  
 **Status:** ALL PRIORITY 1 FIXES COMPLETED  
 **Estimated Impact:** Eliminates 40+ type annotation errors and critical security issues

@@ -6,7 +6,7 @@
 DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── 35 mounted router objects plus app-level health/admin/docs routes
+│   ├── 44 mounted router objects plus app-level health/admin/docs routes
 │   ├── Lifespan handler (config validation, pgvector startup checks, readiness posture)
 │   ├── Correlation, timeout, and security-header middleware
 │   ├── HTML admin/diligence views plus JSON API surfaces
@@ -15,7 +15,7 @@ DataForge (default port 8001)
 ├── Mounted Service Domains
 │   ├── Search and content admin
 │   ├── Auth compatibility, admin key control, token rotation
-│   ├── AuthorForge, VibeForge, NeuroForge, Forge:SMITH, Teams
+│   ├── AuthorForge analytics-only intake; VibeForge, NeuroForge, Forge:SMITH, Teams
 │   ├── ForgeAgents, BugCheck, experience store, run persistence
 │   ├── Diligence UI/API, Tarcie ingest, events/audit surfaces
 │   ├── Runtime promotion, policy envelopes, rate-limit governance
@@ -34,7 +34,7 @@ DataForge (default port 8001)
 │   ├── Embedding pipeline (`app/utils/embeddings.py`)
 │   ├── Cache governance + corpus versioning
 │   ├── Auth, encryption, tracing, resilience, and failover helpers
-│   └── Nested `forge-telemetry/` library boundary for shared telemetry concerns
+│   └── Sibling `../forge-telemetry/` library boundary for shared telemetry concerns
 │
 └── Storage Layer
     ├── PostgreSQL 13+ — canonical relational store and authority boundary
@@ -49,6 +49,10 @@ is whatever `app.main:app` includes. Source-present but unmounted routers such a
 `auth_secure_router`, `tracing_router`, `api_deployment_router`, `replication_router`,
 `cache_replication_router`, `dlq_router`, and `rate_limit_router` remain implementation
 inventory only until explicitly registered in `app/main.py`.
+
+The legacy `projects_router` and `authorforge_v2_router` are also source-present but retired.
+They must not be remounted. The only AuthorForge paths in the live service are the content-free
+analytics intake and the `/api/projects` tombstone that returns `410 Gone` without parsing a body.
 
 ## Hybrid Search Architecture
 
@@ -150,13 +154,16 @@ Domain A (e.g., NeuroForge)
 ├── Chunks (embedded, domain-indexed)
 └── Search (domain-filtered by default)
 
-Domain B (e.g., AuthorForge)
+Domain B (e.g., a DataForge-owned knowledge corpus)
 ├── Documents
 ├── Chunks
 └── Search
 ```
 
 **Isolation mechanism:** Domain foreign keys on Document and Chunk models. Search queries accept `domain_id` filter. Without explicit domain filtering, cross-domain search is possible (authorized use cases only).
+
+AuthorForge user content is not a DataForge search domain. It must never be chunked, embedded,
+indexed, or routed through this pipeline.
 
 ## Execution Index Architecture
 

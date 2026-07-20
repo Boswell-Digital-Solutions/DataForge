@@ -32,7 +32,8 @@ production-certification claims.
   (a dimension change is a migration, not a config tweak) and search quality is
   not silently degraded.
 - **C4** — proof the access-control matrix still holds (ForgeCommand/BugCheck/
-  XAI/VibeForge write scopes), run-immutability (409 after FINALIZED), and the
+  XAI/VibeForge write scopes), the AuthorForge analytics-only/local-content boundary,
+  run-immutability (409 after FINALIZED), and the
   audit log remains append-only + HMAC-signed.
 - **C5** — the governance-evidence table/flow with operator-review surfacing.
 - **C6** — the env/setting reflected in §14 (Configuration), with secrets sourced
@@ -51,9 +52,10 @@ curl -s localhost:8001/ready                   # fail-closed readiness (DB + pgv
 
 ## Source-of-Truth / Fail-Closed Rules
 
-DataForge stays the canonical durable record (§11): a change must not introduce a
-path where a service's authoritative state is considered complete without being
-persisted here. Readiness stays DB/pgvector-driven; Redis remains derived state.
+DataForge stays the canonical durable record for its approved domains (§11): a change must not
+introduce a path where DataForge-owned state is considered complete without being persisted
+here. This rule never authorizes AuthorForge content ingestion; that content must remain local
+and any cloud attempt must fail closed. Readiness stays DB/pgvector-driven; Redis remains derived state.
 The mounted surface is the live contract — adding a router to source without
 mounting it does not change the contract (note it as source-present-not-mounted).
 

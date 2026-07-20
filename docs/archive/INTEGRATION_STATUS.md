@@ -1,5 +1,8 @@
 # AuthorForge SQL Integration Status
 
+> **ARCHIVED AND PROHIBITED:** This design is superseded. Do not connect AuthorForge to
+> DataForge PostgreSQL or `/api/projects`; AuthorForge content stays exclusively local.
+
 ## ✅ Completed
 
 ### 1. Database Schema Design
