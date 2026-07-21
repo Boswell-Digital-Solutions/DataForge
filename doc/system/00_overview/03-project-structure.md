@@ -9,16 +9,16 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 59 migration version files (hash-prefixed Alembic names)
+│   └── versions/                     # 63 migration version files (hash-prefixed Alembic names)
 │
-├── app/                              # Main application package (210 Python files)
-│   ├── main.py                       # FastAPI app + lifespan + router registration (44 mounted routers)
+├── app/                              # Main application package (212 Python files)
+│   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
 │   │
-│   ├── models/                       # ORM models + Pydantic schemas (52 files, 27 domain families)
+│   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
 │   │   ├── schemas.py                # Core: auth, search, user/domain/document/tag schemas
 │   │   ├── agentic_reasoning_models.py / _schemas.py   # Experience store, gate analytics, skill nomination
@@ -26,7 +26,7 @@ DataForge/
 │   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
 │   │   ├── authorforge_analytics_schemas.py            # Strict content-free analytics v1
-│   │   ├── telemetry_models.py                         # Existing canonical events mapping
+│   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
@@ -50,7 +50,7 @@ DataForge/
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
-│   ├── api/                          # 50 router modules; 44 mounted objects in main.py
+│   ├── api/                          # 50 router modules; 45 mounted objects in main.py
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
 │   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
 │   │   ├── admin_keys_router.py      # Service-key governance
@@ -85,6 +85,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
+│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
@@ -117,7 +118,7 @@ DataForge/
 │   ├── tasks/                        # Background task integration
 │   │   └── celery_integration.py
 │   │
-│   └── utils/                        # Shared utility modules (27 files)
+│   └── utils/                        # Shared utility modules (32 Python files)
 │       ├── auth.py                   # JWT creation/validation + bcrypt helpers
 │       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
 │       ├── corpus_versioning.py      # Atomic corpus version bump + current-version cache
@@ -146,7 +147,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 55 test files, 761 collected tests as of 2026-07-20
+├── tests/                            # 57 test files, 781 collected tests as of 2026-07-20
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -158,7 +159,7 @@ DataForge/
 │   ├── test_authorforge_api.py
 │   ├── test_lifecycle.py
 │   ├── test_compliance_gdpr.py
-│   └── ... (55 files total)
+│   └── ... (57 files total)
 │
 ├── alembic.ini                       # Alembic configuration
 ├── docker-compose.yml                # Local dev: PostgreSQL + Redis + DataForge
@@ -174,7 +175,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 44 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 45 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware. Router modules that exist in `app/api/` but are not included here are source-present only and should not be documented as live API surface.
 
@@ -237,6 +238,6 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-59 migration files covering the base schema plus later domain additions, pgvector support,
+63 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.

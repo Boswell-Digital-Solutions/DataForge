@@ -3,7 +3,7 @@
 *Last updated: 2026-07-20*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-07-20 confirmed `44` mounted router objects plus app-level docs, HTML views, and
+on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 
@@ -36,13 +36,20 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /ingest/tarcie` | Compliance review workflows, append-only event ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /api/v1/telemetry/events:batch`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, authenticated bounded generic Forge Telemetry ingest, Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
 ## Authentication Posture
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
+
+- `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
+  `service` or `scopes` metadata are constrained to that service and must include
+  `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
+  accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
+  `service=authorforge` is always rejected here; AuthorForge may use only the dedicated strict,
+  content-free `/api/v1/events/authorforge-analytics` contract.
 
 | Credential type | Examples |
 |-----------------|----------|

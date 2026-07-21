@@ -7,7 +7,7 @@
 **Port:** 8001
 **Location:** `/home/charlie/Forge/ecosystem/DataForge/`
 **Entry point:** `app/main.py`
-**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-20 working tree (`44` mounted router objects, `59` Alembic migrations, `55` pytest files / `761` collected tests)
+**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-20 working tree (`45` mounted router objects, `63` Alembic migrations, `57` pytest files / `781` collected tests)
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
@@ -28,10 +28,10 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 ├── PostgreSQL 13+ with pgvector extension (1536-dim IVFFlat index)
 ├── Redis 6+ (cache, sessions, rate limiting, distributed lock)
 ├── Hybrid search: semantic cosine distance + BM25 keyword → RRF fusion (+40% accuracy)
-├── 44 mounted router objects in `app/main.py`
+├── 45 mounted router objects in `app/main.py`
 ├── Additional router modules exist in `app/api/` and stay inactive until explicitly mounted
-├── 210 Python files under `app/` plus a separate sibling `../forge-telemetry/` library repo
-├── 59 Alembic migration files under `alembic/versions/`
+├── 212 Python files under `app/` plus a separate sibling `../forge-telemetry/` library repo
+├── 63 Alembic migration files under `alembic/versions/`
 ├── Modular `app/models/` layout with domain-specific `*_models.py` and `*_schemas.py` files
 └── Policy/runtime governance surfaces: promotion receipts, policy envelopes, rate limits, Sentinel, secrets, press, private source
 ```
@@ -52,7 +52,7 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 | `app/api/search.py` | Vector similarity + BM25 hybrid search logic |
 | `app/utils/embeddings.py` | Text chunking (500 tokens, 50 overlap) + embedding generation |
 | `app/utils/auth.py` | JWT signing + bcrypt password hashing |
-| `alembic/` | Database migrations (`59` migration files as of 2026-07-20) |
+| `alembic/` | Database migrations (`63` migration files as of 2026-07-20) |
 | `scripts/create_admin.py` | Interactive admin user creation |
 | `templates/admin.html` | Self-contained admin UI (no external deps) |
 | `../forge-telemetry/` | Sibling shared-library repo with its own documentation boundary and build surfaces |
@@ -67,7 +67,7 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 - **Embeddings:** Voyage AI voyage-large-2 (recommended), OpenAI, Cohere fallback
 - **Auth:** python-jose 3.3.0 (JWT/JWE/JWS), passlib + bcrypt 4.1.2
 - **Migrations:** Alembic 1.13.1
-- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `55` repo test files / `761` collected tests (`./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-20)
+- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `57` repo test files / `781` collected tests (`./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-20)
 
 ## Development Commands
 
@@ -106,7 +106,7 @@ curl http://localhost:8001/health
 | Planning | `smithy_planning_router`, `smithy_portfolio_router` | Forge:SMITH persistence surfaces |
 | Runtime Governance | `runtime_promotion_router`, `runtime_promotion_candidate_router`, `policy_envelope_router`, `diligence_router`, `diligence_ui_router` | Promotion receipts, candidate review, policy evidence, diligence workflows |
 | Agent & Run Persistence | `forge_run_router`, `agents_registry_router`, `bugcheck_router`, `runs_router`, `experience_router` | Agent registry, run evidence, BugCheck findings, experience storage |
-| Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `tarcie_router`, `secrets_router` | Cross-product persistence and operator-facing integrations |
+| Service Integrations | `neuroforge_router`, `vibeforge_router`, `learning_router`, `teams_router`, `events_router`, `telemetry_router`, `tarcie_router`, `secrets_router` | Cross-product persistence, authenticated operational telemetry, and operator-facing integrations |
 | Platform Surfaces | `multi_provider_router`, `rate_limits_router`, `sentinel_router`, `compression_router`, `press_router`, `private_source_router`, `fpvs_router` | Pricing/catalog, cross-run rate limits, health sweeps, compression, press, private-source profiles, health/version probes |
 
 Source-present but not mounted by default in `app/main.py`: `projects_router`,

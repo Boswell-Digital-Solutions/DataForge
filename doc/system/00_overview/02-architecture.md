@@ -6,7 +6,7 @@
 DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── 44 mounted router objects plus app-level health/admin/docs routes
+│   ├── 45 mounted router objects plus app-level health/admin/docs routes
 │   ├── Lifespan handler (config validation, pgvector startup checks, readiness posture)
 │   ├── Correlation, timeout, and security-header middleware
 │   ├── HTML admin/diligence views plus JSON API surfaces

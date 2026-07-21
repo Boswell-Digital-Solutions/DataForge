@@ -34,6 +34,16 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
     
+    - name: Configure git auth for private forge-* dependencies
+      env:
+        FORGE_TELEMETRY_TOKEN: ${{ secrets.FORGE_TELEMETRY_TOKEN }}
+      run: |
+        if [ -z "$FORGE_TELEMETRY_TOKEN" ]; then
+          echo "::error::FORGE_TELEMETRY_TOKEN secret is not set -- pip install of the private forge-telemetry/forge_contract_core dependencies will fail. Add a fine-grained GitHub token with Contents:Read on Boswell-Digital-Solutions/forge-telemetry (and forge_contract_core) as the FORGE_TELEMETRY_TOKEN repository secret."
+          exit 1
+        fi
+        git config --global url."https://x-access-token:${FORGE_TELEMETRY_TOKEN}@github.com/".insteadOf "https://github.com/"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip

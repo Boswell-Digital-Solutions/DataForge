@@ -50,6 +50,8 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        secrets: |
+          github_token=${{ secrets.FORGE_TELEMETRY_TOKEN }}
 
   # Template for Azure Container Instances deployment
   # Uncomment and configure for your cloud provider

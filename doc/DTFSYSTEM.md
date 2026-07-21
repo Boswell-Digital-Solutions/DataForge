@@ -64,12 +64,12 @@ not a bootstrap repo or passive library.
 - **Runtime posture:** Resident HTTP service
 - **Default port:** `8001`
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
-- **Mounted router objects:** `44` from `app/main.py` (audit: 2026-07-20)
+- **Mounted router objects:** `45` from `app/main.py` (audit: 2026-07-20)
 - **Router modules in source:** `50`
-- **Alembic migrations:** `59`
-- **Python files under `app/`:** `210`
-- **Pytest files:** `55`
-- **Collected tests:** `761` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Alembic migrations:** `63`
+- **Python files under `app/`:** `212`
+- **Pytest files:** `57`
+- **Collected tests:** `781` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
@@ -148,7 +148,7 @@ downgrading authority decisions.
 DataForge (default port 8001)
 │
 ├── FastAPI Application Layer
-│   ├── 44 mounted router objects plus app-level health/admin/docs routes
+│   ├── 45 mounted router objects plus app-level health/admin/docs routes
 │   ├── Lifespan handler (config validation, pgvector startup checks, readiness posture)
 │   ├── Correlation, timeout, and security-header middleware
 │   ├── HTML admin/diligence views plus JSON API surfaces
@@ -427,16 +427,16 @@ DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 59 migration version files (hash-prefixed Alembic names)
+│   └── versions/                     # 63 migration version files (hash-prefixed Alembic names)
 │
-├── app/                              # Main application package (210 Python files)
-│   ├── main.py                       # FastAPI app + lifespan + router registration (44 mounted routers)
+├── app/                              # Main application package (212 Python files)
+│   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
 │   │
-│   ├── models/                       # ORM models + Pydantic schemas (52 files, 27 domain families)
+│   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
 │   │   ├── schemas.py                # Core: auth, search, user/domain/document/tag schemas
 │   │   ├── agentic_reasoning_models.py / _schemas.py   # Experience store, gate analytics, skill nomination
@@ -444,7 +444,7 @@ DataForge/
 │   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
 │   │   ├── authorforge_analytics_schemas.py            # Strict content-free analytics v1
-│   │   ├── telemetry_models.py                         # Existing canonical events mapping
+│   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
@@ -468,7 +468,7 @@ DataForge/
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
-│   ├── api/                          # 50 router modules; 44 mounted objects in main.py
+│   ├── api/                          # 50 router modules; 45 mounted objects in main.py
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
 │   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
 │   │   ├── admin_keys_router.py      # Service-key governance
@@ -503,6 +503,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
+│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
@@ -535,7 +536,7 @@ DataForge/
 │   ├── tasks/                        # Background task integration
 │   │   └── celery_integration.py
 │   │
-│   └── utils/                        # Shared utility modules (27 files)
+│   └── utils/                        # Shared utility modules (32 Python files)
 │       ├── auth.py                   # JWT creation/validation + bcrypt helpers
 │       ├── cache_governance.py       # TTL enforcement, deterministic keys, fail-closed cache helpers
 │       ├── corpus_versioning.py      # Atomic corpus version bump + current-version cache
@@ -564,7 +565,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 55 test files, 761 collected tests as of 2026-07-20
+├── tests/                            # 57 test files, 781 collected tests as of 2026-07-20
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -576,7 +577,7 @@ DataForge/
 │   ├── test_authorforge_api.py
 │   ├── test_lifecycle.py
 │   ├── test_compliance_gdpr.py
-│   └── ... (55 files total)
+│   └── ... (57 files total)
 │
 ├── alembic.ini                       # Alembic configuration
 ├── docker-compose.yml                # Local dev: PostgreSQL + Redis + DataForge
@@ -592,7 +593,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 44 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 45 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware. Router modules that exist in `app/api/` but are not included here are source-present only and should not be documented as live API surface.
 
@@ -655,7 +656,7 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-59 migration files covering the base schema plus later domain additions, pgvector support,
+63 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.
 
@@ -666,7 +667,7 @@ Always run `alembic upgrade head` after pulling new code.
 *Last updated: 2026-07-20*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-07-20 confirmed `44` mounted router objects plus app-level docs, HTML views, and
+on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 
@@ -699,13 +700,20 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /ingest/tarcie` | Compliance review workflows, append-only event ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /api/v1/telemetry/events:batch`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, authenticated bounded generic Forge Telemetry ingest, Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
 ## Authentication Posture
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
+
+- `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
+  `service` or `scopes` metadata are constrained to that service and must include
+  `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
+  accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
+  `service=authorforge` is always rejected here; AuthorForge may use only the dedicated strict,
+  content-free `/api/v1/events/authorforge-analytics` contract.
 
 | Credential type | Examples |
 |-----------------|----------|
@@ -1731,7 +1739,7 @@ surface are re-audited.
 |-----------|---------|-------|
 | SQLAlchemy | 2.0.36 | Core ORM; synchronous engine/session model in the current app |
 | psycopg2-binary | 2.9.10 | PostgreSQL driver |
-| Alembic | 1.13.1 | Schema migrations; 59 version files in `alembic/versions/` as of 2026-07-20 |
+| Alembic | 1.13.1 | Schema migrations; 63 version files in `alembic/versions/` as of 2026-07-20 |
 
 ## Data Validation
 
@@ -1839,7 +1847,13 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / Tarcie | `/api/diligence`, `/api/v1/events`, `/ingest/tarcie` | Compliance review records, append-only events, friction ingest |
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/events:batch`, `/ingest/tarcie` | Compliance review records, BuildGuard events, authenticated generic operational telemetry, friction ingest |
+
+Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
+never receive DataForge/PostgreSQL credentials. The request event is the shared
+`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON complexity bounds.
+AuthorForge is explicitly excluded from this generic ingress and must use only
+`AuthorForgeAnalyticsEnvelope.v1` at its dedicated strict analytics endpoint.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 ## BugCheck Contract
@@ -2440,8 +2454,8 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `55` |
-| Total tests collected | `761` |
+| Total test files | `57` |
+| Total tests collected | `781` |
 | Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
 | Inventory audit date | `2026-07-20` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
@@ -2892,7 +2906,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 55 test files; 761 collected tests in the 2026-07-20 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 57 test files; 781 collected tests in the 2026-07-20 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |

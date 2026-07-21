@@ -313,7 +313,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 55 test files; 761 collected tests in the 2026-07-20 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 57 test files; 781 collected tests in the 2026-07-20 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |

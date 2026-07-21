@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # DataForge Dockerfile - Secure Production Build
 FROM python:3.11-slim
 
@@ -27,9 +28,19 @@ RUN groupadd -r dataforge && useradd -r -g dataforge dataforge
 # Copy requirements for dependency install
 COPY requirements.txt .
 
-# Install Python dependencies.
-RUN python -m pip install --no-cache-dir -r requirements.txt \
-    && python -m pip cache purge
+# Install Python dependencies. requirements.txt pins private
+# Boswell-Digital-Solutions git dependencies (forge-telemetry,
+# forge_contract_core); BuildKit injects a short-lived token via --secret
+# so it never lands in an image layer or build history. No-op (falls back to
+# earlier failure) when the secret isn't provided -- see docker-build docs.
+RUN --mount=type=secret,id=github_token,required=false \
+    set -eu; \
+    if [ -s /run/secrets/github_token ]; then \
+        git config --global url."https://x-access-token:$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/"; \
+    fi; \
+    python -m pip install --no-cache-dir -r requirements.txt; \
+    python -m pip cache purge; \
+    rm -f /root/.gitconfig
 
 # Copy application code
 COPY --chown=dataforge:dataforge . .

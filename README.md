@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/Router%20Modules-50-blue" />
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue" />
   <img src="https://img.shields.io/badge/Alembic%20Migrations-59-blue" />
-  <img src="https://img.shields.io/badge/Collected%20Tests-761-blue" />
+  <img src="https://img.shields.io/badge/Collected%20Tests-781-blue" />
 </p>
 
 ---
@@ -58,12 +58,12 @@ The current contract is defined by:
 |---------|---------------|
 | Runtime posture | Resident FastAPI service |
 | Default port | `8001` |
-| Mounted router objects | `44` |
+| Mounted router objects | `45` |
 | Router modules in source | `50` |
-| Alembic migrations | `59` |
-| Python files under `app/` | `210` |
-| Pytest files | `55` |
-| Collected tests | `761` via `./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-20 |
+| Alembic migrations | `63` |
+| Python files under `app/` | `212` |
+| Pytest files | `57` |
+| Collected tests | `781` via `./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-20 |
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Sibling repo boundary | `../forge-telemetry/` is a separate git repo with its own docs stack |
 

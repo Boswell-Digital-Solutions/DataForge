@@ -21,6 +21,7 @@ from app.database import engine
 from app.api import search_router, admin_router, auth_router, runs_router, vibeforge_router, learning_router, teams_router
 from app.api.authorforge_boundary_router import router as authorforge_boundary_router
 from app.api.routes.events_router import router as events_router
+from app.api.telemetry_router import router as telemetry_router
 from app.api.diligence_router import router as diligence_router, ui_router as diligence_ui_router
 from app.api.admin_keys_router import router as admin_keys_router, auth_info_router, rotation_router  # ForgeCommand Key Rotation
 from app.api.secrets_router import router as secrets_router  # LLM Provider Secrets (synced from Forge_Command)
@@ -284,6 +285,7 @@ app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer
 app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4.1)
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
+app.include_router(telemetry_router)  # Authenticated generic Forge Telemetry ingest
 app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
 app.include_router(rotation_router)  # Admin Token Rotation (72-hour auto-rotation)
 app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)

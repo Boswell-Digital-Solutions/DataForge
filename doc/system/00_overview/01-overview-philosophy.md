@@ -9,12 +9,12 @@ not a bootstrap repo or passive library.
 - **Runtime posture:** Resident HTTP service
 - **Default port:** `8001`
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
-- **Mounted router objects:** `44` from `app/main.py` (audit: 2026-07-20)
+- **Mounted router objects:** `45` from `app/main.py` (audit: 2026-07-20)
 - **Router modules in source:** `50`
-- **Alembic migrations:** `59`
-- **Python files under `app/`:** `210`
-- **Pytest files:** `55`
-- **Collected tests:** `761` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Alembic migrations:** `63`
+- **Python files under `app/`:** `212`
+- **Pytest files:** `57`
+- **Collected tests:** `781` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract

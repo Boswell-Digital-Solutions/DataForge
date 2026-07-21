@@ -1,15 +1,18 @@
-"""ORM mapping for the canonical Forge ``events`` telemetry table."""
+"""ORM mapping for the shared Forge telemetry ``events`` table."""
 
-from datetime import datetime, timezone
-
-from sqlalchemy import Column, DateTime, Index, JSON, String, Uuid
+from sqlalchemy import Column, DateTime, Index, JSON, String, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
 
 
 class TelemetryEventRecord(Base):
-    """Existing canonical telemetry record; schema created by migration 4bae83731016."""
+    """Durable generic telemetry event owned by DataForge.
+
+    The table itself predates this ORM mapping and is created by Alembic.  The
+    mapping gives the authenticated HTTP ingest boundary and tests one exact
+    representation of that existing schema without changing its storage shape.
+    """
 
     __tablename__ = "events"
 
@@ -24,7 +27,7 @@ class TelemetryEventRecord(Base):
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
     )
 
     __table_args__ = (
