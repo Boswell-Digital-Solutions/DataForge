@@ -87,6 +87,22 @@ def test_ingest_rejects_service_outside_key_binding(db):
     assert error.value.status_code == 403
 
 
+def test_generic_ingest_never_accepts_authorforge(db):
+    event = _event()
+    event["service"] = "AuthorForge"
+    event["metadata"] = {"manuscript": "must-remain-local"}
+
+    with pytest.raises(HTTPException) as error:
+        ingest_telemetry_events(
+            _batch(event),
+            db,
+            _auth(service="authorforge", scopes=["telemetry:write"]),
+        )
+
+    assert error.value.status_code == 403
+    assert db.query(TelemetryEventRecord).count() == 0
+
+
 def test_ingest_rejects_key_without_declared_write_scope(db):
     with pytest.raises(HTTPException) as error:
         ingest_telemetry_events(

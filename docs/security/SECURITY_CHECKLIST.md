@@ -224,7 +224,7 @@ DataForge implements a **defense-in-depth** security architecture across 8 key d
   "message": "API request processed",
   "user_id": "user_123",
   "method": "POST",
-  "path": "/api/projects",
+  "path": "/api/search",
   "status_code": 201,
   "duration_ms": 145.2,
   "correlation_id": "req_abc123"

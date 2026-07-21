@@ -1,5 +1,8 @@
 # Priority 2 Task 1: Test Expansion - FINAL SUMMARY
 
+> **ARCHIVED SNAPSHOT:** `/api/projects` claims below are historical; that content surface is
+> retired and returns `410 Gone`.
+
 ## 🎉 PROJECT COMPLETE - 100% ✅
 
 ---

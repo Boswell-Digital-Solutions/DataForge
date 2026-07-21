@@ -1,5 +1,8 @@
 # Certificate of Completion
 
+> **ARCHIVED SNAPSHOT:** `/api/projects` claims below are historical; that content surface is
+> retired and returns `410 Gone`.
+
 ## Priority 2 Task 1: Test Expansion
 
 ---

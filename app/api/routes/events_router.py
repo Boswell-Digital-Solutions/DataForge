@@ -14,10 +14,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy import func, desc
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.auth.api_keys import validate_api_key
 from app.database import get_db
 from app.logging_config import get_logger
+from app.models.authorforge_analytics_schemas import (
+    AuthorForgeAnalyticsEnvelopeV1,
+    AuthorForgeAnalyticsIngestResponse,
+)
 from app.models.buildguard_models import BuildGuardEvent, BuildGuardProfileStats
 from app.models.buildguard_schemas import (
     BuildGuardMetricsEventCreate,
@@ -26,6 +31,7 @@ from app.models.buildguard_schemas import (
     BuildGuardDashboardStats,
     EventsListResponse,
 )
+from app.models.telemetry_models import TelemetryEventRecord
 
 logger = get_logger(__name__)
 
@@ -51,6 +57,34 @@ def verify_api_key(authorization: Optional[str] = Header(None)) -> str:
 
     # TODO: Validate token against authorized keys
     return token
+
+
+def verify_authorforge_analytics_key(
+    authorization: Optional[str] = Header(None),
+) -> str:
+    """Require a database-backed key scoped only to AuthorForge analytics."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Analytics API key required")
+    token = authorization[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Analytics API key required")
+    try:
+        key_info = validate_api_key(token)
+    except Exception:
+        logger.error("authorforge_analytics_auth_failed category=database")
+        raise HTTPException(status_code=503, detail="Analytics authorization unavailable")
+    if key_info is None:
+        raise HTTPException(status_code=401, detail="Invalid analytics API key")
+
+    metadata = key_info.metadata if isinstance(key_info.metadata, dict) else {}
+    scopes = metadata.get("scopes")
+    if (
+        metadata.get("service") != "authorforge"
+        or not isinstance(scopes, list)
+        or "analytics:write" not in scopes
+    ):
+        raise HTTPException(status_code=403, detail="AuthorForge analytics scope required")
+    return key_info.id
 
 
 @router.post("", status_code=201)
@@ -130,6 +164,59 @@ async def create_event(
                 detail=f"Event with verdict_id {event.verdict_id} already exists"
             )
         raise HTTPException(status_code=500, detail="Database error")
+
+
+@router.post(
+    "/authorforge-analytics",
+    response_model=AuthorForgeAnalyticsIngestResponse,
+    status_code=202,
+)
+def ingest_authorforge_analytics(
+    envelope: AuthorForgeAnalyticsEnvelopeV1,
+    db: Session = Depends(get_db),
+    _api_key_id: str = Depends(verify_authorforge_analytics_key),
+) -> AuthorForgeAnalyticsIngestResponse:
+    """Persist one minimized analytics event; content-bearing fields never validate."""
+    existing = db.get(TelemetryEventRecord, envelope.event_id)
+    if existing is not None:
+        return AuthorForgeAnalyticsIngestResponse(
+            event_id=envelope.event_id,
+            status="duplicate",
+        )
+
+    record = TelemetryEventRecord(
+        event_id=envelope.event_id,
+        timestamp=envelope.occurred_at,
+        service="authorforge",
+        event_type=envelope.event_type,
+        severity="error" if envelope.error_category else "info",
+        correlation_id=None,
+        event_metadata=envelope.canonical_metadata(),
+        metrics=envelope.canonical_metrics(),
+    )
+    try:
+        db.add(record)
+        db.commit()
+    except IntegrityError:
+        # A concurrent retry with the same event_id is still an idempotent duplicate.
+        db.rollback()
+        return AuthorForgeAnalyticsIngestResponse(
+            event_id=envelope.event_id,
+            status="duplicate",
+        )
+    except SQLAlchemyError:
+        db.rollback()
+        logger.error("authorforge_analytics_ingest_failed category=database")
+        raise HTTPException(status_code=503, detail="Analytics persistence unavailable")
+
+    logger.info(
+        "authorforge_analytics_ingested",
+        extra={"event_id": str(envelope.event_id), "event_type": envelope.event_type},
+    )
+    return AuthorForgeAnalyticsIngestResponse(
+        event_id=envelope.event_id,
+        status="accepted",
+    )
 
 
 def _update_profile_stats(db: Session, event: BuildGuardMetricsEventCreate):

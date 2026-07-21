@@ -1,5 +1,8 @@
 # DataForge Testing - Complete Summary
 
+> **ARCHIVED SNAPSHOT:** Historical AuthorForge model/API results below are superseded by the
+> local-content, analytics-only boundary.
+
 ## 🎉 Test Suite Status: PRODUCTION READY
 
 **Date:** 2025-11-16  
@@ -277,4 +280,3 @@ The DataForge test suite is **production-ready** with:
 ✅ **SQL integration validated**  
 
 The test suite provides a solid foundation for maintaining code quality and can be easily extended as new features are added.
-

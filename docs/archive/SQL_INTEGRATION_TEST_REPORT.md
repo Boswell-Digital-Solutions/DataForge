@@ -1,5 +1,8 @@
 # SQL Integration Test Report - DataForge
 
+> **ARCHIVED AND SUPERSEDED:** Historical AuthorForge SQL tests do not authorize content storage
+> in DataForge. The current boundary is analytics-only.
+
 ## Executive Summary
 
 ✅ **All 21 SQL integration tests PASSING**
@@ -223,4 +226,3 @@ The DataForge SQL integration is **production-ready** with:
 - ✅ No critical bugs found
 
 The database layer provides a solid foundation for the Knowledge Base Management System with proper data integrity, relationships, and cascade behavior.
-

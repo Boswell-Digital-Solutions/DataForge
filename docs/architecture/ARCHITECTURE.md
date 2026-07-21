@@ -21,7 +21,7 @@ Its architecture is built around reliability, security, and high-availability.
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │ Client Layer                                                   │
-│ AuthorForge · NeuroForge · VibeForge · TradeForge · Leopold   │
+│ AuthorForge analytics · NeuroForge · VibeForge · TradeForge   │
 └───────────────┬────────────────────────────────────────────────┘
                 │
 ┌───────────────▼────────────────────────────────────────────────┐
@@ -75,9 +75,12 @@ Implements:
 - Replication + HA failover  
 - PITR backup capability  
 - Vector embeddings for:
-  - AuthorForge writing patterns  
   - NeuroForge context retrieval  
   - VibeForge prompt analytics  
+
+AuthorForge manuscripts, notes, research, worldbuilding, attachments, embeddings, prompts,
+responses, filesystem paths, raw logs, and identity never enter this data layer. AuthorForge's
+embedded database is its exclusive content authority.
 
 ---
 
@@ -124,7 +127,7 @@ Handles:
 
 | Product      | Dependency | Purpose |
 |--------------|-----------|---------|
-| AuthorForge  | Yes | Writing knowledge, story patterns, pacing analysis |
+| AuthorForge  | Analytics only | Strict `AuthorForgeAnalyticsEnvelope.v1`; no content sync or retrieval |
 | NeuroForge   | Yes | Context retrieval + embeddings for model routing |
 | VibeForge    | Yes | Prompt analytics, eval capture, context workspace |
 | TradeForge   | Yes | Historical data + market signals |

@@ -1,5 +1,9 @@
 # DataForge - Project Status
 
+> **Historical snapshot, superseded 2026-07-20.** AuthorForge content is local-only; any
+> `/api/projects` or AuthorForge-as-DataForge-backend guidance below is not operational. See
+> `doc/DTFSYSTEM.md` and `docs/guides/SQL_INTEGRATION_GUIDE.md`.
+
 ## Current Status
 
 Core DataForge functionality is implemented. The 2026-04-03 documentation audit refreshed the

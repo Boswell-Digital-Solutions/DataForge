@@ -1,9 +1,9 @@
 # §4 — API Layer
 
-*Last updated: 2026-07-14*
+*Last updated: 2026-07-20*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
-on 2026-07-14 confirmed `46` mounted router objects plus app-level docs, HTML views, and
+on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
 probe routes. `app/api/` contains additional routers, but they are not part of the live
 surface until explicitly included in `app/main.py`.
 
@@ -32,7 +32,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Auth compatibility and operator key control | `/auth`, `/api/auth`, `/auth/whoami`, `/admin/api-keys`, `/admin/token` | `POST /auth/token`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /admin/api-keys/generate`, `POST /admin/token/rotate` | Live mounted auth is JWT/login compatibility plus admin key/token tooling |
 | NeuroForge and learning | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | `POST /api/neuroforge/inferences`, `POST /api/neuroforge/routing-decisions`, `POST /api/v1/runs`, `GET /api/v1/learning/model-performance` | Inference, routing, run logging, and learning feedback |
 | VibeForge and team state | `/api/vibeforge`, `/api/teams` | `POST /api/vibeforge/projects`, `POST /api/vibeforge/sessions`, `GET /api/teams/{team_id}`, `GET /api/teams/{team_id}/insights` | Project/session persistence and team insights |
-| AuthorForge content graph | `/api/projects` | `POST /api/projects`, `POST /api/projects/{project_id}/chapters`, `POST /api/projects/manuscripts`, `GET /api/projects/{project_id}/map/settings` | Large mounted authoring/content surface with chapters, scenes, maps, assets, collections, arcs, and alerts |
+| AuthorForge boundary | `/api/projects`, `/api/v1/events/authorforge-analytics` | All `/api/projects` methods return `410`; `POST /api/v1/events/authorforge-analytics` accepts only `AuthorForgeAnalyticsEnvelope.v1` | AuthorForge content stays in its embedded DB; only minimized analytics can enter DataForge |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
@@ -48,6 +48,8 @@ Credential requirements vary by router. The live mounted service currently uses 
   `service` or `scopes` metadata are constrained to that service and must include
   `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
   accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
+  `service=authorforge` is always rejected here; AuthorForge may use only the dedicated strict,
+  content-free `/api/v1/events/authorforge-analytics` contract.
 
 | Credential type | Examples |
 |-----------------|----------|
@@ -56,6 +58,10 @@ Credential requirements vary by router. The live mounted service currently uses 
 | JWT bearer | `/api/auth/me` and many user-facing CRUD surfaces |
 | Admin token / emergency key / admin headers | `/admin/api-keys/*`, `/admin/token/*`, `/secrets/*` |
 | Service API keys / scoped run credentials | BugCheck, event, policy, promotion, pricing, rate-limit, and integration surfaces as enforced by their handlers |
+
+AuthorForge analytics requires a database-backed Bearer key whose metadata has
+`service=authorforge` and a `scopes` list containing `analytics:write`. A general event key or
+JWT is insufficient.
 
 The repo contains a richer secure auth stack in `auth_secure_router.py`, but that router is
 not mounted and therefore is not part of the live contract.
@@ -82,3 +88,7 @@ live app surface:
 - Do not document `/metrics` as a supported root route until a mounted route actually exposes it.
 - Preserve the distinction between HTML operator pages and JSON APIs.
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
+- Never remount `projects_router` or `authorforge_v2_router`. The `/api/projects` tombstone must
+  reject before body parsing, and rejected analytics payloads must not be echoed or logged.
+- `AuthorForgeAnalyticsEnvelope.v1` is strict and closed: no arbitrary metadata, user content,
+  raw logs, paths, identity, prompts/responses, attachments, or embeddings.

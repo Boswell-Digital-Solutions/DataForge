@@ -1,5 +1,8 @@
 # Manifest: Priority 2 Task 1 - Test Expansion
 
+> **Historical snapshot.** `/api/projects` entries below are retired test inventory, not a live
+> AuthorForge content contract. See `doc/DTFSYSTEM.md`.
+
 **Project:** DataForge
 **Task:** Priority 2 Task 1 - Test Expansion
 **Status:** ✅ 100% COMPLETE

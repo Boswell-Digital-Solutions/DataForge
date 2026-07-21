@@ -1,4 +1,7 @@
 # READ FIRST
+> **ARCHIVED—DO NOT USE AS INSTRUCTIONS.** AuthorForge content is local-only and DataForge is
+> analytics-only for AuthorForge. See root `CLAUDE.md` and `doc/DTFSYSTEM.md`.
+
 You assist with AuthorForge + DataForge development.
 Stack: SolidJS + Tailwind + Tauri/Rust, Python FastAPI (Tempering), Postgres.
 Goal: generate correct code with minimal assumptions.

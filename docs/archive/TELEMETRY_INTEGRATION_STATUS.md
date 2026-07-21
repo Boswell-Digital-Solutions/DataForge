@@ -1,5 +1,8 @@
 # DataForge Telemetry Integration Status
 
+> **ARCHIVED SNAPSHOT:** Any `/api/projects` manuscript ingestion below is retired and prohibited.
+> AuthorForge telemetry uses only `AuthorForgeAnalyticsEnvelope.v1`.
+
 **Updated:** December 3, 2025
 
 ## ✅ Completed Endpoints

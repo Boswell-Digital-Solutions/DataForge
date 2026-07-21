@@ -2,20 +2,20 @@
 
 ## Service Identity
 
-**DataForge** is the resident FastAPI service that owns durable ecosystem truth. It is
+**DataForge** is the resident FastAPI service that owns approved durable ecosystem truth. It is
 the persistence, retrieval, and governance evidence boundary behind the rest of Forge,
 not a bootstrap repo or passive library.
 
 - **Runtime posture:** Resident HTTP service
 - **Default port:** `8001`
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
-- **Mounted router objects:** `46` from `app/main.py` (audit: 2026-07-14)
-- **Router modules in source:** `39`
-- **Alembic migrations:** `47`
-- **Python files under `app/`:** `175`
-- **Pytest files:** `39`
-- **Collected tests:** `565` via `PYTHONPATH=. ./.venv/bin/pytest --collect-only -q`
-- **Nested repo boundary:** `forge-telemetry/` is a separate git repo with its own documentation stack
+- **Mounted router objects:** `45` from `app/main.py` (audit: 2026-07-20)
+- **Router modules in source:** `50`
+- **Alembic migrations:** `63`
+- **Python files under `app/`:** `212`
+- **Pytest files:** `57`
+- **Collected tests:** `781` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
 
@@ -26,21 +26,25 @@ Every major Forge runtime writes authoritative records into DataForge:
 
 - **NeuroForge** persists inference records, model-routing evidence, and learning data.
 - **VibeForge** persists projects, sessions, outcomes, analytics, and preferences.
-- **AuthorForge** persists project, chapter, scene, manuscript, map, and asset state.
+- **AuthorForge is the explicit local-authority exception.** Its embedded database is the
+  exclusive source of truth for projects and all user-authored content. DataForge may persist
+  only the strict, minimized `AuthorForgeAnalyticsEnvelope.v1` telemetry contract.
 - **ForgeAgents / BugCheck** persist agent definitions, run evidence, findings, enrichments, and lifecycle events.
 - **Forge:SMITH** persists planning sessions, deliverables, portfolio projects, and evaluations.
 - **ForgeCommand** depends on DataForge for execution evidence, key control, secret sync, and governance-adjacent state.
 - **Sentinel / Press / private-source / runtime-governance surfaces** persist sweep records, automation records, profile state, policy envelopes, and promotion receipts.
 
-If a service cannot persist required durable state to DataForge, the operation is not complete.
-That fail-closed posture is intentional.
+If a service cannot persist DataForge-owned durable state to DataForge, the operation is not
+complete. That fail-closed posture is intentional. It must never be interpreted as authority
+to copy AuthorForge content out of AuthorForge's embedded database.
 
 ## Current Service Role
 
 ### 1. Durable Persistence
-PostgreSQL remains the authority boundary for documents, runs, findings, planning state,
-authoring assets, pricing data, policy ledgers, press automation records, and private-source
-profiles.
+PostgreSQL remains the authority boundary for DataForge corpus documents, runs, findings,
+planning state, pricing data, policy ledgers, press automation records, and private-source
+profiles. AuthorForge manuscripts, chapters, scenes, notes, research, worldbuilding,
+attachments, embeddings, prompts, responses, and identity are outside this boundary.
 
 ### 2. Hybrid Retrieval
 DataForge stores chunked documents with vector embeddings and full-text indexes, then
@@ -73,6 +77,8 @@ downgrading authority decisions.
 - **Not an orchestrator.** ForgeCommand remains the ecosystem operator/control plane.
 - **Not an autonomous healer.** Sentinel data is persisted here, but DataForge does not itself perform autonomous repair.
 - **Not the live OAuth2/TOTP gateway on the default mounted surface.** Those secure auth modules exist in source only until explicitly wired in `app/main.py`.
-- **Not the `forge-telemetry` codebase.** The nested repo is versioned and documented separately.
+- **Not the `forge-telemetry` codebase.** The sibling repo is versioned and documented separately.
+- **Not AuthorForge's cloud content backend.** `/api/projects` is a fail-closed `410` tombstone;
+  it does not parse, serve, sync, or persist AuthorForge content.
 
 *See §11 for the invariants that must remain true across future changes.*

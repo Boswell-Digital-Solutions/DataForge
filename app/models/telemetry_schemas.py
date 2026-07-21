@@ -84,6 +84,12 @@ class TelemetryIngestEvent(TelemetryEvent):
 
     model_config = ConfigDict(extra="forbid", use_enum_values=True)
 
+    @field_validator("service")
+    @classmethod
+    def normalize_service(cls, value: str) -> str:
+        """Use one canonical service identity for authorization and storage."""
+        return value.strip().lower()
+
     @field_validator("timestamp")
     @classmethod
     def timestamp_must_include_timezone(cls, value: datetime) -> datetime:

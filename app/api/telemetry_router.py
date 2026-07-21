@@ -28,6 +28,14 @@ def _authorize_event_services(auth: AuthContext, batch: TelemetryIngestBatch) ->
     callers to one service and the ``telemetry:write`` scope through metadata.
     """
 
+    # AuthorForge has a stricter, content-free contract and must never enter
+    # through this generic metadata-bearing surface, regardless of key type.
+    if any(event.service == "authorforge" for event in batch.events):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AuthorForge must use the dedicated analytics endpoint",
+        )
+
     if auth.key_info is None:
         return
 
