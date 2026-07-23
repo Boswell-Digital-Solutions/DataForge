@@ -47,7 +47,11 @@ Credential requirements vary by router. The live mounted service currently uses 
 - `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
   `service` or `scopes` metadata are constrained to that service and must include
   `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
-  accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
+  accepts at most 100 Forge Telemetry v0.3 events and 256 KiB per batch, then writes
+  idempotently by `event_id`. Each complete event is RFC 8785-canonicalized and must
+  fit the authority-pinned 65,536-byte ceiling. The limit is not applied separately
+  to `metadata` and `metrics`; an oversized event fails validation with the stable
+  `event_size_exceeded` code.
 
 | Credential type | Examples |
 |-----------------|----------|

@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.0 (2026-06-19) — BDS canonical-compliance migration (7-group class-aware structure, truth classes, designation-bound fail-closed assembly, authored governance trio)
+**Document version:** 2.1 (2026-07-23) — FT-02 canonical telemetry event-size parity documented
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -450,6 +450,9 @@ DataForge/
 │   │   ├── smithy_planning_models.py / _schemas.py     # Forge:SMITH planning deliverables
 │   │   ├── smithy_portfolio_models.py / _schemas.py    # Forge:SMITH portfolio projects
 │   │   ├── tarcie_models.py / _schemas.py              # TARCIE event records
+│   │   ├── telemetry_models.py / _schemas.py            # Shared events ORM + bounded HTTP ingest
+│   │   ├── contracts/
+│   │   │   └── telemetry_resource_bounds.v1.json        # Hash-pinned FT-02 authority copy
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
@@ -697,7 +700,11 @@ Credential requirements vary by router. The live mounted service currently uses 
 - `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
   `service` or `scopes` metadata are constrained to that service and must include
   `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
-  accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
+  accepts at most 100 Forge Telemetry v0.3 events and 256 KiB per batch, then writes
+  idempotently by `event_id`. Each complete event is RFC 8785-canonicalized and must
+  fit the authority-pinned 65,536-byte ceiling. The limit is not applied separately
+  to `metadata` and `metrics`; an oversized event fails validation with the stable
+  `event_size_exceeded` code.
 
 | Credential type | Examples |
 |-----------------|----------|
@@ -1799,7 +1806,11 @@ module present in the repo.
 
 Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
 never receive DataForge/PostgreSQL credentials. The request event is the shared
-`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON complexity bounds.
+`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON
+complexity bounds. The FT-02 authority copy pins the complete redacted RFC 8785
+event ceiling at 65,536 bytes and the violation code at
+`event_size_exceeded`; `metadata` and `metrics` are not independent 64 KiB
+budgets.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 ## BugCheck Contract
@@ -2789,6 +2800,13 @@ system docs, the generated system docs win.
 **Document version:** 1.0 (carry-forward)
 
 Appendices, glossary, and cross-references.
+
+## Revision history
+
+| Version | Date | Change |
+|---------|------|--------|
+| 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
+| 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
 
 ## Unmapped legacy chapters
 

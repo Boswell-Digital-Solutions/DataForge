@@ -1,6 +1,6 @@
 # DataForge Architecture Spec
 
-**Document version:** 1.1 (2026-04-03) — Documentation reconciled to live mounted code
+**Document version:** 1.2 (2026-07-23) — FT-02 telemetry ingress parity
 
 ## 1. Purpose
 
@@ -14,9 +14,9 @@ can be observed in the working tree.
 | --- | --- |
 | Canonical technical reference | `doc/system/` plus generated root `SYSTEM.md` (with mirrored `doc/SYSTEM.md` and legacy `doc/dfSYSTEM.md`) |
 | Repo-local instructions | `CLAUDE.md` |
-| Current maturity | Resident FastAPI service with mounted product, governance, and operator-control surfaces |
-| Route posture | `35` mounted router objects in `app/main.py`; additional routers remain source-present only until mounted |
-| Schema posture | Modular `app/models/` layout with shared core tables in `models.py` and domain-specific `*_models.py` / `*_schemas.py` modules |
+| Current maturity | Resident FastAPI service with mounted product, governance, operator-control, and authenticated generic telemetry surfaces |
+| Route posture | `46` mounted router objects in `app/main.py`; additional routers remain source-present only until mounted |
+| Schema posture | Modular `app/models/` layout including hash-pinned FT-02 telemetry resource-bound consumption |
 
 ## 3. Module Map
 
@@ -25,7 +25,7 @@ can be observed in the working tree.
 | Documentation Stack | `doc/system/`, `SYSTEM.md`, `scripts/context-bundle.sh`, `README.md` | Canonical repo context, generated reference, operator entrypoint |
 | Resident Service Runtime | `app/`, `templates/`, `static/` | FastAPI app, mounted routes, middleware, HTML operator surfaces |
 | Domain Persistence | `app/models/`, `alembic/`, `alembic.ini` | Durable truth for documents, runs, policy envelopes, promotion receipts, Sentinel state, press automation, and more |
-| Integration and Governance Surfaces | `app/api/`, `app/auth/`, `app/utils/` | Product APIs, key/token control, search, cache governance, auth, resilience, and policy/runtime evidence |
+| Integration and Governance Surfaces | `app/api/`, `app/auth/`, `app/utils/` | Product APIs, authenticated telemetry ingress, key/token control, search, cache governance, auth, resilience, and policy/runtime evidence |
 | Verification | `tests/`, `pytest.ini` | API, integration, unit, governance, security, and opt-in load testing |
 | Supporting Doctrine | `docs/`, `ops/`, `diligence/` | Architecture, runbooks, references, and compliance/supporting material |
 | Nested Repo Boundary | `forge-telemetry/` | Separate git repo with its own docs stack; do not treat as part of the DataForge runtime tree |

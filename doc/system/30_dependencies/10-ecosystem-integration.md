@@ -29,7 +29,11 @@ module present in the repo.
 
 Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
 never receive DataForge/PostgreSQL credentials. The request event is the shared
-`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON complexity bounds.
+`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON
+complexity bounds. The FT-02 authority copy pins the complete redacted RFC 8785
+event ceiling at 65,536 bytes and the violation code at
+`event_size_exceeded`; `metadata` and `metrics` are not independent 64 KiB
+budgets.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 ## BugCheck Contract

@@ -66,6 +66,7 @@ The current contract is defined by:
 | Collected tests | `730` via `pytest --collect-only -q` on 2026-07-14 |
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Nested repo boundary | `forge-telemetry/` is a separate git repo with its own docs stack |
+| Forge Telemetry ingress | Authenticated `/api/v1/telemetry/events:batch`; 100 events and 256 KiB per batch, 65,536 RFC 8785 bytes per complete event |
 
 ## What DataForge Owns
 
@@ -74,6 +75,8 @@ The current contract is defined by:
 - Scoped auth and operator-control surfaces such as `/auth`, `/api/auth`, `/admin/api-keys`, `/admin/token`, and `/secrets`.
 - Governance evidence for runtime promotion, deterministic policy envelopes, reward ledgers, rate limits, and execution history.
 - Platform state for Sentinel, PressForge automation, pricing/catalog/cost ledgers, and private-source profiles.
+- Authenticated generic Forge Telemetry ingestion and durable `events` storage,
+  with the authority-pinned 65,536-byte complete canonical-event ceiling.
 
 ## Live Control Surfaces
 
@@ -84,11 +87,15 @@ Representative mounted families:
 - Product persistence: `/api/neuroforge/*`, `/api/vibeforge/*`, `/api/projects/*`, `/api/v1/smithy/*`, `/api/teams/*`
 - Agent and run persistence: `/api/v1/agents/*`, `/api/v1/forge-run/*`, `/api/v1/bugcheck/*`, `/api/v1/runs/*`, `/api/v1/experience/*`
 - Governance and operator data: `/api/v1/runtime-promotion/*`, `/api/v1/policy-*`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles`
+- Generic operational telemetry: `/api/v1/telemetry/events:batch`
 - HTML and probes: `/`, `/admin`, `/admin-ui`, `/diligence*`, `/health`, `/health/render`, `/ready`, `/version`, `/docs`, `/redoc`
 
 Important boundary notes:
 
 - There is **no root `/metrics` route mounted by default** in the current app.
+- Forge Telemetry event-size validation applies to the complete RFC 8785 event,
+  not to `metadata` and `metrics` independently; violations report
+  `event_size_exceeded`.
 - `auth_secure_router.py`, `tracing_router.py`, `api_deployment_router.py`, `replication_router.py`, `cache_replication_router.py`, `dlq_router.py`, and similar modules are source-present only until mounted.
 - `forge-telemetry/` is not part of the DataForge runtime tree for documentation or ownership purposes.
 

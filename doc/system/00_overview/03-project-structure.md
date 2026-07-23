@@ -45,6 +45,9 @@ DataForge/
 │   │   ├── smithy_planning_models.py / _schemas.py     # Forge:SMITH planning deliverables
 │   │   ├── smithy_portfolio_models.py / _schemas.py    # Forge:SMITH portfolio projects
 │   │   ├── tarcie_models.py / _schemas.py              # TARCIE event records
+│   │   ├── telemetry_models.py / _schemas.py            # Shared events ORM + bounded HTTP ingest
+│   │   ├── contracts/
+│   │   │   └── telemetry_resource_bounds.v1.json        # Hash-pinned FT-02 authority copy
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │

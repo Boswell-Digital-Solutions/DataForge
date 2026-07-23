@@ -4,6 +4,13 @@
 
 Appendices, glossary, and cross-references.
 
+## Revision history
+
+| Version | Date | Change |
+|---------|------|--------|
+| 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
+| 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
+
 ## Unmapped legacy chapters
 
 The following legacy chapters were carried forward but could not be
