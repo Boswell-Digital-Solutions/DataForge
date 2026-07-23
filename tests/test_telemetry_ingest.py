@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+import rfc8785
 from fastapi import HTTPException
 from pydantic import ValidationError
 
@@ -12,10 +13,16 @@ from app.api.telemetry_router import ingest_telemetry_events
 from app.auth import ApiKeyInfo
 from app.main import app
 from app.models.telemetry_models import TelemetryEventRecord
-from app.models.telemetry_schemas import TelemetryIngestBatch
+from app.models.telemetry_schemas import (
+    MAX_CANONICAL_EVENT_BYTES,
+    TelemetryIngestBatch,
+    TelemetryIngestEvent,
+)
 
 
-def _auth(*, service: str = "forgesmithy", scopes: list[str] | None = None) -> AuthContext:
+def _auth(
+    *, service: str = "forgesmithy", scopes: list[str] | None = None
+) -> AuthContext:
     metadata: dict[str, object] = {"service": service}
     if scopes is not None:
         metadata["scopes"] = scopes
@@ -47,10 +54,23 @@ def _batch(event: dict) -> TelemetryIngestBatch:
     return TelemetryIngestBatch.model_validate({"events": [event]})
 
 
+def _event_with_canonical_size(target_bytes: int) -> dict:
+    event = _event("00000000-0000-0000-0000-000000000001")
+    event["timestamp"] = "2026-07-23T00:00:00Z"
+    event["service"] = "forgesmithy"
+    event["event_type"] = "boundary"
+    event["correlation_id"] = None
+    event["metadata"] = {f"chunk_{index}": "x" * 8192 for index in range(7)}
+    event["metadata"]["tail"] = ""
+    remaining = target_bytes - len(rfc8785.dumps(event))
+    assert 0 <= remaining <= 8192
+    event["metadata"]["tail"] = "x" * remaining
+    assert len(rfc8785.dumps(event)) == target_bytes
+    return event
+
+
 def test_telemetry_ingest_route_is_mounted():
-    assert "/api/v1/telemetry/events:batch" in {
-        route.path for route in app.routes
-    }
+    assert "/api/v1/telemetry/events:batch" in {route.path for route in app.routes}
 
 
 def test_ingest_persists_v03_event_and_normalizes_service(db):
@@ -108,3 +128,36 @@ def test_ingest_rejects_oversized_or_invalid_payloads():
     invalid_type["event_type"] = "invalid event type"
     with pytest.raises(ValidationError):
         _batch(invalid_type)
+
+
+def test_ingest_enforces_64_kib_across_the_complete_canonical_event():
+    accepted = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES)
+    assert (
+        len(
+            rfc8785.dumps(
+                TelemetryIngestEvent.model_validate(accepted).model_dump(mode="json")
+            )
+        )
+        == MAX_CANONICAL_EVENT_BYTES
+    )
+
+    rejected = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES + 1)
+    with pytest.raises(
+        ValidationError,
+        match="telemetry event exceeds 65536 canonical bytes",
+    ):
+        TelemetryIngestEvent.model_validate(rejected)
+
+
+def test_ingest_does_not_treat_metadata_and_metrics_as_separate_64_kib_budgets():
+    event = _event()
+    event["metadata"] = {f"metadata_{index}": "m" * 7000 for index in range(5)}
+    event["metrics"] = {f"metric_{index}": "n" * 7000 for index in range(5)}
+
+    assert len(rfc8785.dumps(event["metadata"])) < MAX_CANONICAL_EVENT_BYTES
+    assert len(rfc8785.dumps(event["metrics"])) < MAX_CANONICAL_EVENT_BYTES
+    with pytest.raises(
+        ValidationError,
+        match="telemetry event exceeds 65536 canonical bytes",
+    ):
+        TelemetryIngestEvent.model_validate(event)

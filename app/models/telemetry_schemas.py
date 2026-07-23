@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+import rfc8785
 from forge_telemetry import TelemetryEvent
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
@@ -13,11 +14,21 @@ from pydantic.alias_generators import to_camel
 
 MAX_BATCH_EVENTS = 100
 MAX_BATCH_JSON_BYTES = 256 * 1024
-MAX_EVENT_JSON_BYTES = 64 * 1024
+MAX_CANONICAL_EVENT_BYTES = 64 * 1024
+# Compatibility name retained for callers that imported the former constant.
+# The budget applies to the complete canonical event, not to each JSON field.
+MAX_EVENT_JSON_BYTES = MAX_CANONICAL_EVENT_BYTES
 MAX_JSON_DEPTH = 8
 MAX_JSON_NODES = 2048
 MAX_JSON_KEY_CHARS = 128
 MAX_JSON_STRING_CHARS = 8192
+
+
+def _canonical_json_bytes(value: Any, field_name: str) -> bytes:
+    try:
+        return rfc8785.dumps(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be JSON serializable") from exc
 
 
 def _validate_json_value(value: dict[str, Any] | None, field_name: str) -> None:
@@ -52,18 +63,14 @@ def _validate_json_value(value: dict[str, Any] | None, field_name: str) -> None:
             raise ValueError(f"{field_name} contains a non-finite number")
 
     try:
-        encoded = json.dumps(
+        json.dumps(
             value,
             allow_nan=False,
             ensure_ascii=False,
             separators=(",", ":"),
-        ).encode("utf-8")
+        )
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field_name} must be JSON serializable") from exc
-    if len(encoded) > MAX_EVENT_JSON_BYTES:
-        raise ValueError(
-            f"{field_name} exceeds {MAX_EVENT_JSON_BYTES} encoded bytes"
-        )
 
 
 class TelemetryIngestEvent(TelemetryEvent):
@@ -95,6 +102,14 @@ class TelemetryIngestEvent(TelemetryEvent):
     def validate_json_fields(self) -> "TelemetryIngestEvent":
         _validate_json_value(self.metadata, "metadata")
         _validate_json_value(self.metrics, "metrics")
+        encoded = _canonical_json_bytes(
+            self.model_dump(mode="json"),
+            "telemetry event",
+        )
+        if len(encoded) > MAX_CANONICAL_EVENT_BYTES:
+            raise ValueError(
+                f"telemetry event exceeds {MAX_CANONICAL_EVENT_BYTES} canonical bytes"
+            )
         return self
 
 

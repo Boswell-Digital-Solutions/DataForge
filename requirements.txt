@@ -48,6 +48,7 @@ openai==1.10.0
 # Using latest pydantic with Python 3.13 wheel support
 pydantic>=2.10.0
 pydantic-settings>=2.6.0
+rfc8785>=0.1.2
 
 # Testing
 pytest==7.4.3
