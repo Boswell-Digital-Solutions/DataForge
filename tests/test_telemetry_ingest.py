@@ -1,6 +1,9 @@
 """Regression coverage for the Forge Telemetry HTTP ingress."""
 
+import hashlib
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -14,10 +17,17 @@ from app.auth import ApiKeyInfo
 from app.main import app
 from app.models.telemetry_models import TelemetryEventRecord
 from app.models.telemetry_schemas import (
+    EVENT_SIZE_VIOLATION_CODE,
     MAX_CANONICAL_EVENT_BYTES,
+    TELEMETRY_RESOURCE_BOUNDS_SHA256,
     TelemetryIngestBatch,
     TelemetryIngestEvent,
 )
+
+_FIXTURE_PATH = (
+    Path(__file__).parent / "fixtures" / "telemetry" / "canonical_event_size.v1.json"
+)
+_FIXTURE_SHA256 = "f292aa7c804270257fbc4115cbef6b0851a18b7c6fa28ab8505c781765b89d01"
 
 
 def _auth(
@@ -131,7 +141,15 @@ def test_ingest_rejects_oversized_or_invalid_payloads():
 
 
 def test_ingest_enforces_64_kib_across_the_complete_canonical_event():
-    accepted = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES)
+    fixture_bytes = _FIXTURE_PATH.read_bytes()
+    assert hashlib.sha256(fixture_bytes).hexdigest() == _FIXTURE_SHA256
+    fixture = json.loads(fixture_bytes)
+    assert fixture["resource_bounds_schema_version"] == (
+        "forge.telemetry.resource_bounds.v1"
+    )
+    accepted_case, rejected_case = fixture["cases"]
+
+    accepted = _event_with_canonical_size(accepted_case["canonical_bytes"])
     assert (
         len(
             rfc8785.dumps(
@@ -141,12 +159,24 @@ def test_ingest_enforces_64_kib_across_the_complete_canonical_event():
         == MAX_CANONICAL_EVENT_BYTES
     )
 
-    rejected = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES + 1)
-    with pytest.raises(
-        ValidationError,
-        match="telemetry event exceeds 65536 canonical bytes",
-    ):
+    rejected = _event_with_canonical_size(rejected_case["canonical_bytes"])
+    with pytest.raises(ValidationError) as exc_info:
         TelemetryIngestEvent.model_validate(rejected)
+    assert exc_info.value.errors()[0]["type"] == rejected_case["expected_error_code"]
+    assert rejected_case["expected_error_code"] == EVENT_SIZE_VIOLATION_CODE
+
+
+def test_ingest_resource_bound_copy_matches_authority_hash():
+    contract_path = (
+        Path(__file__).parent.parent
+        / "app"
+        / "models"
+        / "contracts"
+        / "telemetry_resource_bounds.v1.json"
+    )
+    assert hashlib.sha256(contract_path.read_bytes()).hexdigest() == (
+        TELEMETRY_RESOURCE_BOUNDS_SHA256
+    )
 
 
 def test_ingest_does_not_treat_metadata_and_metrics_as_separate_64_kib_budgets():
@@ -156,8 +186,6 @@ def test_ingest_does_not_treat_metadata_and_metrics_as_separate_64_kib_budgets()
 
     assert len(rfc8785.dumps(event["metadata"])) < MAX_CANONICAL_EVENT_BYTES
     assert len(rfc8785.dumps(event["metrics"])) < MAX_CANONICAL_EVENT_BYTES
-    with pytest.raises(
-        ValidationError,
-        match="telemetry event exceeds 65536 canonical bytes",
-    ):
+    with pytest.raises(ValidationError) as exc_info:
         TelemetryIngestEvent.model_validate(event)
+    assert exc_info.value.errors()[0]["type"] == EVENT_SIZE_VIOLATION_CODE

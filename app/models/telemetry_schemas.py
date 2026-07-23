@@ -1,8 +1,10 @@
 """Bounded HTTP contract for Forge Telemetry v0.3 event ingestion."""
 
+import hashlib
 import json
 import math
 from datetime import UTC, datetime
+from importlib.resources import files
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -10,11 +12,44 @@ import rfc8785
 from forge_telemetry import TelemetryEvent
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
+from pydantic_core import PydanticCustomError
 
 
 MAX_BATCH_EVENTS = 100
 MAX_BATCH_JSON_BYTES = 256 * 1024
-MAX_CANONICAL_EVENT_BYTES = 64 * 1024
+TELEMETRY_RESOURCE_BOUNDS_SHA256 = (
+    "6729e46ea46544095c1e7dd8bcdb9df9eec84df1889b9e4439db6b3f998eb919"
+)
+
+
+def _load_telemetry_resource_bounds() -> dict[str, Any]:
+    name = "telemetry_resource_bounds.v1.json"
+    try:
+        content = files("app.models").joinpath("contracts", name).read_bytes()
+    except OSError as exc:
+        raise RuntimeError(
+            f"required telemetry contract is unavailable: {name}"
+        ) from exc
+    if hashlib.sha256(content).hexdigest() != TELEMETRY_RESOURCE_BOUNDS_SHA256:
+        raise RuntimeError(f"telemetry contract digest mismatch: {name}")
+    payload = json.loads(content)
+    if (
+        payload.get("schema_version") != "forge.telemetry.resource_bounds.v1"
+        or payload.get("remaining_bounds_status") != "unapproved"
+        or payload.get("canonical_event", {}).get("serialization") != "rfc8785"
+        or payload.get("canonical_event", {}).get("scope") != "complete_redacted_event"
+        or payload.get("canonical_event", {}).get("producer_override")
+        != "stricter_only"
+    ):
+        raise RuntimeError("telemetry resource-bound contract content is invalid")
+    return payload
+
+
+_TELEMETRY_RESOURCE_BOUNDS = _load_telemetry_resource_bounds()
+MAX_CANONICAL_EVENT_BYTES = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"]["max_bytes"]
+EVENT_SIZE_VIOLATION_CODE = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"][
+    "violation_error_code"
+]
 # Compatibility name retained for callers that imported the former constant.
 # The budget applies to the complete canonical event, not to each JSON field.
 MAX_EVENT_JSON_BYTES = MAX_CANONICAL_EVENT_BYTES
@@ -107,8 +142,10 @@ class TelemetryIngestEvent(TelemetryEvent):
             "telemetry event",
         )
         if len(encoded) > MAX_CANONICAL_EVENT_BYTES:
-            raise ValueError(
-                f"telemetry event exceeds {MAX_CANONICAL_EVENT_BYTES} canonical bytes"
+            raise PydanticCustomError(
+                EVENT_SIZE_VIOLATION_CODE,
+                "telemetry event exceeds {max_bytes} canonical bytes",
+                {"max_bytes": MAX_CANONICAL_EVENT_BYTES},
             )
         return self
 
