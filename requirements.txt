@@ -16,7 +16,7 @@ alembic==1.13.1
 pgvector==0.2.4
 
 # Canonical ForgeEvent.v1 model and bounded HTTP transport, immutable proof pin.
-forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@9390ea322a6fb03482bb62e8d7ce1f37c697d909
+forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@e2ad8b9bd0c4ccbb9b728b4a58ab8be31b046fb4
 git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
