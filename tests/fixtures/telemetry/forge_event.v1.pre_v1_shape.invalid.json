@@ -1,0 +1,14 @@
+{
+  "event_id": "22222222-2222-4222-8222-222222222222",
+  "timestamp": "2026-07-23T18:00:00Z",
+  "service": "forgeagents",
+  "event_type": "fpvs.readiness.checked",
+  "severity": "info",
+  "correlation_id": "33333333-3333-4333-8333-333333333333",
+  "metadata": {
+    "check": "fpvs"
+  },
+  "metrics": {
+    "duration_ms": 12
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "fixture_set_id": "forge.telemetry.canonical_event_size.v1",
+  "resource_bounds_schema_version": "forge.telemetry.resource_bounds.v1",
+  "serialization": "rfc8785",
+  "scope": "complete_redacted_event",
+  "cases": [
+    {
+      "name": "at_ceiling",
+      "canonical_bytes": 65536,
+      "expected": "accepted"
+    },
+    {
+      "name": "above_ceiling",
+      "canonical_bytes": 65537,
+      "expected": "rejected",
+      "expected_error_code": "event_size_exceeded"
+    }
+  ]
+}

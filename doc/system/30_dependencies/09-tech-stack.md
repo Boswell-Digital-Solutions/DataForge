@@ -72,6 +72,7 @@
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
+| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation and bounded canonical async HTTP submission |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 

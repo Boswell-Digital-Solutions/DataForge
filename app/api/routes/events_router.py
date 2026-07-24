@@ -23,6 +23,7 @@ from app.models.authorforge_analytics_schemas import (
     AuthorForgeAnalyticsEnvelopeV1,
     AuthorForgeAnalyticsIngestResponse,
 )
+from app.models.authorforge_analytics_models import AuthorForgeAnalyticsRecord
 from app.models.buildguard_models import BuildGuardEvent, BuildGuardProfileStats
 from app.models.buildguard_schemas import (
     BuildGuardMetricsEventCreate,
@@ -31,7 +32,6 @@ from app.models.buildguard_schemas import (
     BuildGuardDashboardStats,
     EventsListResponse,
 )
-from app.models.telemetry_models import TelemetryEventRecord
 
 logger = get_logger(__name__)
 
@@ -177,29 +177,53 @@ def ingest_authorforge_analytics(
     _api_key_id: str = Depends(verify_authorforge_analytics_key),
 ) -> AuthorForgeAnalyticsIngestResponse:
     """Persist one minimized analytics event; content-bearing fields never validate."""
-    existing = db.get(TelemetryEventRecord, envelope.event_id)
+    digest = envelope.event_digest()
+    existing = db.get(AuthorForgeAnalyticsRecord, envelope.event_id)
     if existing is not None:
+        if existing.event_digest != digest:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "authorforge_analytics_identity_conflict",
+                    "event_id": str(envelope.event_id),
+                },
+            )
         return AuthorForgeAnalyticsIngestResponse(
             event_id=envelope.event_id,
             status="duplicate",
         )
 
-    record = TelemetryEventRecord(
+    record = AuthorForgeAnalyticsRecord(
         event_id=envelope.event_id,
-        timestamp=envelope.occurred_at,
-        service="authorforge",
+        event_digest=digest,
+        canonical_bytes=len(envelope.canonical_bytes()),
+        schema_version=envelope.schema_version,
+        policy_version=envelope.policy_version,
+        occurred_at=envelope.occurred_at,
         event_type=envelope.event_type,
-        severity="error" if envelope.error_category else "info",
-        correlation_id=None,
-        event_metadata=envelope.canonical_metadata(),
-        metrics=envelope.canonical_metrics(),
+        dimensions=envelope.bounded_dimensions(),
+        metrics=envelope.bounded_metrics(),
     )
     try:
         db.add(record)
         db.commit()
     except IntegrityError:
-        # A concurrent retry with the same event_id is still an idempotent duplicate.
         db.rollback()
+        existing = db.get(AuthorForgeAnalyticsRecord, envelope.event_id)
+        if existing is None:
+            logger.error("authorforge_analytics_ingest_failed category=database")
+            raise HTTPException(
+                status_code=503,
+                detail="Analytics persistence unavailable",
+            )
+        if existing.event_digest != digest:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "authorforge_analytics_identity_conflict",
+                    "event_id": str(envelope.event_id),
+                },
+            )
         return AuthorForgeAnalyticsIngestResponse(
             event_id=envelope.event_id,
             status="duplicate",

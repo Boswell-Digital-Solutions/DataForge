@@ -1,15 +1,15 @@
 # §15 — Testing
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*
 
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `57` |
-| Total tests collected | `781` |
+| Total test files | `59` |
+| Total tests collected | `810` |
 | Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
-| Inventory audit date | `2026-07-20` |
+| Inventory audit date | `2026-07-24` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
 This section intentionally documents what is currently observable from the repository. It
@@ -49,8 +49,8 @@ without PostgreSQL or Redis.
 - `tests/test_unit/test_supabase_log_ingest.py` — allow-listing, sensitive-field removal, and
   identity pseudonymization.
 - `tests/test_unit/test_authorforge_analytics.py` — strict envelope allow-list, size/cardinality
-  bounds, content/identity rejection, idempotent canonical event persistence, generic rejection
-  responses, and mounted-route inventory.
+  bounds, content/identity rejection, content-bound idempotency in the dedicated analytics
+  store, generic rejection responses, and mounted-route inventory.
 - `tests/test_unit/test_authorforge_boundary_audit.py` — synthetic proof that the read-only audit
   reports IDs/counts/categories without reading or outputting content fields.
 

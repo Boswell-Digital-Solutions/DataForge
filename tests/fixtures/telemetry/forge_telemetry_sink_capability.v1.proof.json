@@ -1,0 +1,49 @@
+{
+  "schema_version": "ForgeTelemetrySinkCapability.v1",
+  "storage_schema_version": "forge.dataforge.telemetry.v1",
+  "event_schema_versions": [
+    "ForgeEvent.v1"
+  ],
+  "event_schema_sha256": "165ff1ba01d6a4a9b456f77c22c3b664deeb9044c5000daae98deedabdab57d2",
+  "event_digest_profile_sha256": "024d16505a26c5569d5d2c08a834ae7e635f7f0abf77803c54da17c55aba5b7c",
+  "canonicalization": "RFC8785-JCS",
+  "resource_bounds_schema_version": "forge.telemetry.resource_bounds.v1",
+  "resource_bounds_sha256": "6729e46ea46544095c1e7dd8bcdb9df9eec84df1889b9e4439db6b3f998eb919",
+  "max_canonical_event_bytes": 65536,
+  "supported_fields": [
+    "schema_version",
+    "event_id",
+    "event_digest",
+    "occurred_at",
+    "received_at",
+    "service_name",
+    "service_instance_id",
+    "environment",
+    "tenant_ref",
+    "event_type",
+    "severity",
+    "outcome",
+    "evidence_class",
+    "correlation_id",
+    "trace_id",
+    "span_id",
+    "parent_span_id",
+    "attributes",
+    "metrics",
+    "privacy_class",
+    "retention_class",
+    "sampled",
+    "sample_rate",
+    "sampling_reason"
+  ],
+  "received_at_owner": "sink",
+  "content_bound_identity": true,
+  "identity_outcomes": [
+    "inserted",
+    "exact_replay",
+    "identity_conflict"
+  ],
+  "pre_v1_fallback": false,
+  "dual_write": false,
+  "write_enabled": false
+}

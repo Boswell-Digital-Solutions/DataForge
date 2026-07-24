@@ -304,6 +304,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | File | Purpose |
 |------|---------|
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
+| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, capability health, finite shutdown |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -313,7 +314,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 57 test files; 781 collected tests in the 2026-07-20 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 59 test files; 810 collected tests in the 2026-07-24 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
@@ -331,4 +332,4 @@ system docs, the generated system docs win.
 
 ---
 
-*Forge Documentation Protocol v2 — Last updated: 2026-07-20*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-24*

@@ -1,0 +1,11 @@
+{
+  "schema_version": "forge.telemetry.resource_bounds.v1",
+  "canonical_event": {
+    "serialization": "rfc8785",
+    "scope": "complete_redacted_event",
+    "max_bytes": 65536,
+    "producer_override": "stricter_only",
+    "violation_error_code": "event_size_exceeded"
+  },
+  "remaining_bounds_status": "unapproved"
+}

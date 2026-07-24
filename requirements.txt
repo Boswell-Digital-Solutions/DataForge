@@ -15,9 +15,8 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
-# forge-telemetry: canonical repo, pinned. Use HTTPS so Render builds do not
-# depend on SSH host-key/bootstrap state.
-forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@v0.3.0
+# Canonical ForgeEvent.v1 model and bounded HTTP transport, immutable proof pin.
+forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@e2ad8b9bd0c4ccbb9b728b4a58ab8be31b046fb4
 git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
@@ -46,6 +45,7 @@ openai==1.10.0
 # Using latest pydantic with Python 3.13 wheel support
 pydantic>=2.10.0
 pydantic-settings>=2.6.0
+rfc8785>=0.1.2
 
 # Testing
 pytest==7.4.3

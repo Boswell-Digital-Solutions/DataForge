@@ -15,8 +15,8 @@ from app.api.routes.events_router import ingest_authorforge_analytics
 from app.api.routes import events_router as events_module
 from app.main import app, request_validation_exception_handler
 from app.models import authorforge_analytics_schemas as analytics_schemas
+from app.models.authorforge_analytics_models import AuthorForgeAnalyticsRecord
 from app.models.authorforge_analytics_schemas import AuthorForgeAnalyticsEnvelopeV1
-from app.models.telemetry_models import TelemetryEventRecord
 
 
 def valid_envelope() -> dict:
@@ -50,9 +50,11 @@ def test_valid_envelope_maps_only_named_dimensions():
     envelope = AuthorForgeAnalyticsEnvelopeV1.model_validate(valid_envelope())
 
     assert envelope.product == "authorforge"
-    assert envelope.canonical_metrics() == {"operation_count": 1, "duration_ms": 37}
-    assert set(envelope.canonical_metadata()) <= set(AuthorForgeAnalyticsEnvelopeV1.model_fields)
-    assert "manuscript" not in envelope.canonical_metadata()
+    assert envelope.bounded_metrics() == {"operation_count": 1, "duration_ms": 37}
+    assert set(envelope.bounded_dimensions()) <= set(
+        AuthorForgeAnalyticsEnvelopeV1.model_fields
+    )
+    assert "manuscript" not in envelope.bounded_dimensions()
     assert "metadata" not in envelope.model_dump()
 
 
@@ -173,13 +175,32 @@ def test_dedicated_endpoint_is_idempotent(db):
     assert first.status == "accepted"
     assert second.status == "duplicate"
     record = db.get(
-        TelemetryEventRecord,
+        AuthorForgeAnalyticsRecord,
         UUID("5eb1b0cc-86bb-475b-a9c8-48f487fa6071"),
     )
-    assert record.service == "authorforge"
-    assert record.event_metadata["content_authority"] == "authorforge_embedded_database"
+    assert record.schema_version == "AuthorForgeAnalyticsEnvelope.v1"
+    assert record.canonical_bytes == len(envelope.canonical_bytes())
+    assert record.event_digest == envelope.event_digest()
+    assert record.dimensions["content_authority"] == "authorforge_embedded_database"
     assert set(record.metrics) == {"operation_count", "duration_ms"}
-    assert "PRIVATE" not in str(record.event_metadata)
+    assert "PRIVATE" not in str(record.dimensions)
+
+
+@pytest.mark.unit
+def test_dedicated_endpoint_rejects_same_id_with_different_content(db):
+    first = AuthorForgeAnalyticsEnvelopeV1.model_validate(valid_envelope())
+    changed_payload = valid_envelope()
+    changed_payload["duration_ms"] = 38
+    changed = AuthorForgeAnalyticsEnvelopeV1.model_validate(changed_payload)
+
+    ingest_authorforge_analytics(first, db, "test-key-id")
+    with pytest.raises(HTTPException) as raised:
+        ingest_authorforge_analytics(changed, db, "test-key-id")
+
+    assert raised.value.status_code == 409
+    assert raised.value.detail["code"] == "authorforge_analytics_identity_conflict"
+    stored = db.get(AuthorForgeAnalyticsRecord, first.event_id)
+    assert stored.event_digest == first.event_digest()
 
 
 @pytest.mark.unit

@@ -1,16 +1,18 @@
 """Strict, content-free AuthorForge analytics contract.
 
-This is the AuthorForge-specific, fail-closed specialization of the canonical
-Forge telemetry event record.  It deliberately has no free-form metadata or
-metrics dictionaries: every accepted field is named, bounded, and coarse.
+This is an AuthorForge-specific, fail-closed analytics contract. It deliberately
+has no free-form metadata or metrics dictionaries: every accepted field is
+named, bounded, and coarse.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any, Literal
 from uuid import UUID
 
+import rfc8785
 from pydantic import (
     AwareDatetime,
     BaseModel,
@@ -211,15 +213,21 @@ class AuthorForgeAnalyticsEnvelopeV1(BaseModel):
             raise ValueError("provider_id is required when model_id is present")
         if self.error_code is not None and self.error_category is None:
             raise ValueError("error_category is required when error_code is present")
-        if len(self.model_dump_json(exclude_none=True).encode("utf-8")) > MAX_ENVELOPE_BYTES:
+        if len(self.canonical_bytes()) > MAX_ENVELOPE_BYTES:
             raise ValueError("analytics envelope exceeds the size limit")
         return self
 
-    def canonical_metadata(self) -> dict[str, Any]:
-        """Map bounded dimensions onto the existing canonical events record."""
+    def canonical_bytes(self) -> bytes:
+        """Return the deterministic content used for size and identity checks."""
+        return rfc8785.dumps(self.model_dump(mode="json", exclude_none=True))
+
+    def event_digest(self) -> str:
+        """Bind the event ID to the complete validated envelope."""
+        return hashlib.sha256(self.canonical_bytes()).hexdigest()
+
+    def bounded_dimensions(self) -> dict[str, Any]:
+        """Project only named, non-metric dimensions into dedicated storage."""
         keys = (
-            "schema_version",
-            "policy_version",
             "product",
             "application",
             "build_version",
@@ -252,7 +260,8 @@ class AuthorForgeAnalyticsEnvelopeV1(BaseModel):
             if getattr(self, key) is not None
         }
 
-    def canonical_metrics(self) -> dict[str, int]:
+    def bounded_metrics(self) -> dict[str, int]:
+        """Project only named numeric measurements into dedicated storage."""
         keys = (
             "operation_count",
             "item_count",

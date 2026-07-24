@@ -4,7 +4,6 @@ DataForge - Knowledge Base Management System with Semantic Search
 FastAPI application entry point.
 """
 import os
-import logging
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -56,6 +55,7 @@ from app.api.llm_intel_promotion_application_router import router as llm_intel_p
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
 from app.errors import register_exception_handlers
+from app.models.telemetry_schemas import forge_event_validation_error_code
 try:
     from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
     _HAS_COMPRESSION = True
@@ -68,8 +68,6 @@ from app.config import (
     CORS_ALLOW_METHODS,
     CORS_ALLOW_HEADERS,
     LOG_LEVEL,
-    HOST,
-    PORT,
     COMPRESSION_ENABLED,
     FORGECOMMAND_COMPRESSION_URL,
     COMPRESSION_MIN_SIZE,
@@ -171,6 +169,13 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    try:
+        from app.telemetry_client import telemetry
+
+        await telemetry.close()
+        main_logger.info("Canonical telemetry transport closed")
+    except Exception:
+        main_logger.error("Canonical telemetry transport shutdown failed")
     main_logger.info("👋 Shutting down DataForge...")
 
 # Initialize FastAPI application
@@ -190,7 +195,12 @@ app = FastAPI(
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Sanitize rejected analytics payloads; preserve other FastAPI behavior."""
+    """Render boundary-specific validation codes without payload values."""
+    if request.url.path == "/api/v1/telemetry/events":
+        return JSONResponse(
+            status_code=422,
+            content={"detail": {"code": forge_event_validation_error_code(exc.errors())}},
+        )
     if request.url.path == "/api/v1/events/authorforge-analytics":
         return JSONResponse(
             status_code=422,
@@ -201,6 +211,10 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
                 }
             },
         )
+    if request.url.path.startswith("/api/projects/"):
+        for error in exc.errors():
+            if error.get("loc") == ("path", "project_id"):
+                return JSONResponse(status_code=404, content={"detail": "Project not found"})
     return await fastapi_request_validation_exception_handler(request, exc)
 
 
@@ -285,7 +299,7 @@ app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer
 app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4.1)
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
-app.include_router(telemetry_router)  # Authenticated generic Forge Telemetry ingest
+app.include_router(telemetry_router)  # Canonical ForgeEvent.v1 capability and ingest
 app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
 app.include_router(rotation_router)  # Admin Token Rotation (72-hour auto-rotation)
 app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)
@@ -373,17 +387,14 @@ async def health_check():
 
 @app.get("/health/telemetry", tags=["info"])
 async def telemetry_status():
-    """Non-secret telemetry diagnostic — is the forge_telemetry emitter armed and
-    bound to the shared events DB? Mirrors NeuroForge's /health/telemetry so any
-    emitter is verifiable with one curl (target.project_ref should match the DB
-    Forge_Command reads). Never returns the password."""
+    """Return non-secret canonical capability, counters, and worker state."""
     try:
-        from app.api.search import telemetry as _t
-    except Exception as exc:  # import/instantiation issue — report, don't crash
-        return {"enabled": False, "reason": f"telemetry client unavailable: {exc}"}
+        from app.telemetry_client import telemetry as _t
+    except Exception:  # import/instantiation issue — report, don't crash
+        return {"enabled": False, "reason": "telemetry_client_unavailable"}
     if _t is None:
         return {"enabled": False, "reason": "telemetry client not initialized"}
-    return _t.status()
+    return await _t.status()
 
 
 @app.get("/health/render", tags=["info"])

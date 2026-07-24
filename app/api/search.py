@@ -1,19 +1,16 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_, text
+from sqlalchemy import func, or_
 from typing import List, Optional, Dict, Tuple
 import logging
 import time
 import uuid
 from fastapi import HTTPException
-from forge_telemetry import TelemetryClient
 from app.models import models, schemas
+from app.telemetry_client import telemetry
 from app.utils.embeddings import generate_embedding
 from app.config import MAX_SEARCH_LIMIT
 
 logger = logging.getLogger(__name__)
-
-# Initialize telemetry client
-telemetry = TelemetryClient()
 
 
 def _is_postgres_backend(db: Session) -> bool:
@@ -41,7 +38,7 @@ def _fallback_search(
         db.query(models.Chunk, models.Document)
         .join(models.Document, models.Chunk.document_id == models.Document.id)
         .options(joinedload(models.Document.tags))
-        .filter(models.Document.is_published == True)
+        .filter(models.Document.is_published.is_(True))
         .filter(
             or_(
                 func.lower(models.Chunk.content).like(pattern),
@@ -116,13 +113,23 @@ async def semantic_search(
 
         if not _is_postgres_backend(db):
             logger.info("Using fallback semantic search for non-PostgreSQL backend")
-            return _fallback_search(
+            response = _fallback_search(
                 db=db,
                 query=query,
                 domain_id=domain_id,
                 tags=tags,
                 limit=limit,
             )
+            await telemetry.emit_search(
+                search_kind="semantic",
+                succeeded=True,
+                correlation_id=correlation_id,
+                metrics={
+                    "duration_ms": (time.time() - start_time) * 1000,
+                    "results_count": response.total_results,
+                },
+            )
+            return response
 
         # Generate embedding for the query
         embedding_start = time.time()
@@ -142,7 +149,7 @@ async def semantic_search(
             )
             .join(models.Document, models.Chunk.document_id == models.Document.id)
             .options(joinedload(models.Document.tags))  # Fix N+1 query
-            .filter(models.Document.is_published == True)
+            .filter(models.Document.is_published.is_(True))
         )
 
         # Apply filters
@@ -184,26 +191,17 @@ async def semantic_search(
         # Calculate total duration
         total_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit SUCCESS telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="query",
-            severity="info",
+        await telemetry.emit_search(
+            search_kind="semantic",
+            succeeded=True,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],  # Truncate long queries
-                "domain_id": domain_id,
-                "tags": tags,
-                "limit": limit,
-                "similarity_threshold": similarity_threshold,
-            },
             metrics={
                 "duration_ms": total_duration_ms,
                 "embedding_duration_ms": embedding_duration_ms,
                 "db_query_duration_ms": db_query_duration_ms,
                 "results_count": len(search_results),
                 "avg_similarity": sum(r.similarity_score for r in search_results) / len(search_results) if search_results else 0,
-            }
+            },
         )
 
         logger.info(f"Search completed: {len(search_results)} results in {total_duration_ms:.2f}ms [correlation_id={correlation_id}]")
@@ -218,22 +216,13 @@ async def semantic_search(
         # Calculate duration even on error
         error_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit ERROR telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="query_error",
-            severity="error",
+        await telemetry.emit_search(
+            search_kind="semantic",
+            succeeded=False,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],
-                "error": str(e),
-                "error_type": type(e).__name__,
-                "domain_id": domain_id,
-                "tags": tags,
-            },
             metrics={
                 "duration_ms": error_duration_ms,
-            }
+            },
         )
 
         logger.error(f"Search failed: {e} [correlation_id={correlation_id}]")
@@ -278,13 +267,23 @@ async def keyword_search(
 
         if not _is_postgres_backend(db):
             logger.info("Using fallback keyword search for non-PostgreSQL backend")
-            return _fallback_search(
+            response = _fallback_search(
                 db=db,
                 query=query,
                 domain_id=domain_id,
                 tags=tags,
                 limit=limit,
             )
+            await telemetry.emit_search(
+                search_kind="keyword",
+                succeeded=True,
+                correlation_id=correlation_id,
+                metrics={
+                    "duration_ms": (time.time() - start_time) * 1000,
+                    "results_count": response.total_results,
+                },
+            )
+            return response
 
         # Create search query for PostgreSQL full-text search
         # websearch_to_tsquery handles "quoted phrases" and AND/OR operators
@@ -303,7 +302,7 @@ async def keyword_search(
             )
             .join(models.Document, models.Chunk.document_id == models.Document.id)
             .options(joinedload(models.Document.tags))  # Fix N+1 query
-            .filter(models.Document.is_published == True)
+            .filter(models.Document.is_published.is_(True))
             .filter(models.Chunk.search_vector.op('@@')(tsquery))  # Full-text match
         )
 
@@ -345,25 +344,16 @@ async def keyword_search(
         # Calculate total duration
         total_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit SUCCESS telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="keyword_search",
-            severity="info",
+        await telemetry.emit_search(
+            search_kind="keyword",
+            succeeded=True,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],
-                "domain_id": domain_id,
-                "tags": tags,
-                "limit": limit,
-                "min_rank": min_rank,
-            },
             metrics={
                 "duration_ms": total_duration_ms,
                 "db_query_duration_ms": db_query_duration_ms,
                 "results_count": len(search_results),
                 "avg_rank": sum(r.similarity_score for r in search_results) / len(search_results) if search_results else 0,
-            }
+            },
         )
 
         logger.info(f"Keyword search completed: {len(search_results)} results in {total_duration_ms:.2f}ms [correlation_id={correlation_id}]")
@@ -377,22 +367,13 @@ async def keyword_search(
     except Exception as e:
         error_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit ERROR telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="keyword_search_error",
-            severity="error",
+        await telemetry.emit_search(
+            search_kind="keyword",
+            succeeded=False,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],
-                "error": str(e),
-                "error_type": type(e).__name__,
-                "domain_id": domain_id,
-                "tags": tags,
-            },
             metrics={
                 "duration_ms": error_duration_ms,
-            }
+            },
         )
 
         logger.error(f"Keyword search failed: {e} [correlation_id={correlation_id}]")
@@ -474,13 +455,23 @@ async def hybrid_search(
 
         if not _is_postgres_backend(db):
             logger.info("Using fallback hybrid search for non-PostgreSQL backend")
-            return _fallback_search(
+            response = _fallback_search(
                 db=db,
                 query=query,
                 domain_id=domain_id,
                 tags=tags,
                 limit=limit,
             )
+            await telemetry.emit_search(
+                search_kind="hybrid",
+                succeeded=True,
+                correlation_id=correlation_id,
+                metrics={
+                    "duration_ms": (time.time() - start_time) * 1000,
+                    "results_count": response.total_results,
+                },
+            )
+            return response
 
         # Fetch more results from each method to ensure good coverage for RRF
         fetch_limit = limit * 3  # Fetch 3x limit from each method
@@ -504,13 +495,23 @@ async def hybrid_search(
                 "Hybrid search degrading to fallback search because semantic search is unavailable: %s",
                 exc.detail,
             )
-            return _fallback_search(
+            response = _fallback_search(
                 db=db,
                 query=query,
                 domain_id=domain_id,
                 tags=tags,
                 limit=limit,
             )
+            await telemetry.emit_search(
+                search_kind="hybrid",
+                succeeded=True,
+                correlation_id=correlation_id,
+                metrics={
+                    "duration_ms": (time.time() - start_time) * 1000,
+                    "results_count": response.total_results,
+                },
+            )
+            return response
         semantic_duration_ms = (time.time() - semantic_start) * 1000
 
         # Perform keyword search
@@ -577,20 +578,10 @@ async def hybrid_search(
         # Calculate total duration
         total_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit SUCCESS telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="hybrid_search",
-            severity="info",
+        await telemetry.emit_search(
+            search_kind="hybrid",
+            succeeded=True,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],
-                "domain_id": domain_id,
-                "tags": tags,
-                "limit": limit,
-                "similarity_threshold": similarity_threshold,
-                "min_rank": min_rank,
-            },
             metrics={
                 "duration_ms": total_duration_ms,
                 "semantic_duration_ms": semantic_duration_ms,
@@ -600,7 +591,7 @@ async def hybrid_search(
                 "semantic_results": len(semantic_list),
                 "keyword_results": len(keyword_list),
                 "avg_rrf_score": sum(r.similarity_score for r in search_results) / len(search_results) if search_results else 0,
-            }
+            },
         )
 
         logger.info(
@@ -617,22 +608,13 @@ async def hybrid_search(
     except Exception as e:
         error_duration_ms = (time.time() - start_time) * 1000
 
-        # Emit ERROR telemetry event
-        telemetry.emit(
-            service="dataforge",
-            event_type="hybrid_search_error",
-            severity="error",
+        await telemetry.emit_search(
+            search_kind="hybrid",
+            succeeded=False,
             correlation_id=correlation_id,
-            metadata={
-                "query": query[:100],
-                "error": str(e),
-                "error_type": type(e).__name__,
-                "domain_id": domain_id,
-                "tags": tags,
-            },
             metrics={
                 "duration_ms": error_duration_ms,
-            }
+            },
         )
 
         logger.error(f"Hybrid search failed: {e} [correlation_id={correlation_id}]")

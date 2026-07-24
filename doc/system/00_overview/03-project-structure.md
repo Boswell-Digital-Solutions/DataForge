@@ -2,21 +2,22 @@
 
 ## Directory Tree
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*
 
 ```
 DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 63 migration version files (hash-prefixed Alembic names)
+│   └── versions/                     # 65 migration version files
 │
-├── app/                              # Main application package (212 Python files)
+├── app/                              # Main application package (214 Python files)
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
+│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -25,7 +26,8 @@ DataForge/
 │   │   ├── agent_registry_schemas.py                   # Agent definition persistence
 │   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
-│   │   ├── authorforge_analytics_schemas.py            # Strict content-free analytics v1
+│   │   ├── authorforge_analytics_models.py / _schemas.py
+│   │   │                                               # Dedicated strict content-free analytics v1
 │   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
@@ -47,6 +49,9 @@ DataForge/
 │   │   ├── smithy_planning_models.py / _schemas.py     # Forge:SMITH planning deliverables
 │   │   ├── smithy_portfolio_models.py / _schemas.py    # Forge:SMITH portfolio projects
 │   │   ├── tarcie_models.py / _schemas.py              # TARCIE event records
+│   │   ├── telemetry_models.py / _schemas.py            # Shared events ORM + bounded HTTP ingest
+│   │   ├── contracts/
+│   │   │   └── telemetry_resource_bounds.v1.json        # Hash-pinned FT-02 authority copy
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
@@ -85,7 +90,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
-│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
+│   │   ├── telemetry_router.py       # Canonical ForgeEvent.v1 capability and ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
@@ -147,7 +152,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 57 test files, 781 collected tests as of 2026-07-20
+├── tests/                            # 59 test files, 810 collected tests as of 2026-07-24
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -222,7 +227,13 @@ chunking, embedding generation, document-cache invalidation, and corpus version 
 insert, reindex, and delete flows.
 
 ### `app/api/search.py`
-Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
+Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata. Semantic, keyword, and hybrid completion/failure paths await the canonical producer without admitting query content, tags, domain identifiers, or raw exceptions.
+
+### `app/telemetry_client.py`
+Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
+privacy allowlists, delivery counters, capability health, and finite async
+transport shutdown. It accepts search operation shape and aggregate metrics
+only; direct telemetry-table writes and pre-v1 fallback are absent.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
@@ -238,6 +249,6 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-63 migration files covering the base schema plus later domain additions, pgvector support,
+65 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.

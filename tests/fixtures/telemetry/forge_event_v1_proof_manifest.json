@@ -1,0 +1,15 @@
+{
+  "status": "proof_only",
+  "contract_authority_commit": "e4b29987eb9c2359fe73b95c660feb50be37bba5",
+  "schema_version": "ForgeEvent.v1",
+  "schema_sha256": "165ff1ba01d6a4a9b456f77c22c3b664deeb9044c5000daae98deedabdab57d2",
+  "digest_profile_sha256": "024d16505a26c5569d5d2c08a834ae7e635f7f0abf77803c54da17c55aba5b7c",
+  "valid_fixture_sha256": "0d671d1c6bc5c2d7e5a13d304730f604ca58d06c1cb8c883d56a63d6fbd1bd6f",
+  "capability_schema_sha256": "bb38db96f95836080f40ada006458a09b6b6bef150d0c4c0a3e3a9a2e40f9c0d",
+  "capability_fixture_sha256": "6b4997f6ef685b7a8c7dacb92ed48e4b608bd6252ea443886472cd1aa07b7859",
+  "canonicalization": "RFC8785-JCS",
+  "resource_bounds_sha256": "6729e46ea46544095c1e7dd8bcdb9df9eec84df1889b9e4439db6b3f998eb919",
+  "max_canonical_event_bytes": 65536,
+  "pre_v1_fallback": false,
+  "dual_write": false
+}

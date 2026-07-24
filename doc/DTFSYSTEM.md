@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.0 (2026-06-19) — BDS canonical-compliance migration (7-group class-aware structure, truth classes, designation-bound fail-closed assembly, authored governance trio)
+**Document version:** 2.3 (2026-07-23) — DataForge search producer cut over to canonical ForgeEvent.v1 transport
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -69,7 +69,7 @@ not a bootstrap repo or passive library.
 - **Alembic migrations:** `63`
 - **Python files under `app/`:** `212`
 - **Pytest files:** `57`
-- **Collected tests:** `781` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Collected tests:** `810` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
@@ -420,21 +420,22 @@ server-rendered HTML plus JSON APIs.
 
 ## Directory Tree
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*
 
 ```
 DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 63 migration version files (hash-prefixed Alembic names)
+│   └── versions/                     # 65 migration version files
 │
-├── app/                              # Main application package (212 Python files)
+├── app/                              # Main application package (214 Python files)
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
+│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -443,7 +444,8 @@ DataForge/
 │   │   ├── agent_registry_schemas.py                   # Agent definition persistence
 │   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
-│   │   ├── authorforge_analytics_schemas.py            # Strict content-free analytics v1
+│   │   ├── authorforge_analytics_models.py / _schemas.py
+│   │   │                                               # Dedicated strict content-free analytics v1
 │   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
@@ -465,6 +467,9 @@ DataForge/
 │   │   ├── smithy_planning_models.py / _schemas.py     # Forge:SMITH planning deliverables
 │   │   ├── smithy_portfolio_models.py / _schemas.py    # Forge:SMITH portfolio projects
 │   │   ├── tarcie_models.py / _schemas.py              # TARCIE event records
+│   │   ├── telemetry_models.py / _schemas.py            # Shared events ORM + bounded HTTP ingest
+│   │   ├── contracts/
+│   │   │   └── telemetry_resource_bounds.v1.json        # Hash-pinned FT-02 authority copy
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
@@ -503,7 +508,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
-│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
+│   │   ├── telemetry_router.py       # Canonical ForgeEvent.v1 capability and ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
@@ -565,7 +570,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 57 test files, 781 collected tests as of 2026-07-20
+├── tests/                            # 59 test files, 810 collected tests as of 2026-07-24
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -640,7 +645,13 @@ chunking, embedding generation, document-cache invalidation, and corpus version 
 insert, reindex, and delete flows.
 
 ### `app/api/search.py`
-Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
+Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata. Semantic, keyword, and hybrid completion/failure paths await the canonical producer without admitting query content, tags, domain identifiers, or raw exceptions.
+
+### `app/telemetry_client.py`
+Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
+privacy allowlists, delivery counters, capability health, and finite async
+transport shutdown. It accepts search operation shape and aggregate metrics
+only; direct telemetry-table writes and pre-v1 fallback are absent.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
@@ -656,7 +667,7 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-63 migration files covering the base schema plus later domain additions, pgvector support,
+65 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.
 
@@ -664,7 +675,7 @@ Always run `alembic upgrade head` after pulling new code.
 
 # §4 — API Layer
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
 on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
@@ -700,7 +711,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /api/v1/telemetry/events:batch`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, authenticated bounded generic Forge Telemetry ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, canonical ForgeEvent.v1 capability and ingest, Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
@@ -708,12 +719,57 @@ There is **no root `/metrics` route mounted by default** in the current app.
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
 
-- `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
-  `service` or `scopes` metadata are constrained to that service and must include
-  `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
-  accepts at most 100 Forge Telemetry v0.3 events and writes idempotently by `event_id`.
-  `service=authorforge` is always rejected here; AuthorForge may use only the dedicated strict,
-  content-free `/api/v1/events/authorforge-analytics` contract.
+- `GET /api/v1/telemetry/capabilities/forge-event-v1` requires a DataForge API key
+  and returns the authority-pinned sink contract plus the live writer state.
+- `POST /api/v1/telemetry/events` requires a durable DataForge service key whose
+  metadata includes `telemetry:write` and exactly matches the event's
+  `service_name`, `environment`, and `tenant_ref`. The endpoint accepts exactly one
+  `ForgeEvent.v1` producer projection. It rejects aliases, sink-owned fields, and
+  unrecognized fields.
+- Each producer projection is RFC 8785-canonicalized and must fit the
+  authority-pinned 65,536-byte ceiling. The limit is not applied separately to
+  `attributes` and `metrics`; an oversized event fails with
+  `event_size_exceeded`.
+- The request boundary pins
+  `forge.telemetry.expected_errors.v1` at SHA-256
+  `4dd477babf8c5c83bc02daf2c1951778d01294f307bb50a551f7160129669dbd`.
+  Its exact invalid producer fixtures return `unsupported_sink_schema` or
+  `event_schema_violation`; validation responses contain the stable code
+  without payload values.
+- A first insert returns `201`; an exact content-bound replay returns `200` with
+  the original sink-owned `received_at`; reuse of an `event_id` with different
+  canonical content returns `409 event_identity_conflict`.
+- `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
+  return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
+  mounted.
+
+## DataForge Producer Contract
+
+DataForge's search path is also a canonical producer. `app/telemetry_client.py`
+submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
+`requirements.txt`; it does not write to telemetry tables directly.
+
+- The only search event types are `search.completed` and `search.failed`.
+- Attributes contain only `search_kind` (`semantic`, `keyword`, or `hybrid`).
+- Metrics are an explicit allowlist of aggregate durations, result counts, and
+  aggregate ranks/scores. Query text, tags, domain identifiers, limits,
+  thresholds, raw exceptions, and exception types are excluded.
+- Transport and validation failures are represented by stable code-only state;
+  event values and credentials are never copied into health output or logs.
+- The producer has no retry fallback or dual-write path. Its bounded async
+  worker and finite shutdown behavior come from the canonical SDK.
+- `/health/telemetry` returns the capability identity, the 65,536-byte canonical
+  event ceiling, delivery counters, and non-secret async-worker state.
+
+Production emission is intentionally unproved until the sink migration and
+writer switch are complete and a dedicated key is bound to
+`service_name=dataforge`, the exact environment, `tenant_ref=null`, and
+`telemetry:write`.
+
+`service_name=authorforge` is always rejected from the canonical telemetry
+route, even for an otherwise correctly bound key. AuthorForge may use only its
+dedicated strict, content-free `/api/v1/events/authorforge-analytics`
+contract.
 
 | Credential type | Examples |
 |-----------------|----------|
@@ -752,6 +808,9 @@ live app surface:
 - Do not document `/metrics` as a supported root route until a mounted route actually exposes it.
 - Preserve the distinction between HTML operator pages and JSON APIs.
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
+- Do not restore the removed telemetry batch route; ForgeEvent.v1 is the sole
+  telemetry ingestion contract.
+- Do not restore the pre-v1 direct-database producer or its example scripts.
 - Never remount `projects_router` or `authorforge_v2_router`. The `/api/projects` tombstone must
   reject before body parsing, and rejected analytics payloads must not be echoed or logged.
 - `AuthorForgeAnalyticsEnvelope.v1` is strict and closed: no arbitrary metadata, user content,
@@ -1152,11 +1211,13 @@ After these additions, PressForge uses **21 `pf_*` tables** total:
 ## AuthorForge Analytics Boundary
 
 `POST /api/v1/events/authorforge-analytics` validates the closed
-`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the existing canonical
-`events` table (`service=authorforge`). Only named enums, bounded counts/timings/costs, opaque
-build/model identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no
-free-form metadata/metrics container. Validation responses are generic and do not include the
-rejected input.
+`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the dedicated
+`authorforge_analytics_events` table. It does not write ForgeEvent.v1 or the physically retained
+pre-v1 `events` table. Only named enums, bounded counts/timings/costs, opaque build/model
+identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no free-form
+metadata/metrics container. RFC 8785 bytes bind each event ID to its exact validated content:
+exact retries are idempotent and changed content under the same ID fails with `409`. Validation
+responses are generic and do not include the rejected input.
 
 The retired AuthorForge content models remain registered in Alembic solely to recognize
 pre-existing tables. Runtime package initializers do not eagerly import them, and the content
@@ -1181,6 +1242,14 @@ database migration) without logging tokens or upstream response bodies.
 ### Overview
 
 The hybrid search engine (`app/api/search.py`) runs two retrieval passes in parallel and merges them via Reciprocal Rank Fusion (RRF). Neither pass is optional — both run on every search request.
+
+Each semantic, keyword, and hybrid path awaits a privacy-bounded operational
+event through `app/telemetry_client.py`. The event records operation kind,
+success/failure, aggregate timing, aggregate counts/ranks, and correlation
+identity only. Search input, tags, domain identifiers, thresholds, and exception
+values are excluded at the producer boundary. Telemetry failure does not replace
+the search result or exception; it is counted and exposed as code-only health
+state.
 
 ### Pass 1: Semantic (Vector) Retrieval
 
@@ -1688,6 +1757,13 @@ For validation errors (422), the format includes field-level detail:
 }
 ```
 
+The canonical `POST /api/v1/telemetry/events` boundary is stricter: it returns
+only `{"detail":{"code":"..."}}`, using the admitted expected-error profile.
+It never returns submitted field values. Shared codes include
+`unsupported_sink_schema`, `event_schema_violation`, and
+`event_size_exceeded`; malformed JSON uses `invalid_event_json`, and a
+producer-supplied `received_at` uses `sink_owned_field`.
+
 ---
 
 ## Graceful Degradation Policy
@@ -1788,6 +1864,7 @@ surface are re-audited.
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
+| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation and bounded canonical async HTTP submission |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 
@@ -1847,14 +1924,22 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/events:batch`, `/ingest/tarcie` | Compliance review records, BuildGuard events, authenticated generic operational telemetry, friction ingest |
-
-Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
-never receive DataForge/PostgreSQL credentials. The request event is the shared
-`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON complexity bounds.
-AuthorForge is explicitly excluded from this generic ingress and must use only
-`AuthorForgeAnalyticsEnvelope.v1` at its dedicated strict analytics endpoint.
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical ForgeEvent.v1 capability and ingest, friction ingest |
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
+
+Forge:SMITH and other producers use the authenticated canonical telemetry HTTP
+boundary; they never receive DataForge/PostgreSQL credentials. A producer first
+reads the hash-pinned `ForgeTelemetrySinkCapability.v1`, then submits one exact
+`ForgeEvent.v1` projection. DataForge owns `received_at` and content-bound
+identity resolution. The authority contract pins the complete RFC 8785 producer
+projection ceiling at 65,536 bytes and the violation code at
+`event_size_exceeded`; `attributes` and `metrics` are not independent 64 KiB
+budgets. The authority-pinned expected-error profile gives every shared invalid
+producer fixture the same value-free code used by Python and Rust consumers.
+There is no pre-v1 fallback or dual-write path.
+AuthorForge is explicitly excluded from this attributes-bearing boundary and
+must use only `AuthorForgeAnalyticsEnvelope.v1` at its dedicated strict
+analytics endpoint.
 
 ## BugCheck Contract
 
@@ -2214,16 +2299,38 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
+| `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
+| `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
+| `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
+| `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
 
 **Example:**
 ```
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
+DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=false
+DATAFORGE_TELEMETRY_BASE_URL=http://127.0.0.1:8000
+DATAFORGE_TELEMETRY_API_KEY=
+DATAFORGE_TELEMETRY_TIMEOUT=5
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
 
 `DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
+
+The ForgeEvent.v1 route is mounted while the writer switch is disabled so
+operators can authenticate against the capability endpoint and observe
+`write_enabled: false`. Set the switch to `true` only after the canonical
+migration and every producer key's `service_name`, `environment`, `tenant_ref`,
+and `telemetry:write` metadata have been verified. Setting it back to `false`
+stops new writes without deleting stored evidence.
+
+The writer switch controls the sink; the three `DATAFORGE_TELEMETRY_*`
+variables control DataForge's own search producer. Keep the producer key unset
+until the migration, writer switch, capability identity, and exact key binding
+are proved together. A missing or invalid producer configuration fails
+telemetry closed without failing the search request. The producer never reuses
+the service's broad DataForge API key.
 
 ## Security & JWT
 
@@ -2448,16 +2555,16 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §15 — Testing
 
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*
 
 ## Current Audited Snapshot
 
 | Metric | Value |
 |--------|-------|
-| Total test files | `57` |
-| Total tests collected | `781` |
+| Total test files | `59` |
+| Total tests collected | `810` |
 | Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
-| Inventory audit date | `2026-07-20` |
+| Inventory audit date | `2026-07-24` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
 This section intentionally documents what is currently observable from the repository. It
@@ -2497,8 +2604,8 @@ without PostgreSQL or Redis.
 - `tests/test_unit/test_supabase_log_ingest.py` — allow-listing, sensitive-field removal, and
   identity pseudonymization.
 - `tests/test_unit/test_authorforge_analytics.py` — strict envelope allow-list, size/cardinality
-  bounds, content/identity rejection, idempotent canonical event persistence, generic rejection
-  responses, and mounted-route inventory.
+  bounds, content/identity rejection, content-bound idempotency in the dedicated analytics
+  store, generic rejection responses, and mounted-route inventory.
 - `tests/test_unit/test_authorforge_boundary_audit.py` — synthetic proof that the read-only audit
   reports IDs/counts/categories without reading or outputting content fields.
 
@@ -2897,6 +3004,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | File | Purpose |
 |------|---------|
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
+| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, capability health, finite shutdown |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -2906,7 +3014,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 57 test files; 781 collected tests in the 2026-07-20 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 59 test files; 810 collected tests in the 2026-07-24 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
@@ -2924,7 +3032,7 @@ system docs, the generated system docs win.
 
 ---
 
-*Forge Documentation Protocol v2 — Last updated: 2026-07-20*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-24*
 
 ---
 
@@ -2933,6 +3041,15 @@ system docs, the generated system docs win.
 **Document version:** 1.0 (carry-forward)
 
 Appendices, glossary, and cross-references.
+
+## Revision history
+
+| Version | Date | Change |
+|---------|------|--------|
+| 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
+| 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
+| 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
+| 2.3 | 2026-07-23 | Replaced DataForge search's pre-v1 direct-database emitter with the privacy-bounded canonical async HTTP producer and finite shutdown contract. |
 
 ## Unmapped legacy chapters
 

@@ -3,11 +3,13 @@
 ## AuthorForge Analytics Boundary
 
 `POST /api/v1/events/authorforge-analytics` validates the closed
-`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the existing canonical
-`events` table (`service=authorforge`). Only named enums, bounded counts/timings/costs, opaque
-build/model identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no
-free-form metadata/metrics container. Validation responses are generic and do not include the
-rejected input.
+`AuthorForgeAnalyticsEnvelope.v1` Pydantic schema before persistence to the dedicated
+`authorforge_analytics_events` table. It does not write ForgeEvent.v1 or the physically retained
+pre-v1 `events` table. Only named enums, bounded counts/timings/costs, opaque build/model
+identifiers, and prefix-constrained rotatable pseudonyms are accepted. There is no free-form
+metadata/metrics container. RFC 8785 bytes bind each event ID to its exact validated content:
+exact retries are idempotent and changed content under the same ID fails with `409`. Validation
+responses are generic and do not include the rejected input.
 
 The retired AuthorForge content models remain registered in Alembic solely to recognize
 pre-existing tables. Runtime package initializers do not eagerly import them, and the content
@@ -32,6 +34,14 @@ database migration) without logging tokens or upstream response bodies.
 ### Overview
 
 The hybrid search engine (`app/api/search.py`) runs two retrieval passes in parallel and merges them via Reciprocal Rank Fusion (RRF). Neither pass is optional — both run on every search request.
+
+Each semantic, keyword, and hybrid path awaits a privacy-bounded operational
+event through `app/telemetry_client.py`. The event records operation kind,
+success/failure, aggregate timing, aggregate counts/ranks, and correlation
+identity only. Search input, tags, domain identifiers, thresholds, and exception
+values are excluded at the producer boundary. Telemetry failure does not replace
+the search result or exception; it is counted and exposed as code-only health
+state.
 
 ### Pass 1: Semantic (Vector) Retrieval
 
