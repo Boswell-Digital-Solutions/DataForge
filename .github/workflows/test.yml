@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATAFORGE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
+      SECRET_KEY: test-secret-key-for-ci
+      VOYAGE_API_KEY: test-key
     
     services:
       postgres:
@@ -49,6 +53,9 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
         python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
+
+    - name: Apply database migrations
+      run: python -m alembic upgrade head
     
     - name: Run mypy type checking
       run: |
@@ -60,10 +67,6 @@ jobs:
       continue-on-error: true
     
     - name: Run pytest with coverage
-      env:
-        DATAFORGE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
-        SECRET_KEY: test-secret-key-for-ci
-        VOYAGE_API_KEY: test-key
       run: |
         pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
     

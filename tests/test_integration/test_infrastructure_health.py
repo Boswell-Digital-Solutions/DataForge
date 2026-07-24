@@ -75,14 +75,19 @@ class TestDatabaseHealth:
         existing_tables = set(inspector.get_table_names())
         required_tables = [
             "users",
-            "projects",
             "diligence_projects",
             "diligence_reviews",
             "diligence_findings",
+            "forge_events_v1",
+            "authorforge_analytics_events",
         ]
         
         for table_name in required_tables:
             assert table_name in existing_tables, f"Table {table_name} not found"
+
+        # AuthorForge content stays in its embedded database. The retired cloud
+        # content table must not return as part of CI database initialization.
+        assert "projects" not in existing_tables
     
     def test_database_connection_pool(self, db: Session):
         """Test connection pool health."""
