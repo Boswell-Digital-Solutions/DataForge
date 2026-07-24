@@ -17,16 +17,25 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
+| `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
 
 **Example:**
 ```
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
+DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=false
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
 
 `DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
+
+The ForgeEvent.v1 route is mounted while the writer switch is disabled so
+operators can authenticate against the capability endpoint and observe
+`write_enabled: false`. Set the switch to `true` only after the canonical
+migration and every producer key's `service_name`, `environment`, `tenant_ref`,
+and `telemetry:write` metadata have been verified. Setting it back to `false`
+stops new writes without deleting stored evidence.
 
 ## Security & JWT
 

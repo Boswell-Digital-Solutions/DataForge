@@ -1,4 +1,6 @@
-"""Regression coverage for the Forge Telemetry HTTP ingress."""
+"""Regression coverage for the canonical ForgeEvent.v1 HTTP ingress."""
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -8,184 +10,260 @@ from uuid import uuid4
 
 import pytest
 import rfc8785
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from pydantic import ValidationError
 
 from app.api.admin_keys_router import AuthContext
-from app.api.telemetry_router import ingest_telemetry_events
+from app.api.telemetry_router import (
+    get_forge_event_v1_capability,
+    ingest_forge_event_v1,
+)
 from app.auth import ApiKeyInfo
 from app.main import app
-from app.models.telemetry_models import TelemetryEventRecord
+from app.models.telemetry_models import ForgeEventV1Record
 from app.models.telemetry_schemas import (
+    CONTRACT_AUTHORITY_COMMIT,
     EVENT_SIZE_VIOLATION_CODE,
+    FORGE_EVENT_V1_SCHEMA_SHA256,
     MAX_CANONICAL_EVENT_BYTES,
-    TELEMETRY_RESOURCE_BOUNDS_SHA256,
-    TelemetryIngestBatch,
-    TelemetryIngestEvent,
+    SINK_CAPABILITY_FIXTURE_SHA256,
+    ForgeEventV1Submission,
+    event_digest,
 )
 
-_FIXTURE_PATH = (
-    Path(__file__).parent / "fixtures" / "telemetry" / "canonical_event_size.v1.json"
+
+CAPABILITY_PATH = (
+    Path(__file__).parent.parent
+    / "app"
+    / "models"
+    / "contracts"
+    / "forge_telemetry_sink_capability.v1.json"
 )
-_FIXTURE_SHA256 = "f292aa7c804270257fbc4115cbef6b0851a18b7c6fa28ab8505c781765b89d01"
 
 
 def _auth(
-    *, service: str = "forgesmithy", scopes: list[str] | None = None
+    *,
+    service_name: str = "forgesmithy",
+    environment: str = "staging",
+    tenant_ref: str | None = None,
+    scopes: list[str] | None = None,
 ) -> AuthContext:
-    metadata: dict[str, object] = {"service": service}
-    if scopes is not None:
-        metadata["scopes"] = scopes
     return AuthContext(
         auth_mode="api_key",
         key_info=ApiKeyInfo(
             id="test-key",
             key_prefix="test-prefx",
             created_at=datetime.now(UTC).isoformat(),
-            metadata=metadata,
+            metadata={
+                "service_name": service_name,
+                "environment": environment,
+                "tenant_ref": tenant_ref,
+                "scopes": scopes if scopes is not None else ["telemetry:write"],
+            },
         ),
     )
 
 
 def _event(event_id: str | None = None) -> dict:
     return {
+        "schema_version": "ForgeEvent.v1",
         "event_id": event_id or str(uuid4()),
-        "timestamp": datetime.now(UTC).isoformat(),
-        "service": "ForgeSmithy",
-        "event_type": "session_start",
+        "occurred_at": "2026-07-23T18:00:00Z",
+        "service_name": "forgesmithy",
+        "service_instance_id": "forgesmithy-staging-1",
+        "environment": "staging",
+        "tenant_ref": None,
+        "event_type": "session.started",
         "severity": "info",
+        "outcome": "ok",
+        "evidence_class": "operational",
         "correlation_id": str(uuid4()),
-        "metadata": {"session_id": "session-1", "agent_type": "reviewer"},
-        "metrics": None,
+        "trace_id": "0123456789abcdef0123456789abcdef",
+        "span_id": "0123456789abcdef",
+        "parent_span_id": None,
+        "attributes": {"session_id": "session-1", "agent_type": "reviewer"},
+        "metrics": {"duration_ms": 12},
+        "privacy_class": "internal",
+        "retention_class": "standard",
+        "sampled": True,
+        "sample_rate": None,
+        "sampling_reason": "always_on",
     }
 
 
-def _batch(event: dict) -> TelemetryIngestBatch:
-    return TelemetryIngestBatch.model_validate({"events": [event]})
+def _submission(payload: dict | None = None) -> ForgeEventV1Submission:
+    return ForgeEventV1Submission.model_validate(payload or _event())
+
+
+def _ingest(
+    db,
+    event: ForgeEventV1Submission,
+    auth: AuthContext | None = None,
+) -> tuple[object, Response]:
+    response = Response()
+    result = ingest_forge_event_v1(event, response, db, auth or _auth())
+    return result, response
 
 
 def _event_with_canonical_size(target_bytes: int) -> dict:
-    event = _event("00000000-0000-0000-0000-000000000001")
-    event["timestamp"] = "2026-07-23T00:00:00Z"
-    event["service"] = "forgesmithy"
-    event["event_type"] = "boundary"
+    event = _event("00000000-0000-4000-8000-000000000001")
     event["correlation_id"] = None
-    event["metadata"] = {f"chunk_{index}": "x" * 8192 for index in range(7)}
-    event["metadata"]["tail"] = ""
+    event["trace_id"] = None
+    event["span_id"] = None
+    event["attributes"] = {"tail": ""}
+    event["metrics"] = {}
     remaining = target_bytes - len(rfc8785.dumps(event))
-    assert 0 <= remaining <= 8192
-    event["metadata"]["tail"] = "x" * remaining
+    assert remaining >= 0
+    event["attributes"]["tail"] = "x" * remaining
     assert len(rfc8785.dumps(event)) == target_bytes
     return event
 
 
-def test_telemetry_ingest_route_is_mounted():
-    assert "/api/v1/telemetry/events:batch" in {route.path for route in app.routes}
+def test_only_canonical_telemetry_routes_are_mounted():
+    paths = {route.path for route in app.routes}
+    assert "/api/v1/telemetry/capabilities/forge-event-v1" in paths
+    assert "/api/v1/telemetry/events" in paths
+    assert "/api/v1/telemetry/events:batch" not in paths
 
 
-def test_ingest_persists_v03_event_and_normalizes_service(db):
-    event = _event()
-    response = ingest_telemetry_events(_batch(event), db, _auth())
+def test_capability_pins_admitted_contract_and_has_no_legacy_modes():
+    assert CONTRACT_AUTHORITY_COMMIT == "236872abeeda52cc0f5e8834ebcceaa1a945fc47"
+    assert hashlib.sha256(CAPABILITY_PATH.read_bytes()).hexdigest() == (
+        SINK_CAPABILITY_FIXTURE_SHA256
+    )
+    capability = get_forge_event_v1_capability(_auth())
+    assert capability.write_enabled is True
+    assert capability.event_schema_sha256 == FORGE_EVENT_V1_SCHEMA_SHA256
+    assert capability.max_canonical_event_bytes == 65536
+    assert capability.pre_v1_fallback is False
+    assert capability.dual_write is False
+    assert len(capability.supported_fields) == 24
 
-    assert response.model_dump(mode="json", by_alias=True) == {
-        "schemaVersion": "forge.telemetry.ingest.v1",
-        "accepted": 1,
-        "duplicates": 0,
-        "eventIds": [event["event_id"]],
+
+def test_ingest_persists_canonical_event_with_sink_time(db):
+    event = _submission()
+    result, response = _ingest(db, event)
+
+    assert response.status_code == 200
+    assert result.identity_outcome == "inserted"
+    assert result.event_id == event.event_id
+    assert result.event_digest == event_digest(event)
+
+    record = db.query(ForgeEventV1Record).one()
+    assert record.service_name == "forgesmithy"
+    assert record.event_type == "session.started"
+    assert record.received_at is not None
+    assert record.event_digest == result.event_digest
+
+
+def test_exact_replay_preserves_sink_time_and_content_identity(db):
+    event = _submission()
+    first, _ = _ingest(db, event)
+    second, replay_response = _ingest(db, event)
+
+    assert first.identity_outcome == "inserted"
+    assert second.identity_outcome == "exact_replay"
+    assert replay_response.status_code == 200
+    assert second.received_at == first.received_at
+    assert second.event_digest == first.event_digest
+    assert db.query(ForgeEventV1Record).count() == 1
+
+
+def test_same_event_id_with_different_content_is_a_conflict(db):
+    payload = _event()
+    _ingest(db, _submission(payload))
+    payload["event_type"] = "session.failed"
+
+    with pytest.raises(HTTPException) as error:
+        _ingest(db, _submission(payload))
+
+    assert error.value.status_code == 409
+    assert error.value.detail["code"] == "event_identity_conflict"
+    assert db.query(ForgeEventV1Record).count() == 1
+
+
+@pytest.mark.parametrize(
+    ("auth", "code"),
+    [
+        (_auth(service_name="authorforge"), "telemetry_subject_binding_mismatch"),
+        (_auth(environment="production"), "telemetry_subject_binding_mismatch"),
+        (_auth(tenant_ref="tenant-a"), "telemetry_subject_binding_mismatch"),
+        (_auth(scopes=["telemetry:read"]), "telemetry_write_scope_required"),
+    ],
+)
+def test_ingest_requires_exact_service_environment_tenant_and_scope_binding(
+    db,
+    auth,
+    code,
+):
+    with pytest.raises(HTTPException) as error:
+        _ingest(db, _submission(), auth)
+
+    assert error.value.status_code == 403
+    assert error.value.detail["code"] == code
+
+
+def test_pre_v1_shape_and_sink_owned_fields_are_rejected():
+    pre_v1 = {
+        "event_id": str(uuid4()),
+        "timestamp": "2026-07-23T18:00:00Z",
+        "service": "forgesmithy",
+        "event_type": "session.started",
+        "severity": "info",
+        "metadata": {},
+        "metrics": {},
     }
-    record = db.query(TelemetryEventRecord).one()
-    assert record.service == "forgesmithy"
-    assert record.event_type == "session_start"
-    assert record.event_metadata["session_id"] == "session-1"
-
-
-def test_ingest_is_idempotent_by_event_id(db):
-    event = _event()
-    first = ingest_telemetry_events(_batch(event), db, _auth())
-    second = ingest_telemetry_events(_batch(event), db, _auth())
-
-    assert first.accepted == 1
-    assert second.accepted == 0
-    assert second.duplicates == 1
-    assert db.query(TelemetryEventRecord).count() == 1
-
-
-def test_ingest_rejects_service_outside_key_binding(db):
-    with pytest.raises(HTTPException) as error:
-        ingest_telemetry_events(_batch(_event()), db, _auth(service="authorforge"))
-
-    assert error.value.status_code == 403
-
-
-def test_ingest_rejects_key_without_declared_write_scope(db):
-    with pytest.raises(HTTPException) as error:
-        ingest_telemetry_events(
-            _batch(_event()),
-            db,
-            _auth(scopes=["telemetry:read"]),
-        )
-
-    assert error.value.status_code == 403
-
-
-def test_ingest_rejects_oversized_or_invalid_payloads():
-    oversized = _event()
-    oversized["metadata"] = {"detail": "x" * 9000}
     with pytest.raises(ValidationError):
-        _batch(oversized)
+        _submission(pre_v1)
 
-    invalid_type = _event()
-    invalid_type["event_type"] = "invalid event type"
+    for sink_field in ("received_at", "event_digest"):
+        payload = _event()
+        payload[sink_field] = "2026-07-23T18:00:01Z"
+        with pytest.raises(ValidationError):
+            _submission(payload)
+
+
+def test_unsupported_schema_boolean_metric_and_zero_trace_fail_closed():
+    payload = _event()
+    payload["schema_version"] = "ForgeEvent.v2"
+    with pytest.raises(ValidationError) as error:
+        _submission(payload)
+    assert error.value.errors()[0]["type"] == "unsupported_sink_schema"
+
+    payload = _event()
+    payload["metrics"] = {"healthy": True}
     with pytest.raises(ValidationError):
-        _batch(invalid_type)
+        _submission(payload)
+
+    payload = _event()
+    payload["trace_id"] = "0" * 32
+    with pytest.raises(ValidationError):
+        _submission(payload)
 
 
-def test_ingest_enforces_64_kib_across_the_complete_canonical_event():
-    fixture_bytes = _FIXTURE_PATH.read_bytes()
-    assert hashlib.sha256(fixture_bytes).hexdigest() == _FIXTURE_SHA256
-    fixture = json.loads(fixture_bytes)
-    assert fixture["resource_bounds_schema_version"] == (
-        "forge.telemetry.resource_bounds.v1"
-    )
-    accepted_case, rejected_case = fixture["cases"]
+def test_ingest_enforces_64_kib_over_complete_producer_projection():
+    accepted = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES)
+    assert len(rfc8785.dumps(_submission(accepted).model_dump(mode="json"))) == 65536
 
-    accepted = _event_with_canonical_size(accepted_case["canonical_bytes"])
-    assert (
-        len(
-            rfc8785.dumps(
-                TelemetryIngestEvent.model_validate(accepted).model_dump(mode="json")
-            )
-        )
-        == MAX_CANONICAL_EVENT_BYTES
-    )
-
-    rejected = _event_with_canonical_size(rejected_case["canonical_bytes"])
-    with pytest.raises(ValidationError) as exc_info:
-        TelemetryIngestEvent.model_validate(rejected)
-    assert exc_info.value.errors()[0]["type"] == rejected_case["expected_error_code"]
-    assert rejected_case["expected_error_code"] == EVENT_SIZE_VIOLATION_CODE
+    rejected = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES + 1)
+    with pytest.raises(ValidationError) as error:
+        _submission(rejected)
+    assert error.value.errors()[0]["type"] == EVENT_SIZE_VIOLATION_CODE
 
 
-def test_ingest_resource_bound_copy_matches_authority_hash():
-    contract_path = (
-        Path(__file__).parent.parent
-        / "app"
-        / "models"
-        / "contracts"
-        / "telemetry_resource_bounds.v1.json"
-    )
-    assert hashlib.sha256(contract_path.read_bytes()).hexdigest() == (
-        TELEMETRY_RESOURCE_BOUNDS_SHA256
-    )
+def test_writer_kill_switch_disables_capability_and_ingest(db, monkeypatch):
+    monkeypatch.setenv("DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED", "false")
+    assert get_forge_event_v1_capability(_auth()).write_enabled is False
+
+    with pytest.raises(HTTPException) as error:
+        _ingest(db, _submission())
+
+    assert error.value.status_code == 503
+    assert error.value.detail["code"] == "telemetry_disabled"
+    assert db.query(ForgeEventV1Record).count() == 0
 
 
-def test_ingest_does_not_treat_metadata_and_metrics_as_separate_64_kib_budgets():
-    event = _event()
-    event["metadata"] = {f"metadata_{index}": "m" * 7000 for index in range(5)}
-    event["metrics"] = {f"metric_{index}": "n" * 7000 for index in range(5)}
-
-    assert len(rfc8785.dumps(event["metadata"])) < MAX_CANONICAL_EVENT_BYTES
-    assert len(rfc8785.dumps(event["metrics"])) < MAX_CANONICAL_EVENT_BYTES
-    with pytest.raises(ValidationError) as exc_info:
-        TelemetryIngestEvent.model_validate(event)
-    assert exc_info.value.errors()[0]["type"] == EVENT_SIZE_VIOLATION_CODE
+def test_runtime_capability_copy_matches_admitted_fixture():
+    expected = json.loads(CAPABILITY_PATH.read_text(encoding="utf-8"))
+    actual = get_forge_event_v1_capability(_auth()).model_dump(mode="json")
+    assert actual == expected

@@ -1,31 +1,46 @@
-"""ORM mapping for the shared Forge telemetry ``events`` table."""
+"""ORM mapping for canonical ForgeEvent.v1 durable storage."""
 
-from sqlalchemy import Column, DateTime, JSON, String, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
 
 
-class TelemetryEventRecord(Base):
-    """Durable generic telemetry event owned by DataForge.
+class ForgeEventV1Record(Base):
+    """Durable canonical Forge telemetry event owned by DataForge.
 
-    The table itself predates this ORM mapping and is created by Alembic.  The
-    mapping gives the authenticated HTTP ingest boundary and tests one exact
-    representation of that existing schema without changing its storage shape.
+    Alembic owns the PostgreSQL checks, expression indexes, and atomic identity
+    function. This mapping intentionally has no alias or
+    relationship to the physically retained pre-v1 ``events`` table.
     """
 
-    __tablename__ = "events"
+    __tablename__ = "forge_events_v1"
 
     event_id = Column(UUID(as_uuid=True), primary_key=True)
-    timestamp = Column(DateTime(timezone=True), nullable=False)
-    service = Column(String(50), nullable=False, index=True)
-    event_type = Column(String(100), nullable=False, index=True)
-    severity = Column(String(20), nullable=False)
-    correlation_id = Column(UUID(as_uuid=True), nullable=True, index=True)
-    event_metadata = Column("metadata", JSON, nullable=True)
-    metrics = Column(JSON, nullable=True)
-    created_at = Column(
+    event_digest = Column(String(64), nullable=False)
+    schema_version = Column(String(32), nullable=False)
+    occurred_at = Column(DateTime(timezone=True), nullable=False)
+    received_at = Column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
+    service_name = Column(Text, nullable=False)
+    service_instance_id = Column(Text, nullable=True)
+    environment = Column(Text, nullable=False)
+    tenant_ref = Column(Text, nullable=True)
+    event_type = Column(Text, nullable=False)
+    severity = Column(String(16), nullable=False)
+    outcome = Column(String(32), nullable=False)
+    evidence_class = Column(String(16), nullable=False)
+    correlation_id = Column(UUID(as_uuid=True), nullable=True)
+    trace_id = Column(String(32), nullable=True)
+    span_id = Column(String(16), nullable=True)
+    parent_span_id = Column(String(16), nullable=True)
+    attributes = Column(JSON, nullable=False)
+    metrics = Column(JSON, nullable=False)
+    privacy_class = Column(String(16), nullable=False)
+    retention_class = Column(String(16), nullable=False)
+    sampled = Column(Boolean, nullable=False)
+    sample_rate = Column(Float, nullable=True)
+    sampling_reason = Column(String(32), nullable=False)

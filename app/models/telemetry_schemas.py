@@ -1,153 +1,181 @@
-"""Bounded HTTP contract for Forge Telemetry v0.3 event ingestion."""
+"""Canonical ForgeEvent.v1 HTTP and capability contracts."""
+
+from __future__ import annotations
 
 import hashlib
 import json
 import math
-from datetime import UTC, datetime
+import os
+import re
+from datetime import datetime, timedelta
 from importlib.resources import files
-from typing import Any
-from uuid import UUID, uuid4
+from typing import Any, Literal
+from uuid import UUID
 
 import rfc8785
-from forge_telemetry import TelemetryEvent
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from pydantic.alias_generators import to_camel
 from pydantic_core import PydanticCustomError
 
 
-MAX_BATCH_EVENTS = 100
-MAX_BATCH_JSON_BYTES = 256 * 1024
+CONTRACT_AUTHORITY_COMMIT = "236872abeeda52cc0f5e8834ebcceaa1a945fc47"
+FORGE_EVENT_V1_SCHEMA_SHA256 = (
+    "6050b55c8633cc66f3a63b71b56a636cf93df39680557c41a5967ee9cf40c100"
+)
+EVENT_DIGEST_PROFILE_SHA256 = (
+    "a2efa964ab0b908ca2cbdf97fec06355aad3169414c0dcb2f3f992900b656637"
+)
+SINK_CAPABILITY_FIXTURE_SHA256 = (
+    "0584c14eb06bf094d9703b19fced8b0fdbd2065461104ab3c1befaba28d2d286"
+)
 TELEMETRY_RESOURCE_BOUNDS_SHA256 = (
     "6729e46ea46544095c1e7dd8bcdb9df9eec84df1889b9e4439db6b3f998eb919"
 )
+IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._:-]*$")
+TRACE_ID_PATTERN = re.compile(r"^(?!0{32}$)[0-9a-f]{32}$")
+SPAN_ID_PATTERN = re.compile(r"^(?!0{16}$)[0-9a-f]{16}$")
 
 
-def _load_telemetry_resource_bounds() -> dict[str, Any]:
-    name = "telemetry_resource_bounds.v1.json"
+def _load_contract_json(name: str, expected_sha256: str) -> dict[str, Any]:
     try:
         content = files("app.models").joinpath("contracts", name).read_bytes()
     except OSError as exc:
         raise RuntimeError(
             f"required telemetry contract is unavailable: {name}"
         ) from exc
-    if hashlib.sha256(content).hexdigest() != TELEMETRY_RESOURCE_BOUNDS_SHA256:
+    if hashlib.sha256(content).hexdigest() != expected_sha256:
         raise RuntimeError(f"telemetry contract digest mismatch: {name}")
-    payload = json.loads(content)
-    if (
-        payload.get("schema_version") != "forge.telemetry.resource_bounds.v1"
-        or payload.get("remaining_bounds_status") != "unapproved"
-        or payload.get("canonical_event", {}).get("serialization") != "rfc8785"
-        or payload.get("canonical_event", {}).get("scope") != "complete_redacted_event"
-        or payload.get("canonical_event", {}).get("producer_override")
-        != "stricter_only"
-    ):
-        raise RuntimeError("telemetry resource-bound contract content is invalid")
-    return payload
+    return json.loads(content)
 
 
-_TELEMETRY_RESOURCE_BOUNDS = _load_telemetry_resource_bounds()
+_TELEMETRY_RESOURCE_BOUNDS = _load_contract_json(
+    "telemetry_resource_bounds.v1.json",
+    TELEMETRY_RESOURCE_BOUNDS_SHA256,
+)
 MAX_CANONICAL_EVENT_BYTES = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"]["max_bytes"]
 EVENT_SIZE_VIOLATION_CODE = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"][
     "violation_error_code"
 ]
-# Compatibility name retained for callers that imported the former constant.
-# The budget applies to the complete canonical event, not to each JSON field.
-MAX_EVENT_JSON_BYTES = MAX_CANONICAL_EVENT_BYTES
-MAX_JSON_DEPTH = 8
-MAX_JSON_NODES = 2048
-MAX_JSON_KEY_CHARS = 128
-MAX_JSON_STRING_CHARS = 8192
 
 
-def _canonical_json_bytes(value: Any, field_name: str) -> bytes:
-    try:
-        return rfc8785.dumps(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be JSON serializable") from exc
+class ForgeEventV1Submission(BaseModel):
+    """Producer-authored canonical event; sink-owned fields are not accepted."""
 
+    schema_version: str
+    event_id: UUID
+    occurred_at: datetime
+    service_name: str
+    service_instance_id: str | None
+    environment: str
+    tenant_ref: str | None
+    event_type: str
+    severity: Literal["info", "warning", "error", "critical"]
+    outcome: Literal[
+        "ok",
+        "warn",
+        "fail",
+        "cancelled",
+        "insufficient_signal",
+        "blocked",
+    ]
+    evidence_class: Literal["diagnostic", "operational", "audit", "security"]
+    correlation_id: UUID | None
+    trace_id: str | None
+    span_id: str | None
+    parent_span_id: str | None
+    attributes: dict[str, Any]
+    metrics: dict[str, Any]
+    privacy_class: Literal["public", "internal", "restricted", "confidential"]
+    retention_class: Literal["ephemeral", "short", "standard", "long", "legal_hold"]
+    sampled: bool
+    sample_rate: float | None = Field(gt=0, le=1)
+    sampling_reason: Literal[
+        "always_on",
+        "probabilistic",
+        "rate_limited",
+        "required_stub",
+        "policy",
+    ]
 
-def _validate_json_value(value: dict[str, Any] | None, field_name: str) -> None:
-    if value is None:
-        return
+    model_config = ConfigDict(extra="forbid")
 
-    nodes = 0
-    stack: list[tuple[Any, int]] = [(value, 1)]
-    while stack:
-        item, depth = stack.pop()
-        nodes += 1
-        if nodes > MAX_JSON_NODES:
-            raise ValueError(f"{field_name} exceeds {MAX_JSON_NODES} JSON nodes")
-        if depth > MAX_JSON_DEPTH:
-            raise ValueError(f"{field_name} exceeds JSON depth {MAX_JSON_DEPTH}")
+    @field_validator("schema_version")
+    @classmethod
+    def schema_version_is_supported(cls, value: str) -> str:
+        if value != "ForgeEvent.v1":
+            raise PydanticCustomError(
+                "unsupported_sink_schema",
+                "sink does not support event schema {schema_version}",
+                {"schema_version": value},
+            )
+        return value
 
-        if isinstance(item, dict):
-            for key, child in item.items():
-                if len(key) > MAX_JSON_KEY_CHARS:
-                    raise ValueError(
-                        f"{field_name} contains a key longer than {MAX_JSON_KEY_CHARS} characters"
-                    )
-                stack.append((child, depth + 1))
-        elif isinstance(item, list):
-            stack.extend((child, depth + 1) for child in item)
-        elif isinstance(item, str):
-            if len(item) > MAX_JSON_STRING_CHARS:
-                raise ValueError(
-                    f"{field_name} contains a string longer than {MAX_JSON_STRING_CHARS} characters"
-                )
-        elif isinstance(item, float) and not math.isfinite(item):
-            raise ValueError(f"{field_name} contains a non-finite number")
+    @field_validator("occurred_at")
+    @classmethod
+    def occurred_at_is_utc(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() != timedelta(0):
+            raise ValueError("occurred_at must be timezone-aware UTC")
+        return value
 
-    try:
-        json.dumps(
-            value,
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be JSON serializable") from exc
-
-
-class TelemetryIngestEvent(TelemetryEvent):
-    """forge-telemetry event with ingress-specific storage bounds."""
-
-    event_id: UUID = Field(default_factory=uuid4)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    service: str = Field(min_length=1, max_length=50)
-    event_type: str = Field(
-        min_length=1,
-        max_length=100,
-        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+    @field_validator(
+        "service_name",
+        "service_instance_id",
+        "environment",
+        "tenant_ref",
+        "event_type",
     )
-    severity: str = Field(default="info", min_length=1, max_length=20)
-    correlation_id: UUID | None = None
-    metadata: dict[str, Any] | None = None
-    metrics: dict[str, Any] | None = None
-
-    model_config = ConfigDict(extra="forbid", use_enum_values=True)
-
-    @field_validator("service")
     @classmethod
-    def normalize_service(cls, value: str) -> str:
-        """Normalize before service-key authorization, independent of SDK version."""
-        return value.strip().lower()
+    def identifier_is_canonical(cls, value: str | None) -> str | None:
+        if value is not None and IDENTIFIER_PATTERN.fullmatch(value) is None:
+            raise ValueError("identifier must use the canonical lowercase grammar")
+        return value
 
-    @field_validator("timestamp")
+    @field_validator("trace_id")
     @classmethod
-    def timestamp_must_include_timezone(cls, value: datetime) -> datetime:
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("timestamp must include a timezone")
+    def trace_id_is_canonical(cls, value: str | None) -> str | None:
+        if value is not None and TRACE_ID_PATTERN.fullmatch(value) is None:
+            raise ValueError("trace_id must be a nonzero lowercase 32-hex identifier")
+        return value
+
+    @field_validator("span_id", "parent_span_id")
+    @classmethod
+    def span_id_is_canonical(cls, value: str | None) -> str | None:
+        if value is not None and SPAN_ID_PATTERN.fullmatch(value) is None:
+            raise ValueError("span identifiers must be nonzero lowercase 16-hex values")
         return value
 
     @model_validator(mode="after")
-    def validate_json_fields(self) -> "TelemetryIngestEvent":
-        _validate_json_value(self.metadata, "metadata")
-        _validate_json_value(self.metrics, "metrics")
-        encoded = _canonical_json_bytes(
-            self.model_dump(mode="json"),
-            "telemetry event",
+    def validate_semantics_and_size(self) -> ForgeEventV1Submission:
+        if self.trace_id is None and (
+            self.span_id is not None or self.parent_span_id is not None
+        ):
+            raise ValueError("span identifiers require trace_id")
+        if self.span_id is None and self.parent_span_id is not None:
+            raise ValueError("parent_span_id requires span_id")
+        if self.parent_span_id is not None and self.parent_span_id == self.span_id:
+            raise ValueError("parent_span_id cannot equal span_id")
+
+        if self.sampling_reason == "probabilistic":
+            if self.sample_rate is None:
+                raise ValueError("probabilistic sampling requires sample_rate")
+        elif self.sample_rate is not None:
+            raise ValueError("sample_rate is only valid for probabilistic sampling")
+
+        admitted_reasons = (
+            {"always_on", "probabilistic", "policy"}
+            if self.sampled
+            else {"rate_limited", "required_stub", "policy"}
         )
-        if len(encoded) > MAX_CANONICAL_EVENT_BYTES:
+        if self.sampling_reason not in admitted_reasons:
+            raise ValueError("sampled and sampling_reason are inconsistent")
+
+        for name, value in self.metrics.items():
+            if type(value) not in {int, float} or not math.isfinite(value):
+                raise ValueError(f"metric {name!r} must be a finite non-boolean number")
+        try:
+            canonical = canonical_submission_bytes(self)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("event fields must be RFC 8785 JSON serializable") from exc
+        if len(canonical) > MAX_CANONICAL_EVENT_BYTES:
             raise PydanticCustomError(
                 EVENT_SIZE_VIOLATION_CODE,
                 "telemetry event exceeds {max_bytes} canonical bytes",
@@ -156,41 +184,76 @@ class TelemetryIngestEvent(TelemetryEvent):
         return self
 
 
-class TelemetryIngestBatch(BaseModel):
-    """Atomic, bounded group of generic telemetry events."""
+def canonical_submission_bytes(event: ForgeEventV1Submission) -> bytes:
+    """Return the admitted RFC 8785 producer projection."""
 
-    events: list[TelemetryIngestEvent] = Field(
-        min_length=1,
-        max_length=MAX_BATCH_EVENTS,
-    )
+    return rfc8785.dumps(event.model_dump(mode="json"))
+
+
+def event_digest(event: ForgeEventV1Submission) -> str:
+    """Return the admitted content digest for one producer projection."""
+
+    return hashlib.sha256(canonical_submission_bytes(event)).hexdigest()
+
+
+class ForgeTelemetrySinkCapabilityV1(BaseModel):
+    schema_version: Literal["ForgeTelemetrySinkCapability.v1"]
+    storage_schema_version: Literal["forge.dataforge.telemetry.v1"]
+    event_schema_versions: list[Literal["ForgeEvent.v1"]]
+    event_schema_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    event_digest_profile_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    canonicalization: Literal["RFC8785-JCS"]
+    resource_bounds_schema_version: Literal["forge.telemetry.resource_bounds.v1"]
+    resource_bounds_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    max_canonical_event_bytes: Literal[65536]
+    supported_fields: list[str]
+    received_at_owner: Literal["sink"]
+    content_bound_identity: Literal[True]
+    identity_outcomes: list[Literal["inserted", "exact_replay", "identity_conflict"]]
+    pre_v1_fallback: Literal[False]
+    dual_write: Literal[False]
+    write_enabled: bool
 
     model_config = ConfigDict(extra="forbid")
 
-    @model_validator(mode="after")
-    def validate_encoded_size(self) -> "TelemetryIngestBatch":
-        encoded = json.dumps(
-            self.model_dump(mode="json"),
-            allow_nan=False,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ).encode("utf-8")
-        if len(encoded) > MAX_BATCH_JSON_BYTES:
-            raise ValueError(
-                f"telemetry batch exceeds {MAX_BATCH_JSON_BYTES} encoded bytes"
-            )
-        return self
 
-
-class TelemetryIngestResponse(BaseModel):
-    """Acknowledgement for newly inserted and idempotently replayed events."""
-
-    schema_version: str = "forge.telemetry.ingest.v1"
-    accepted: int = Field(ge=0)
-    duplicates: int = Field(ge=0)
-    event_ids: list[UUID]
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        serialize_by_alias=True,
+_SINK_CAPABILITY = ForgeTelemetrySinkCapabilityV1.model_validate(
+    _load_contract_json(
+        "forge_telemetry_sink_capability.v1.json",
+        SINK_CAPABILITY_FIXTURE_SHA256,
     )
+)
+if (
+    _SINK_CAPABILITY.event_schema_sha256 != FORGE_EVENT_V1_SCHEMA_SHA256
+    or _SINK_CAPABILITY.event_digest_profile_sha256 != EVENT_DIGEST_PROFILE_SHA256
+    or _SINK_CAPABILITY.resource_bounds_sha256 != TELEMETRY_RESOURCE_BOUNDS_SHA256
+):
+    raise RuntimeError("telemetry capability does not pin the admitted contract hashes")
+
+
+def forge_telemetry_sink_capability() -> ForgeTelemetrySinkCapabilityV1:
+    """Return the admitted capability with the runtime kill-switch state."""
+
+    capability = _SINK_CAPABILITY.model_copy(deep=True)
+    capability.write_enabled = forge_event_v1_write_enabled()
+    return capability
+
+
+def forge_event_v1_write_enabled() -> bool:
+    """Fail closed unless the canonical writer is explicitly enabled."""
+
+    return (
+        os.getenv("DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED", "false").lower() == "true"
+    )
+
+
+class ForgeEventV1IngestResponse(BaseModel):
+    schema_version: Literal["forge.dataforge.telemetry.ingest.v1"] = (
+        "forge.dataforge.telemetry.ingest.v1"
+    )
+    event_id: UUID
+    event_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    received_at: datetime
+    identity_outcome: Literal["inserted", "exact_replay"]
+
+    model_config = ConfigDict(extra="forbid")

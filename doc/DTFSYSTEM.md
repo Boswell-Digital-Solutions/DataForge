@@ -489,7 +489,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
-│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
+│   │   ├── telemetry_router.py       # Canonical ForgeEvent.v1 capability and ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit event append
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
@@ -653,7 +653,7 @@ Always run `alembic upgrade head` after pulling new code.
 
 # §4 — API Layer
 
-*Last updated: 2026-07-14*
+*Last updated: 2026-07-23*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
 on 2026-07-14 confirmed `46` mounted router objects plus app-level docs, HTML views, and
@@ -689,7 +689,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `POST /api/v1/telemetry/events:batch`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, authenticated bounded generic Forge Telemetry ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, canonical ForgeEvent.v1 capability and ingest, Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
@@ -697,14 +697,23 @@ There is **no root `/metrics` route mounted by default** in the current app.
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
 
-- `POST /api/v1/telemetry/events:batch` requires a durable DataForge service key. Keys with
-  `service` or `scopes` metadata are constrained to that service and must include
-  `telemetry:write`; legacy unscoped service keys remain accepted during migration. The endpoint
-  accepts at most 100 Forge Telemetry v0.3 events and 256 KiB per batch, then writes
-  idempotently by `event_id`. Each complete event is RFC 8785-canonicalized and must
-  fit the authority-pinned 65,536-byte ceiling. The limit is not applied separately
-  to `metadata` and `metrics`; an oversized event fails validation with the stable
-  `event_size_exceeded` code.
+- `GET /api/v1/telemetry/capabilities/forge-event-v1` requires a DataForge API key
+  and returns the authority-pinned sink contract plus the live writer state.
+- `POST /api/v1/telemetry/events` requires a durable DataForge service key whose
+  metadata includes `telemetry:write` and exactly matches the event's
+  `service_name`, `environment`, and `tenant_ref`. The endpoint accepts exactly one
+  `ForgeEvent.v1` producer projection. It rejects aliases, sink-owned fields, and
+  unrecognized fields.
+- Each producer projection is RFC 8785-canonicalized and must fit the
+  authority-pinned 65,536-byte ceiling. The limit is not applied separately to
+  `attributes` and `metrics`; an oversized event fails with
+  `event_size_exceeded`.
+- A first insert returns `201`; an exact content-bound replay returns `200` with
+  the original sink-owned `received_at`; reuse of an `event_id` with different
+  canonical content returns `409 event_identity_conflict`.
+- `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
+  return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
+  mounted.
 
 | Credential type | Examples |
 |-----------------|----------|
@@ -739,6 +748,8 @@ live app surface:
 - Do not document `/metrics` as a supported root route until a mounted route actually exposes it.
 - Preserve the distinction between HTML operator pages and JSON APIs.
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
+- Do not restore the removed telemetry batch route; ForgeEvent.v1 is the sole
+  telemetry ingestion contract.
 
 ---
 
@@ -1802,16 +1813,17 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/events:batch`, `/ingest/tarcie` | Compliance review records, BuildGuard events, authenticated generic operational telemetry, friction ingest |
-
-Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
-never receive DataForge/PostgreSQL credentials. The request event is the shared
-`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON
-complexity bounds. The FT-02 authority copy pins the complete redacted RFC 8785
-event ceiling at 65,536 bytes and the violation code at
-`event_size_exceeded`; `metadata` and `metrics` are not independent 64 KiB
-budgets.
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical ForgeEvent.v1 capability and ingest, friction ingest |
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
+
+Forge:SMITH and other producers use the authenticated canonical telemetry HTTP
+boundary; they never receive DataForge/PostgreSQL credentials. A producer first
+reads the hash-pinned `ForgeTelemetrySinkCapability.v1`, then submits one exact
+`ForgeEvent.v1` projection. DataForge owns `received_at` and content-bound
+identity resolution. The authority contract pins the complete RFC 8785 producer
+projection ceiling at 65,536 bytes and the violation code at
+`event_size_exceeded`; `attributes` and `metrics` are not independent 64 KiB
+budgets. There is no pre-v1 fallback or dual-write path.
 
 ## BugCheck Contract
 
@@ -2156,16 +2168,25 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_TIMEOUT_SECONDS` | int | `10` | NO | SQLAlchemy pool checkout timeout |
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
+| `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
 
 **Example:**
 ```
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
+DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=false
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
 
 `DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
+
+The ForgeEvent.v1 route is mounted while the writer switch is disabled so
+operators can authenticate against the capability endpoint and observe
+`write_enabled: false`. Set the switch to `true` only after the canonical
+migration and every producer key's `service_name`, `environment`, `tenant_ref`,
+and `telemetry:write` metadata have been verified. Setting it back to `false`
+stops new writes without deleting stored evidence.
 
 ## Security & JWT
 

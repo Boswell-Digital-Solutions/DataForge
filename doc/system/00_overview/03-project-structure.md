@@ -84,7 +84,7 @@ DataForge/
 │   │   ├── compression_router.py     # Compression dictionary governance
 │   │   ├── vibeforge_router.py / learning_router.py
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
-│   │   ├── telemetry_router.py       # Authenticated generic Forge Telemetry ingest
+│   │   ├── telemetry_router.py       # Canonical ForgeEvent.v1 capability and ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
 │   │   ├── routes/events_router.py   # Audit event append
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,

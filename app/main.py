@@ -279,7 +279,7 @@ app.include_router(vibeforge_router.router)  # VibeForge learning layer
 app.include_router(learning_router.router)  # Multi-AI planning learning layer
 app.include_router(teams_router.router)  # Team & Organization Learning (Phase 4.1)
 app.include_router(events_router)  # BuildGuard Events API (GRR Phase D)
-app.include_router(telemetry_router)  # Authenticated generic Forge Telemetry ingest
+app.include_router(telemetry_router)  # Canonical ForgeEvent.v1 capability and ingest
 app.include_router(admin_keys_router)  # API Key Management (ForgeCommand Key Rotation)
 app.include_router(rotation_router)  # Admin Token Rotation (72-hour auto-rotation)
 app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Command)

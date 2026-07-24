@@ -25,16 +25,17 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/events:batch`, `/ingest/tarcie` | Compliance review records, BuildGuard events, authenticated generic operational telemetry, friction ingest |
-
-Forge:SMITH and other non-Python applications use the authenticated telemetry HTTP boundary; they
-never receive DataForge/PostgreSQL credentials. The request event is the shared
-`forge_telemetry.TelemetryEvent` v0.3 model with ingress-specific batch and JSON
-complexity bounds. The FT-02 authority copy pins the complete redacted RFC 8785
-event ceiling at 65,536 bytes and the violation code at
-`event_size_exceeded`; `metadata` and `metrics` are not independent 64 KiB
-budgets.
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical ForgeEvent.v1 capability and ingest, friction ingest |
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
+
+Forge:SMITH and other producers use the authenticated canonical telemetry HTTP
+boundary; they never receive DataForge/PostgreSQL credentials. A producer first
+reads the hash-pinned `ForgeTelemetrySinkCapability.v1`, then submits one exact
+`ForgeEvent.v1` projection. DataForge owns `received_at` and content-bound
+identity resolution. The authority contract pins the complete RFC 8785 producer
+projection ceiling at 65,536 bytes and the violation code at
+`event_size_exceeded`; `attributes` and `metrics` are not independent 64 KiB
+budgets. There is no pre-v1 fallback or dual-write path.
 
 ## BugCheck Contract
 
