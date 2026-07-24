@@ -22,11 +22,9 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - fromGroup: forge-telemetry-ssh  # deploy key used at build time to clone
-                                        # the private forge-* git deps over SSH.
-                                        # Set SSH_KEY_B64 = `base64 -w0 < key`
-                                        # (mangle-proof) — preferred over the raw
-                                        # SSH_KEY PEM. See scripts/render-git-auth.sh.
+      - key: FORGE_TELEMETRY_TOKEN
+        sync: false  # Build-only GitHub token with Contents:Read on the pinned
+                     # forge-telemetry and forge_contract_core repositories.
       - key: DATAFORGE_DATABASE_URL
         sync: false  # Set Supabase connection string in Render dashboard
       - key: OPENAI_API_KEY
@@ -73,22 +71,17 @@ services:
     branch: master
     rootDir: .
     schedule: "*/10 * * * *"  # every 10 min; lookback/overlap make windows safe to re-pull
-    buildCommand: |
-      set -euo pipefail
-      python -m pip install --upgrade pip
-      # Same private-dependency auth as the web service. See scripts/render-git-auth.sh.
-      bash scripts/render-git-auth.sh
-      python -m pip install --no-cache-dir -r requirements.txt
+    # The web build is the sole migration runner. This build verifies the
+    # migration graph; the poller runtime separately verifies its table exists.
+    buildCommand: bash scripts/render-cron-build.sh
     startCommand: python -m scripts.poll_supabase_logs --once
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
-      - fromGroup: forge-telemetry-ssh  # deploy key to clone the private forge-*
-                                        # git deps over SSH (same as web service).
-                                        # Prefer SSH_KEY_B64 (`base64 -w0 < key`)
-                                        # over raw SSH_KEY. See render-git-auth.sh.
+      - key: FORGE_TELEMETRY_TOKEN
+        sync: false  # Same build-only GitHub token as the web service.
       - key: LOG_LEVEL
         value: INFO
       - key: DATAFORGE_DATABASE_URL

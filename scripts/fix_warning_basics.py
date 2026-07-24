@@ -1,6 +1,6 @@
-from datetime import datetime, UTC
 from __future__ import annotations
 
+from datetime import datetime, UTC
 import re
 from pathlib import Path
 

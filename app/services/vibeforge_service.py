@@ -181,8 +181,15 @@ class SessionService:
         if not db_session:
             return None
         
-        db_session.session_completed_at = datetime.now(UTC)
-        duration = (db_session.session_completed_at - db_session.session_started_at).total_seconds()
+        completed_at = datetime.now(UTC)
+        started_at = db_session.session_started_at
+        # PostgreSQL preserves timezone awareness, while SQLite (used by the
+        # deterministic unit suite) returns the same DateTime column as naive.
+        # Normalize the latter as UTC before duration arithmetic.
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=UTC)
+        db_session.session_completed_at = completed_at
+        duration = (completed_at - started_at).total_seconds()
         db_session.session_duration_seconds = int(duration)
         
         db.commit()

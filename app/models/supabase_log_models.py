@@ -10,7 +10,7 @@ Sensitive fields are stripped at ingest (see ``app/utils/supabase_log_ingest``),
 so every row here is already safe to read and forward.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, DateTime, Float, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -47,7 +47,11 @@ class SupabaseLogEvent(Base):
     source = Column(String(20), nullable=False, default="supabase")
     redacted = Column(Boolean, nullable=False, default=True)
     source_cursor = Column(String(64), nullable=True, comment="poll window this row arrived in")
-    ingested_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    ingested_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
     __table_args__ = (
         # Sentinel queries the recent window by category (e.g. auth failures).

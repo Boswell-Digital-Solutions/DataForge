@@ -1,5 +1,8 @@
 # Priority 2 Task 1: Test Expansion - COMPLETE ✅
 
+> **ARCHIVED SNAPSHOT:** `/api/projects` results below describe a retired content API, not the
+> current AuthorForge boundary.
+
 **Status:** 100% Complete
 **Date:** 2025
 **Total New Test Code:** 2,200+ lines across 6 files

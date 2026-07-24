@@ -23,7 +23,7 @@ contract, persistence/retrieval authority, write-boundary invariants, fail-close
 posture, and ecosystem contracts; *snapshot facts* are dated, audit-derived
 counts (mounted routers, Alembic migrations, Python/test files, collected tests).
 See §11 for the scope and authority boundary and §12 for ownership and
-designation doctrine. The nested `forge-telemetry/` repo is documented separately.
+designation doctrine. The sibling `../forge-telemetry/` repo is documented separately.
 
 | Part | File | Contents |
 | --- | --- | --- |

@@ -4,7 +4,7 @@
 
 These are architectural invariants, not guidelines. Violating them causes data loss, security breaches, or ecosystem-wide consistency failures.
 
-### 1. DataForge Is the Only Source of Truth
+### 1. DataForge Is the Source of Truth for Its Approved Domains
 
 No service maintains authoritative state outside DataForge/Postgres. There is no "eventually
 consistent" model. There is no "local cache that syncs later." If the authoritative write fails,
@@ -16,6 +16,10 @@ RIGHT: Service attempts DataForge write; if it fails, the operation fails
 ```
 
 Redis is explicitly derived state only. It can accelerate reads, but it cannot own authority.
+
+AuthorForge is the explicit exception. Its embedded database is the exclusive authority for
+all AuthorForge user content and identity. DataForge receives only the strict minimized
+`AuthorForgeAnalyticsEnvelope.v1`; never remount the legacy content routers or add a sync path.
 
 ### 2. Cache Must Never Decide Authority
 
@@ -67,7 +71,7 @@ key unless the re-encryption path is implemented and reviewed in the repo you ar
 | XAI/MAID (run_token) | Enrichment artifacts | Findings, lifecycle transitions, run records |
 | VibeForge (user_token) | User decisions (lifecycle transitions) | Findings, run records, enrichments |
 | NeuroForge (API key) | Run results, inference records, performance metrics | BugCheck data |
-| AuthorForge (API key) | Project content hierarchy | BugCheck data, run records |
+| AuthorForge (dedicated scoped API key) | Strict minimized `AuthorForgeAnalyticsEnvelope.v1` only | All user content/identity, arbitrary metadata, BugCheck data, run records |
 | SMITH (API key) | Planning sessions, portfolio, governance events | BugCheck findings |
 | Sentinel (API key) | Sweep records, healing events | BugCheck data, run records |
 | Pricing Monitor (API key) | Pricing snapshots, alerts, monitor runs | BugCheck data |
@@ -310,7 +314,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/DataForge/tests/` | 54 test files; 730 collected tests in the 2026-07-14 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 59 test files; 810 collected tests in the 2026-07-24 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |
@@ -322,10 +326,10 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 
 ## Documentation Audit Note
 
-The current canonical reference is the generated root `SYSTEM.md` assembled from `doc/system/`.
+The current canonical reference is generated `doc/DTFSYSTEM.md`, assembled from `doc/system/`.
 When older phase summaries or historical completion documents conflict with the generated
 system docs, the generated system docs win.
 
 ---
 
-*Forge Documentation Protocol v1 — Last updated: 2026-04-03*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-24*

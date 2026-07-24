@@ -1,5 +1,8 @@
 # Due Diligence Review: Priority 2 Task 1 - Test Expansion
 
+> **ARCHIVED SNAPSHOT:** `/api/projects` results below describe a retired content API, not the
+> current AuthorForge boundary.
+
 **Review Date:** November 19, 2025
 **Reviewed By:** Quality Assurance
 **Status:** ✅ APPROVED

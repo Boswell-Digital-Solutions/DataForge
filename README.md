@@ -12,20 +12,20 @@
 ## Documentation Contract
 
 - **Repo type:** Resident HTTP service
-- **Authority boundary:** Durable truth ownership, persistence, search, and lifecycle enforcement for the Forge ecosystem
-- **Deep reference:** `doc/system/_index.md`, root `SYSTEM.md` (legacy `doc/dfSYSTEM.md` mirror), `../docs/canonical/ecosystem_canonical.md`
+- **Authority boundary:** Durable truth ownership for approved domains; AuthorForge content stays local
+- **Deep reference:** `doc/system/_index.md`, generated `doc/DTFSYSTEM.md`, `../docs/canonical/ecosystem_canonical.md`
 - **README role:** Service overview and operator entrypoint
-- **Truth note:** Snapshot numbers in this README are audit facts; when this file conflicts with generated `SYSTEM.md`, generated `SYSTEM.md` wins
-- **Nested repo note:** `forge-telemetry/` is a separate git repo inside this tree and maintains its own documentation stack
+- **Truth note:** Snapshot numbers in this README are audit facts; when this file conflicts with generated `doc/DTFSYSTEM.md`, the generated artifact wins
+- **Sibling repo note:** `../forge-telemetry/` is a separate git repo and maintains its own documentation stack
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Resident%20Service-brightgreen" />
   <img src="https://img.shields.io/badge/License-Commercial-red" />
-  <img src="https://img.shields.io/badge/Mounted%20Routers-35-blue" />
-  <img src="https://img.shields.io/badge/Router%20Modules-39-blue" />
+  <img src="https://img.shields.io/badge/Mounted%20Routers-44-blue" />
+  <img src="https://img.shields.io/badge/Router%20Modules-50-blue" />
   <img src="https://img.shields.io/badge/Python-3.11%2B-blue" />
-  <img src="https://img.shields.io/badge/Alembic%20Migrations-47-blue" />
-  <img src="https://img.shields.io/badge/Collected%20Tests-565-blue" />
+  <img src="https://img.shields.io/badge/Alembic%20Migrations-59-blue" />
+  <img src="https://img.shields.io/badge/Collected%20Tests-810-blue" />
 </p>
 
 ---
@@ -58,21 +58,23 @@ The current contract is defined by:
 |---------|---------------|
 | Runtime posture | Resident FastAPI service |
 | Default port | `8001` |
-| Mounted router objects | `46` |
+| Mounted router objects | `45` |
 | Python modules under `app/api/` | `62` |
-| Alembic migrations | `63` |
-| Python files under `app/` | `210` |
-| Pytest files | `54` |
-| Collected tests | `730` via `pytest --collect-only -q` on 2026-07-14 |
+| Alembic migrations | `65` |
+| Python files under `app/` | `214` |
+| Pytest files | `59` |
+| Collected tests | `810` |
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
-| Nested repo boundary | `forge-telemetry/` is a separate git repo with its own docs stack |
+| Sibling repo boundary | `../forge-telemetry/` is a separate git repo with its own docs stack |
 | Forge Telemetry ingress | Canonical `POST /api/v1/telemetry/events`; one `ForgeEvent.v1` per request, 65,536 RFC 8785 bytes maximum, fail-closed writer |
 | DataForge telemetry producer | Search outcomes use the pinned canonical async HTTP transport with explicit self-ingest URL and exact-bound producer key |
 | Forge Telemetry validation | Authority-pinned expected-error profile; code-only 422 responses with no submitted values |
 
 ## What DataForge Owns
 
-- Durable persistence for product state across NeuroForge, VibeForge, AuthorForge, ForgeAgents, BugCheck, Forge:SMITH, and operator workflows.
+- Durable persistence for approved product state across NeuroForge, VibeForge, ForgeAgents, BugCheck, Forge:SMITH, and operator workflows.
+- Strict minimized AuthorForge analytics only. AuthorForge's embedded database exclusively owns
+  projects and all user content; DataForge never syncs, stores, indexes, or serves that content.
 - Hybrid semantic and keyword retrieval through the mounted `/api/search` family.
 - Scoped auth and operator-control surfaces such as `/auth`, `/api/auth`, `/admin/api-keys`, `/admin/token`, and `/secrets`.
 - Governance evidence for runtime promotion, deterministic policy envelopes, reward ledgers, rate limits, and execution history.
@@ -87,7 +89,9 @@ Representative mounted families:
 
 - Search and content admin: `/api/search`, `/admin/documents`, `/admin/domains`, `/admin/tags`
 - Auth and key control: `/auth/token`, `/api/auth/*`, `/auth/whoami`, `/admin/api-keys/*`, `/admin/token/*`
-- Product persistence: `/api/neuroforge/*`, `/api/vibeforge/*`, `/api/projects/*`, `/api/v1/smithy/*`, `/api/teams/*`
+- Product persistence: `/api/neuroforge/*`, `/api/vibeforge/*`, `/api/v1/smithy/*`, `/api/teams/*`
+- AuthorForge boundary: `/api/v1/events/authorforge-analytics` accepts only
+  `AuthorForgeAnalyticsEnvelope.v1`; `/api/projects/*` is a `410 Gone` tombstone
 - Agent and run persistence: `/api/v1/agents/*`, `/api/v1/forge-run/*`, `/api/v1/bugcheck/*`, `/api/v1/runs/*`, `/api/v1/experience/*`
 - Governance and operator data: `/api/v1/runtime-promotion/*`, `/api/v1/policy-*`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles`
 - Canonical operational telemetry: `GET /api/v1/telemetry/capabilities/forge-event-v1`
@@ -118,7 +122,8 @@ Important boundary notes:
   delivery counters. Application shutdown closes admission and observes the
   transport's finite drain deadline.
 - `auth_secure_router.py`, `tracing_router.py`, `api_deployment_router.py`, `replication_router.py`, `cache_replication_router.py`, `dlq_router.py`, and similar modules are source-present only until mounted.
-- `forge-telemetry/` is not part of the DataForge runtime tree for documentation or ownership purposes.
+- `../forge-telemetry/` is not part of the DataForge runtime tree for documentation or ownership purposes.
+- `projects_router` and `authorforge_v2_router` are legacy source only and must not be mounted.
 
 ## Quick Start
 
@@ -145,10 +150,11 @@ PYTHONPATH=. ./.venv/bin/pytest --collect-only -q
 
 Use these in order:
 
-- Canonical implementation reference: [SYSTEM.md](./SYSTEM.md)
-- Source docs that generate `SYSTEM.md`: [doc/system/_index.md](./doc/system/_index.md)
+- Canonical implementation reference: [doc/DTFSYSTEM.md](./doc/DTFSYSTEM.md)
+- Source docs that generate `doc/DTFSYSTEM.md`: [doc/system/_index.md](./doc/system/_index.md)
 - Repo-local working instructions: [CLAUDE.md](./CLAUDE.md)
 - Repo architecture summary: [dataforge_architecture_spec.md](./docs/dataforge_architecture_spec.md)
+- Render poller operations: [SUPABASE_LOG_POLLER_RUNBOOK.md](./docs/guides/SUPABASE_LOG_POLLER_RUNBOOK.md)
 
 Historical guides and archive material still exist in `docs/`, but when they conflict with the
 generated system docs, the generated system docs win.

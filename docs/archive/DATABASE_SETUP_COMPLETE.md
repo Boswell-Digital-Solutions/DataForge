@@ -1,5 +1,8 @@
 # Database Setup Complete ✅
 
+> **ARCHIVED AND SUPERSEDED:** AuthorForge SQL/content integration described below is not the
+> current architecture. Do not use it as setup instructions.
+
 ## Summary
 
 The database authentication issue has been **completely resolved** and the AuthorForge SQL integration is **fully functional**.

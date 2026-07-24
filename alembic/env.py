@@ -22,6 +22,8 @@ from app.database import Base
 from app.models import models  # noqa: F401 - core models
 from app.models import authorforge_models  # noqa: F401
 from app.models import authorforge_v2_models  # noqa: F401
+# Legacy AuthorForge mappings remain registered here only so Alembic recognizes
+# pre-existing tables. Runtime APIs do not import or expose these content models.
 from app.models import vibeforge_models  # noqa: F401
 from app.models import runs_models  # noqa: F401
 from app.models import planning_models  # noqa: F401
@@ -38,6 +40,7 @@ from app.models import multi_provider_models  # noqa: F401
 from app.models import runtime_promotion_models  # noqa: F401
 from app.models import llm_intel_pending_records_models  # noqa: F401
 from app.models import supabase_log_models  # noqa: F401
+from app.models import authorforge_analytics_models  # noqa: F401
 from app.models import telemetry_models  # noqa: F401
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

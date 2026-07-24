@@ -227,7 +227,7 @@ See [FIXES.md](FIXES.md) for complete details with code examples.
 1. ✅ Test all the fixes above
 2. ✅ Review the logs to ensure everything starts correctly
 3. ✅ Create your first real domain and documents
-4. ✅ Integrate with your client application (e.g., AuthorForge)
+4. ✅ Integrate with an approved DataForge-owned client surface
 5. ⚠️ Before production: Review security settings and rate limits
 
 ---

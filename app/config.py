@@ -125,9 +125,26 @@ SUPABASE_API_BASE = os.getenv("SUPABASE_API_BASE", "https://api.supabase.com")
 SUPABASE_LOG_SOURCE_TABLE = os.getenv("SUPABASE_LOG_SOURCE_TABLE", "edge_logs")
 # Salt for one-way hashing of auth_user; if empty, identities are dropped, not hashed.
 SUPABASE_LOG_IDENTITY_SALT = os.getenv("SUPABASE_LOG_IDENTITY_SALT", "")
-SUPABASE_LOG_POLL_LOOKBACK_SECONDS = int(os.getenv("SUPABASE_LOG_POLL_LOOKBACK_SECONDS", "900"))
-SUPABASE_LOG_POLL_OVERLAP_SECONDS = int(os.getenv("SUPABASE_LOG_POLL_OVERLAP_SECONDS", "120"))
-SUPABASE_LOG_POLL_MAX_ROWS = int(os.getenv("SUPABASE_LOG_POLL_MAX_ROWS", "1000"))
+
+
+def _optional_int_env(name: str, default: int) -> int | None:
+    """Leave malformed operational settings invalid for a sanitized caller check."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+SUPABASE_LOG_POLL_LOOKBACK_SECONDS = _optional_int_env(
+    "SUPABASE_LOG_POLL_LOOKBACK_SECONDS", 900
+)
+SUPABASE_LOG_POLL_OVERLAP_SECONDS = _optional_int_env(
+    "SUPABASE_LOG_POLL_OVERLAP_SECONDS", 120
+)
+SUPABASE_LOG_POLL_MAX_ROWS = _optional_int_env("SUPABASE_LOG_POLL_MAX_ROWS", 1000)
 
 # ============================================
 # Server Configuration

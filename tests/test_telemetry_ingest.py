@@ -338,6 +338,22 @@ def test_unsupported_schema_boolean_metric_and_zero_trace_fail_closed():
         )
 
 
+def test_canonical_ingest_never_accepts_authorforge(db):
+    payload = _event()
+    payload["service_name"] = "authorforge"
+    event = _submission(payload)
+    auth = _auth(service_name="authorforge")
+
+    with pytest.raises(HTTPException) as error:
+        _ingest(db, event, auth)
+
+    assert error.value.status_code == 403
+    assert error.value.detail == {
+        "code": "authorforge_canonical_telemetry_forbidden"
+    }
+    assert db.query(ForgeEventV1Record).count() == 0
+
+
 def test_ingest_enforces_64_kib_over_complete_producer_projection():
     accepted = _event_with_canonical_size(MAX_CANONICAL_EVENT_BYTES)
     assert len(rfc8785.dumps(_submission(accepted).model_dump(mode="json"))) == 65536

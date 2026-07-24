@@ -43,6 +43,14 @@ def _authorize_event(auth: AuthContext, event: ForgeEventV1Submission) -> None:
             detail={"code": "telemetry_service_key_required"},
         )
 
+    # AuthorForge has a stricter content-free analytics contract. Even a
+    # correctly bound telemetry key cannot use this attributes-bearing route.
+    if event.service_name == "authorforge":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "authorforge_canonical_telemetry_forbidden"},
+        )
+
     metadata = auth.key_info.metadata or {}
     scopes = metadata.get("scopes")
     if not isinstance(scopes, list) or "telemetry:write" not in scopes:

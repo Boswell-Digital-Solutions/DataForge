@@ -2,17 +2,17 @@
 
 ## Directory Tree
 
-*Last updated: 2026-07-14*
+*Last updated: 2026-07-24*
 
 ```
 DataForge/
 ├── alembic/                          # Database migration history
 │   ├── env.py                        # Alembic environment config (imports ORM models)
 │   ├── script.py.mako                # Migration template
-│   └── versions/                     # 62 migration version files
+│   └── versions/                     # 65 migration version files
 │
-├── app/                              # Main application package (210 Python files)
-│   ├── main.py                       # FastAPI app + lifespan + router registration (46 mounted routers)
+├── app/                              # Main application package (214 Python files)
+│   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
@@ -24,8 +24,11 @@ DataForge/
 │   │   ├── schemas.py                # Core: auth, search, user/domain/document/tag schemas
 │   │   ├── agentic_reasoning_models.py / _schemas.py   # Experience store, gate analytics, skill nomination
 │   │   ├── agent_registry_schemas.py                   # Agent definition persistence
-│   │   ├── authorforge_models.py / _schemas.py         # AuthorForge v1 state
-│   │   ├── authorforge_v2_models.py / _schemas.py      # AuthorForge v2 state
+│   │   ├── authorforge_models.py / _schemas.py         # Legacy mappings; migration/audit only
+│   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
+│   │   ├── authorforge_analytics_models.py / _schemas.py
+│   │   │                                               # Dedicated strict content-free analytics v1
+│   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
@@ -52,7 +55,7 @@ DataForge/
 │   │   ├── team_models.py / _schemas.py                # Team and organization state
 │   │   └── vibeforge_models.py / _schemas.py           # VibeForge projects, sessions, analytics
 │   │
-│   ├── api/                          # API modules (62 Python files; 46 routers mounted in main.py)
+│   ├── api/                          # 50 router modules; 45 mounted objects in main.py
 │   │   ├── search_router.py          # POST /api/search, GET /api/search/stats
 │   │   ├── admin_router.py           # Admin CRUD: documents, domains, tags
 │   │   ├── admin_keys_router.py      # Service-key governance
@@ -67,10 +70,12 @@ DataForge/
 │   │   │                             # NeuroForge inference record persistence
 │   │   ├── multi_provider_router.py / multi_provider_crud.py
 │   │   │                             # Provider pricing catalog and batch queue
+│   │   ├── authorforge_boundary_router.py
+│   │   │                             # Mounted 410 tombstone for retired content API
 │   │   ├── projects_router.py / projects_crud.py
-│   │   │                             # AuthorForge v1 projects
+│   │   │                             # Legacy AuthorForge v1; not mounted
 │   │   ├── authorforge_v2_router.py / authorforge_v2_crud.py
-│   │   │                             # AuthorForge v2 state
+│   │   │                             # Legacy AuthorForge v2; not mounted
 │   │   ├── smithy_planning_router.py / smithy_planning_crud.py
 │   │   ├── smithy_portfolio_router.py / smithy_portfolio_crud.py
 │   │   ├── sentinel_router.py        # Sentinel sweep/healing records
@@ -87,7 +92,7 @@ DataForge/
 │   │   ├── teams_router.py / tarcie_router.py / secrets_router.py
 │   │   ├── telemetry_router.py       # Canonical ForgeEvent.v1 capability and ingest
 │   │   ├── fpvs_router.py            # Health/version probe surface
-│   │   ├── routes/events_router.py   # Audit event append
+│   │   ├── routes/events_router.py   # Audit events + strict AuthorForge analytics
 │   │   └── (source-present, not mounted: api_deployment_router, auth_revocation_router,
 │   │        auth_secure_router, cache_replication_router, dlq_router,
 │   │        rate_limit_router, replication_router, tracing_router)
@@ -137,6 +142,9 @@ DataForge/
 │
 ├── scripts/
 │   ├── create_admin.py               # Interactive CLI: create initial admin user
+│   ├── poll_supabase_logs.py         # Scheduled, redacted Supabase log poll
+│   ├── audit_authorforge_boundary.py # Read-only legacy metadata audit (IDs/counts only)
+│   ├── render-cron-build.sh          # Render cron build/preflight
 │   └── seed_model_catalog.py         # Seed canonical model catalog + retire stale xAI aliases
 │
 ├── templates/
@@ -144,7 +152,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 54 test files, 730 collected tests as of 2026-07-14
+├── tests/                            # 59 test files, 810 collected tests as of 2026-07-24
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -156,13 +164,7 @@ DataForge/
 │   ├── test_authorforge_api.py
 │   ├── test_lifecycle.py
 │   ├── test_compliance_gdpr.py
-│   └── ... (54 test files total)
-│
-├── forge-telemetry/                  # Nested git repo; shared telemetry library with its own docs stack
-│   ├── doc/system/                   # Separate library system docs
-│   ├── forge_telemetry/              # Published package surface
-│   ├── scripts/context-bundle.sh     # Selective context loader for the nested repo
-│   └── CLAUDE.md                     # Nested repo working instructions
+│   └── ... (57 files total)
 │
 ├── alembic.ini                       # Alembic configuration
 ├── docker-compose.yml                # Local dev: PostgreSQL + Redis + DataForge
@@ -178,7 +180,7 @@ DataForge/
 ## Key Files
 
 ### `app/main.py`
-The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 46 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
+The FastAPI application entry point. Defines the `lifespan` context manager (configuration validation, pgvector init, shutdown cleanup). Registers the 45 currently mounted router objects, configures CORS and request-timeout middleware, mounts `static/` when present, and registers exception handlers.
 
 **Critical:** The order of router registration matters. Auth routes must be registered before protected routes. The health endpoint (`/health`) must be registered without auth middleware. Router modules that exist in `app/api/` but are not included here are source-present only and should not be documented as live API surface.
 
@@ -247,6 +249,6 @@ short-lived caching of `corpus_version:current`.
 Redis-backed derived caching.
 
 ### `alembic/versions/`
-62 migration files covering the base schema plus later domain additions, pgvector support,
+65 migration files covering the base schema plus later domain additions, pgvector support,
 pipeline tables, Sentinel tables, private source profiles, and corpus-governance state.
 Always run `alembic upgrade head` after pulling new code.

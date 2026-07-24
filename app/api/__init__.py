@@ -1,3 +1,6 @@
-from . import search_router, admin_router, auth_router, projects_router, runs_router, vibeforge_router, learning_router, teams_router
+"""DataForge API package.
 
-__all__ = ["search_router", "admin_router", "auth_router", "projects_router", "runs_router", "vibeforge_router", "learning_router", "teams_router"]
+Routers are imported explicitly by ``app.main``. Keeping this initializer free
+of eager imports prevents retired AuthorForge content routers from being loaded
+as an accidental side effect of importing an unrelated API module.
+"""

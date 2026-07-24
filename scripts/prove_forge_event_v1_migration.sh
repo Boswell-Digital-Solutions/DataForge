@@ -16,6 +16,8 @@ psql -v ON_ERROR_STOP=1 \
 "$TEST_PYTHON" -m alembic upgrade head
 psql -v ON_ERROR_STOP=1 \
   -f tests/fixtures/telemetry/forge_events_v1_migration_verify.sql
+psql -v ON_ERROR_STOP=1 \
+  -f tests/fixtures/telemetry/authorforge_analytics_migration_verify.sql
 "$TEST_PYTHON" -m scripts.prove_forge_event_v1_postgres_api
 "$TEST_PYTHON" -m scripts.prove_forge_event_v1_postgres_race
 

@@ -1,5 +1,8 @@
 # Priority 2 Task 1: Test Expansion - COMPLETE ✅
 
+> **ARCHIVED SNAPSHOT:** `/api/projects` benchmarks below cover a retired API, not the current
+> AuthorForge analytics-only contract.
+
 ## Status: 100% COMPLETE
 
 **Completion Date:** 2025
