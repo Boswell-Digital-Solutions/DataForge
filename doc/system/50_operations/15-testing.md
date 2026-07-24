@@ -7,7 +7,7 @@
 | Metric | Value |
 |--------|-------|
 | Total test files | `59` |
-| Total tests collected | `810` |
+| Total tests collected | `791` |
 | Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
 | Inventory audit date | `2026-07-24` |
 | Coverage config | branch coverage enabled in `pytest.ini` |

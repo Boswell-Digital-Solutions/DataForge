@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.3 (2026-07-23) — DataForge search producer cut over to canonical ForgeEvent.v1 transport
+**Document version:** 2.4 (2026-07-24) — CP2 bounded-recovery producer pilot
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -66,10 +66,10 @@ not a bootstrap repo or passive library.
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
 - **Mounted router objects:** `45` from `app/main.py` (audit: 2026-07-20)
 - **Router modules in source:** `50`
-- **Alembic migrations:** `63`
-- **Python files under `app/`:** `212`
-- **Pytest files:** `57`
-- **Collected tests:** `810` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Alembic migrations:** `66`
+- **Python files under `app/`:** `215`
+- **Pytest files:** `60`
+- **Collected tests:** `791` via `python -m pytest --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
@@ -183,6 +183,11 @@ DataForge (default port 8001)
     ├── pgvector extension — ANN index (IVFFlat, cosine)
     └── Redis / Redis Cloud — derived cache only (disposable, TTL-bound)
 ```
+
+Canonical telemetry ingest is the explicit CP2 pool exception: it reaches the
+same durable PostgreSQL database through a distinct least-privilege login,
+role-scoped RLS policy, and isolated two-connection/zero-overflow pool. It never
+checks out a business-pool connection.
 
 ## Mounted Versus Source-Present Surface
 
@@ -432,10 +437,11 @@ DataForge/
 ├── app/                              # Main application package (214 Python files)
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
+│   ├── telemetry_database.py         # Isolated least-privilege telemetry pool
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
-│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
+│   ├── telemetry_client.py            # Canonical search producer + opt-in bounded recovery
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -570,7 +576,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 59 test files, 810 collected tests as of 2026-07-24
+├── tests/                            # 60 test files, 791 collected tests as of 2026-07-24
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -650,8 +656,17 @@ Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosin
 ### `app/telemetry_client.py`
 Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
 privacy allowlists, delivery counters, capability health, and finite async
-transport shutdown. It accepts search operation shape and aggregate metrics
-only; direct telemetry-table writes and pre-v1 fallback are absent.
+transport shutdown. Its CP2 pilot can commit to a private bounded SQLite spool
+before one caller-owned drain worker submits canonical events over HTTP. It
+accepts search operation shape and aggregate metrics only; direct
+telemetry-table writes and pre-v1 fallback are absent.
+
+### `app/telemetry_database.py`
+
+Owns the sink's distinct PostgreSQL URL, fixed least-privilege role preflight,
+two-connection/zero-overflow pool, database-side timeouts, and per-process
+20 events/second plus 40-event burst budget. It has no fallback to
+`DATAFORGE_DATABASE_URL` or `get_db()`.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
@@ -742,12 +757,19 @@ Credential requirements vary by router. The live mounted service currently uses 
 - `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
+- Enabled writes require the isolated `DATAFORGE_TELEMETRY_DATABASE_URL`.
+  Runtime preflight requires a distinct non-superuser/non-`BYPASSRLS` login
+  inheriting only the migration-owned `dataforge_telemetry_ingest` group role.
+  The route has no fallback to the business pool.
+- Each process admits at most 20 telemetry events/second with a 40-event burst
+  before connection checkout. The telemetry pool is two connections with zero
+  overflow and finite checkout/connect/statement/lock/transaction timeouts.
 
 ## DataForge Producer Contract
 
 DataForge's search path is also a canonical producer. `app/telemetry_client.py`
-submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
-`requirements.txt`; it does not write to telemetry tables directly.
+submits `ForgeEvent.v1` through the immutable SDK pin in `requirements.txt`; it
+does not write to telemetry tables directly.
 
 - The only search event types are `search.completed` and `search.failed`.
 - Attributes contain only `search_kind` (`semantic`, `keyword`, or `hybrid`).
@@ -756,10 +778,20 @@ submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
   thresholds, raw exceptions, and exception types are excluded.
 - Transport and validation failures are represented by stable code-only state;
   event values and credentials are never copied into health output or logs.
-- The producer has no retry fallback or dual-write path. Its bounded async
-  worker and finite shutdown behavior come from the canonical SDK.
+- Direct HTTP remains the default. Setting `DATAFORGE_TELEMETRY_SPOOL_PATH`
+  explicitly enables the CP2 pilot: validated canonical bytes commit to a
+  private 512-entry/32 MiB SQLite spool and one application-owned worker drains
+  batches of four.
+- Determinate availability failures receive at most five attempts with
+  exponential 1–30 second backoff. Three consecutive downstream failures open
+  a 15-second process-local circuit. Acknowledgement-loss and expired-inflight
+  outcomes become `indeterminate` and are never retried automatically.
+- Queue admission returns truthful `accepted_not_persisted` evidence. Only an
+  inserted or exact-replay content-bound sink receipt deletes the row. Capacity
+  overflow drops the newest event truthfully; corrupt rows quarantine without
+  blocking healthy rows.
 - `/health/telemetry` returns the capability identity, the 65,536-byte canonical
-  event ceiling, delivery counters, and non-secret async-worker state.
+  event ceiling, delivery/queue counters, and non-secret async-worker state.
 
 Production emission is intentionally unproved until the sink migration and
 writer switch are complete and a dedicated key is bound to
@@ -1250,6 +1282,18 @@ identity only. Search input, tags, domain identifiers, thresholds, and exception
 values are excluded at the producer boundary. Telemetry failure does not replace
 the search result or exception; it is counted and exposed as code-only health
 state.
+
+When the CP2 spool path is configured, the request performs only the measured
+local canonical SQLite commit. A single lifespan-owned worker drains at most
+four rows per pass to the existing authenticated HTTP boundary. The spool
+contains no API key, URL, headers, or raw error values. Indeterminate
+acknowledgements pause for explicit operator review instead of automatic replay.
+
+The canonical ingest route resolves `get_telemetry_db()`, not the shared
+`get_db()`. Alembic revision `20260724_02` owns the NOLOGIN
+`dataforge_telemetry_ingest` group role, least-privilege grants, and RLS
+policies. Runtime preflight verifies the distinct login's group membership and
+non-privileged posture before allowing persistence.
 
 ### Pass 1: Semantic (Vector) Retrieval
 
@@ -1864,7 +1908,8 @@ surface are re-audited.
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
-| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation and bounded canonical async HTTP submission |
+| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation, bounded canonical HTTP submission, and the opt-in private SQLite recovery spool |
+| Telemetry PostgreSQL pool | Dedicated least-privilege login, pool size 2, overflow 0, database-side timeouts, and pre-checkout rate budget |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 
@@ -2300,9 +2345,23 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 | `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
+| `DATAFORGE_TELEMETRY_DATABASE_URL` | secret PostgreSQL URL | unset | For canonical writes | Distinct non-privileged login inheriting `dataforge_telemetry_ingest`; no business URL/pool fallback |
+| `DATAFORGE_TELEMETRY_DB_POOL_SIZE` | int | `2` | NO | Dedicated pool; bounded `1..4` |
+| `DATAFORGE_TELEMETRY_DB_MAX_OVERFLOW` | int | `0` | NO | Dedicated overflow; pool plus overflow cannot exceed `4` |
+| `DATAFORGE_TELEMETRY_DB_POOL_TIMEOUT_SECONDS` | int | `2` | NO | Dedicated checkout timeout; bounded `1..10` |
+| `DATAFORGE_TELEMETRY_DB_POOL_RECYCLE_SECONDS` | int | `300` | NO | Dedicated recycle bound; `30..1800` |
+| `DATAFORGE_TELEMETRY_DB_CONNECT_TIMEOUT_SECONDS` | int | `3` | NO | Dedicated connect timeout; `1..10` |
+| `DATAFORGE_TELEMETRY_DB_STATEMENT_TIMEOUT_MS` | int | `2000` | NO | Database-enforced statement timeout; `100..10000` |
+| `DATAFORGE_TELEMETRY_DB_LOCK_TIMEOUT_MS` | int | `500` | NO | Database-enforced lock timeout; `50..5000` |
+| `DATAFORGE_TELEMETRY_DB_IDLE_IN_TX_TIMEOUT_MS` | int | `5000` | NO | Database-enforced idle transaction timeout; `1000..30000` |
+| `DATAFORGE_TELEMETRY_INGEST_RATE_PER_SECOND` | float | `20` | NO | Per-process admission rate before connection checkout; `0.1..100` |
+| `DATAFORGE_TELEMETRY_INGEST_RATE_BURST` | int | `40` | NO | Per-process admission burst; `1..200` |
 | `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
 | `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
 | `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
+| `DATAFORGE_TELEMETRY_SPOOL_PATH` | private file path | unset | NO | Explicitly enables the CP2 recovery pilot. Use one path per process under a user-owned mode `0700` directory; the file is mode `0600` |
+| `DATAFORGE_TELEMETRY_DRAIN_INTERVAL_SECONDS` | float seconds | `5` | NO | Positive finite interval between bounded drain passes; maximum `60` |
+| `DATAFORGE_TELEMETRY_DRAIN_TIMEOUT_SECONDS` | float seconds | `15` | NO | Positive finite wait for one asynchronous drain pass; maximum `60` |
 
 **Example:**
 ```
@@ -2325,12 +2384,27 @@ migration and every producer key's `service_name`, `environment`, `tenant_ref`,
 and `telemetry:write` metadata have been verified. Setting it back to `false`
 stops new writes without deleting stored evidence.
 
+When the writer is enabled, the dedicated database URL is mandatory. The
+runtime rejects reuse of the business username, superuser or `BYPASSRLS`
+logins, absent `dataforge_telemetry_ingest` membership, and a connection whose
+application name is not exactly `dataforge-telemetry`. See
+`docs/guides/TELEMETRY_CP2_RUNBOOK.md` for provisioning and rollback.
+
 The writer switch controls the sink; the three `DATAFORGE_TELEMETRY_*`
 variables control DataForge's own search producer. Keep the producer key unset
 until the migration, writer switch, capability identity, and exact key binding
 are proved together. A missing or invalid producer configuration fails
 telemetry closed without failing the search request. The producer never reuses
 the service's broad DataForge API key.
+
+The optional spool is fixed at 512 entries/32 MiB and uses one worker, batches
+of four, five delivery attempts, 1–30 second backoff, a 15-second circuit after
+three consecutive downstream failures, a 30-second inflight lease, and a
+15-second shutdown bound. Queue success means accepted locally, not persisted
+downstream. Only a content-bound `inserted` or `exact_replay` receipt removes a
+row. `indeterminate` rows remain paused until an operator explicitly accepts
+duplicate risk; the application never retries them automatically. Unset the
+spool path to roll back to direct canonical HTTP.
 
 ## Security & JWT
 
@@ -2562,7 +2636,7 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 | Metric | Value |
 |--------|-------|
 | Total test files | `59` |
-| Total tests collected | `810` |
+| Total tests collected | `791` |
 | Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
 | Inventory audit date | `2026-07-24` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
@@ -3004,7 +3078,8 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | File | Purpose |
 |------|---------|
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
-| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, capability health, finite shutdown |
+| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, opt-in bounded SQLite recovery, capability health, finite shutdown |
+| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_database.py` | Isolated canonical telemetry PostgreSQL pool, least-privilege role preflight, timeouts, and rate budget |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -3014,7 +3089,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/embeddings.py` | Chunking + embedding generation |
 | `/home/charlie/Forge/ecosystem/DataForge/app/utils/auth.py` | JWT + bcrypt utilities |
 | `/home/charlie/Forge/ecosystem/DataForge/alembic/versions/` | Migration history |
-| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 59 test files; 810 collected tests in the 2026-07-24 inventory audit |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/tests/` | 60 test files; 791 collected tests in the 2026-07-24 CP2 inventory audit |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/multi_provider_models.py` | Multi-provider pipeline models (6 tables) |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/sentinel_models.py` | Sentinel health + healing models |
 | `/home/charlie/Forge/ecosystem/DataForge/app/api/sentinel_router.py` | Sentinel sweep + healing REST API |

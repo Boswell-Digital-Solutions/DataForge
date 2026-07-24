@@ -43,6 +43,18 @@ values are excluded at the producer boundary. Telemetry failure does not replace
 the search result or exception; it is counted and exposed as code-only health
 state.
 
+When the CP2 spool path is configured, the request performs only the measured
+local canonical SQLite commit. A single lifespan-owned worker drains at most
+four rows per pass to the existing authenticated HTTP boundary. The spool
+contains no API key, URL, headers, or raw error values. Indeterminate
+acknowledgements pause for explicit operator review instead of automatic replay.
+
+The canonical ingest route resolves `get_telemetry_db()`, not the shared
+`get_db()`. Alembic revision `20260724_02` owns the NOLOGIN
+`dataforge_telemetry_ingest` group role, least-privilege grants, and RLS
+policies. Runtime preflight verifies the distinct login's group membership and
+non-privileged posture before allowing persistence.
+
 ### Pass 1: Semantic (Vector) Retrieval
 
 ```python

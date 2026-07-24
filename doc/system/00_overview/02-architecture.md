@@ -42,6 +42,11 @@ DataForge (default port 8001)
     └── Redis / Redis Cloud — derived cache only (disposable, TTL-bound)
 ```
 
+Canonical telemetry ingest is the explicit CP2 pool exception: it reaches the
+same durable PostgreSQL database through a distinct least-privilege login,
+role-scoped RLS policy, and isolated two-connection/zero-overflow pool. It never
+checks out a business-pool connection.
+
 ## Mounted Versus Source-Present Surface
 
 `app/api/` currently contains more router modules than the live app mounts. The live contract

@@ -18,9 +18,23 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 | `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
+| `DATAFORGE_TELEMETRY_DATABASE_URL` | secret PostgreSQL URL | unset | For canonical writes | Distinct non-privileged login inheriting `dataforge_telemetry_ingest`; no business URL/pool fallback |
+| `DATAFORGE_TELEMETRY_DB_POOL_SIZE` | int | `2` | NO | Dedicated pool; bounded `1..4` |
+| `DATAFORGE_TELEMETRY_DB_MAX_OVERFLOW` | int | `0` | NO | Dedicated overflow; pool plus overflow cannot exceed `4` |
+| `DATAFORGE_TELEMETRY_DB_POOL_TIMEOUT_SECONDS` | int | `2` | NO | Dedicated checkout timeout; bounded `1..10` |
+| `DATAFORGE_TELEMETRY_DB_POOL_RECYCLE_SECONDS` | int | `300` | NO | Dedicated recycle bound; `30..1800` |
+| `DATAFORGE_TELEMETRY_DB_CONNECT_TIMEOUT_SECONDS` | int | `3` | NO | Dedicated connect timeout; `1..10` |
+| `DATAFORGE_TELEMETRY_DB_STATEMENT_TIMEOUT_MS` | int | `2000` | NO | Database-enforced statement timeout; `100..10000` |
+| `DATAFORGE_TELEMETRY_DB_LOCK_TIMEOUT_MS` | int | `500` | NO | Database-enforced lock timeout; `50..5000` |
+| `DATAFORGE_TELEMETRY_DB_IDLE_IN_TX_TIMEOUT_MS` | int | `5000` | NO | Database-enforced idle transaction timeout; `1000..30000` |
+| `DATAFORGE_TELEMETRY_INGEST_RATE_PER_SECOND` | float | `20` | NO | Per-process admission rate before connection checkout; `0.1..100` |
+| `DATAFORGE_TELEMETRY_INGEST_RATE_BURST` | int | `40` | NO | Per-process admission burst; `1..200` |
 | `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
 | `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
 | `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
+| `DATAFORGE_TELEMETRY_SPOOL_PATH` | private file path | unset | NO | Explicitly enables the CP2 recovery pilot. Use one path per process under a user-owned mode `0700` directory; the file is mode `0600` |
+| `DATAFORGE_TELEMETRY_DRAIN_INTERVAL_SECONDS` | float seconds | `5` | NO | Positive finite interval between bounded drain passes; maximum `60` |
+| `DATAFORGE_TELEMETRY_DRAIN_TIMEOUT_SECONDS` | float seconds | `15` | NO | Positive finite wait for one asynchronous drain pass; maximum `60` |
 
 **Example:**
 ```
@@ -43,12 +57,27 @@ migration and every producer key's `service_name`, `environment`, `tenant_ref`,
 and `telemetry:write` metadata have been verified. Setting it back to `false`
 stops new writes without deleting stored evidence.
 
+When the writer is enabled, the dedicated database URL is mandatory. The
+runtime rejects reuse of the business username, superuser or `BYPASSRLS`
+logins, absent `dataforge_telemetry_ingest` membership, and a connection whose
+application name is not exactly `dataforge-telemetry`. See
+`docs/guides/TELEMETRY_CP2_RUNBOOK.md` for provisioning and rollback.
+
 The writer switch controls the sink; the three `DATAFORGE_TELEMETRY_*`
 variables control DataForge's own search producer. Keep the producer key unset
 until the migration, writer switch, capability identity, and exact key binding
 are proved together. A missing or invalid producer configuration fails
 telemetry closed without failing the search request. The producer never reuses
 the service's broad DataForge API key.
+
+The optional spool is fixed at 512 entries/32 MiB and uses one worker, batches
+of four, five delivery attempts, 1–30 second backoff, a 15-second circuit after
+three consecutive downstream failures, a 30-second inflight lease, and a
+15-second shutdown bound. Queue success means accepted locally, not persisted
+downstream. Only a content-bound `inserted` or `exact_replay` receipt removes a
+row. `indeterminate` rows remain paused until an operator explicitly accepts
+duplicate risk; the application never retries them automatically. Unset the
+spool path to roll back to direct canonical HTTP.
 
 ## Security & JWT
 

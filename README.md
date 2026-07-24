@@ -110,6 +110,14 @@ Important boundary notes:
 - The canonical writer is disabled unless
   `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=true`. The capability endpoint reports
   that live state. There is no pre-v1 API fallback, compatibility alias, or dual-write.
+- Enabled canonical writes require `DATAFORGE_TELEMETRY_DATABASE_URL`. It must
+  name a separate non-superuser login that inherits only the migration-owned
+  `dataforge_telemetry_ingest` role; there is no fallback to the business
+  database URL or pool. The telemetry pool is capped at two connections with no
+  overflow, has 2-second checkout/2-second statement/500 ms lock/3-second
+  connect bounds, and admits at most 20 events/second with a 40-event burst per
+  process. The runtime rejects the business login, superusers, `BYPASSRLS`
+  logins, missing role membership, or the wrong application name.
 - DataForge's own search producer is `app/telemetry_client.py`. It emits only
   `search.completed` and `search.failed` with an allowlisted search kind and
   aggregate timing/count metrics. Query text, tags, domain identifiers, and raw
@@ -118,9 +126,23 @@ Important boundary notes:
   `DATAFORGE_TELEMETRY_API_KEY` bound to `service_name=dataforge`, the exact
   `ENVIRONMENT`, `tenant_ref=null`, and `telemetry:write`. It does not reuse the
   broad `DATAFORGE_API_KEY` or infer a deployment URL.
+- CP2 bounded recovery is an explicit pilot enabled only by
+  `DATAFORGE_TELEMETRY_SPOOL_PATH`. Its private SQLite spool stores validated
+  canonical event bytes, never the API key, URL, headers, or raw errors. It is
+  capped at 512 events/32 MiB, drains four events per pass on one worker, uses
+  five finite attempts with 1–30 second backoff, opens a 15-second circuit after
+  three consecutive downstream failures, and pauses acknowledgement-loss cases
+  as `indeterminate` for explicit operator review. The path must be unique to
+  one producer process and its parent directory must be owned by that user with
+  mode `0700`.
+- The application lifecycle owns the drain worker. Fresh and determinate
+  retryable rows are drained automatically; `indeterminate` rows are never
+  retried automatically. Unsetting `DATAFORGE_TELEMETRY_SPOOL_PATH` rolls the
+  producer back to the CP1b direct HTTP transport without restoring any legacy
+  path.
 - `/health/telemetry` reports non-secret capability, bounded-worker state, and
-  delivery counters. Application shutdown closes admission and observes the
-  transport's finite drain deadline.
+  delivery/queue counters. Application shutdown closes admission and observes
+  both finite spool and HTTP transport deadlines.
 - `auth_secure_router.py`, `tracing_router.py`, `api_deployment_router.py`, `replication_router.py`, `cache_replication_router.py`, `dlq_router.py`, and similar modules are source-present only until mounted.
 - `../forge-telemetry/` is not part of the DataForge runtime tree for documentation or ownership purposes.
 - `projects_router` and `authorforge_v2_router` are legacy source only and must not be mounted.

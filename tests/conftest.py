@@ -22,6 +22,10 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key")
 from app.database import Base, get_db, get_session_factory
 from app.main import app
 from app.models import models
+from app.telemetry_database import (
+    get_telemetry_db,
+    reset_telemetry_database_state_for_tests,
+)
 
 # IMPORTANT:
 # These imports must exist in the test bootstrap path so the runtime-promotion
@@ -130,6 +134,7 @@ def client(db: Session) -> Generator[TestClient, None, None]:
         return TestingSessionLocal
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_telemetry_db] = override_get_db
     app.dependency_overrides[get_session_factory] = override_get_session_factory
 
     with TestClient(app) as test_client:
@@ -239,5 +244,7 @@ def setup_test_env(monkeypatch):
 def reset_in_memory_rate_limiter():
     """Prevent shared in-memory rate limit state from leaking across tests."""
     simple_rate_limiter.reset()
+    reset_telemetry_database_state_for_tests()
     yield
     simple_rate_limiter.reset()
+    reset_telemetry_database_state_for_tests()

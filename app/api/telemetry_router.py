@@ -13,7 +13,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.admin_keys_router import AuthContext, require_api_key
-from app.database import get_db
 from app.logging_config import get_logger
 from app.models.telemetry_models import ForgeEventV1Record
 from app.models.telemetry_schemas import (
@@ -24,6 +23,10 @@ from app.models.telemetry_schemas import (
     forge_event_v1_write_enabled,
     forge_telemetry_sink_capability,
 )
+from app.telemetry_database import (
+    get_telemetry_db,
+    require_telemetry_rate_budget,
+)
 
 
 logger = get_logger(__name__)
@@ -32,6 +35,14 @@ router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 
 class EventIdentityConflict(ValueError):
     """The event ID is already bound to different canonical content."""
+
+
+def _admit_telemetry_rate_budget(
+    _auth: AuthContext = Depends(require_api_key),
+) -> None:
+    """Charge only authenticated requests before database checkout."""
+
+    require_telemetry_rate_budget()
 
 
 def _authorize_event(auth: AuthContext, event: ForgeEventV1Submission) -> None:
@@ -184,11 +195,12 @@ def get_forge_event_v1_capability(
     "/events",
     response_model=ForgeEventV1IngestResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(_admit_telemetry_rate_budget)],
 )
 def ingest_forge_event_v1(
     event: ForgeEventV1Submission,
     response: Response,
-    db: Session = Depends(get_db),
+    db: Session | None = Depends(get_telemetry_db),
     auth: AuthContext = Depends(require_api_key),
 ) -> ForgeEventV1IngestResponse:
     """Persist one canonical event without aliases, fallback, or dual-write."""
@@ -197,6 +209,11 @@ def ingest_forge_event_v1(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "telemetry_disabled"},
+        )
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
         )
     _authorize_event(auth, event)
     digest = event_digest(event)
