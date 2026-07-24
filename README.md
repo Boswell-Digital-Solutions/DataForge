@@ -67,6 +67,7 @@ The current contract is defined by:
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Sibling repo boundary | `../forge-telemetry/` is a separate git repo with its own docs stack |
 | Forge Telemetry ingress | Canonical `POST /api/v1/telemetry/events`; one `ForgeEvent.v1` per request, 65,536 RFC 8785 bytes maximum, fail-closed writer |
+| Forge Telemetry correlation read | CP3 candidate `GET /api/v1/telemetry/correlations/{correlation_id}`; payload-free, exact scope-bound projection, separately disabled by default |
 | DataForge telemetry producer | Search outcomes use the pinned canonical async HTTP transport with explicit self-ingest URL and exact-bound producer key |
 | Forge Telemetry validation | Authority-pinned expected-error profile; code-only 422 responses with no submitted values |
 
@@ -94,8 +95,9 @@ Representative mounted families:
   `AuthorForgeAnalyticsEnvelope.v1`; `/api/projects/*` is a `410 Gone` tombstone
 - Agent and run persistence: `/api/v1/agents/*`, `/api/v1/forge-run/*`, `/api/v1/bugcheck/*`, `/api/v1/runs/*`, `/api/v1/experience/*`
 - Governance and operator data: `/api/v1/runtime-promotion/*`, `/api/v1/policy-*`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles`
-- Canonical operational telemetry: `GET /api/v1/telemetry/capabilities/forge-event-v1`
-  and `POST /api/v1/telemetry/events`
+- Canonical operational telemetry: `GET /api/v1/telemetry/capabilities/forge-event-v1`,
+  `POST /api/v1/telemetry/events`, and the CP3 candidate
+  `GET /api/v1/telemetry/correlations/{correlation_id}`
 - HTML and probes: `/`, `/admin`, `/admin-ui`, `/diligence*`, `/health`, `/health/render`, `/ready`, `/version`, `/docs`, `/redoc`
 
 Important boundary notes:
@@ -110,6 +112,13 @@ Important boundary notes:
 - The canonical writer is disabled unless
   `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=true`. The capability endpoint reports
   that live state. There is no pre-v1 API fallback, compatibility alias, or dual-write.
+- The CP3 correlation projection is independently disabled unless
+  `DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED=true`. It requires a dedicated
+  API key whose metadata is exactly bound to `service_name=forge_command`, the
+  requested environment and tenant, and `telemetry:read`. It returns at most
+  200 payload-free event summaries and 256 KiB, reports truncation as `partial`, and
+  redacts trace linkage for restricted or confidential records unless the key
+  also has `telemetry:read:restricted`.
 - Enabled canonical writes require `DATAFORGE_TELEMETRY_DATABASE_URL`. It must
   name a separate non-superuser login that inherits only the migration-owned
   `dataforge_telemetry_ingest` role; there is no fallback to the business

@@ -136,6 +136,7 @@ def test_only_canonical_telemetry_routes_are_mounted():
     paths = {route.path for route in app.routes}
     assert "/api/v1/telemetry/capabilities/forge-event-v1" in paths
     assert "/api/v1/telemetry/events" in paths
+    assert "/api/v1/telemetry/correlations/{correlation_id}" in paths
     assert "/api/v1/telemetry/events:batch" not in paths
 
 

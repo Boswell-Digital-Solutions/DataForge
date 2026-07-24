@@ -317,3 +317,46 @@ class ForgeEventV1IngestResponse(BaseModel):
     identity_outcome: Literal["inserted", "exact_replay"]
 
     model_config = ConfigDict(extra="forbid")
+
+
+class ForgeEventCorrelationSummaryV1(BaseModel):
+    """Minimal shared-event projection; payload attributes never cross this read."""
+
+    event_id: UUID
+    occurred_at: datetime
+    received_at: datetime
+    service_name: str
+    event_type: str | None
+    severity: Literal["info", "warning", "error", "critical"]
+    outcome: Literal[
+        "ok",
+        "warn",
+        "fail",
+        "cancelled",
+        "insufficient_signal",
+        "blocked",
+    ]
+    trace_id: str | None
+    span_id: str | None
+    parent_span_id: str | None
+    privacy_class: Literal["public", "internal", "restricted", "confidential"]
+    retention_class: Literal["ephemeral", "short", "standard", "long", "legal_hold"]
+    detail_state: Literal["available", "sampled", "missing", "restricted"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ForgeEventCorrelationReadV1(BaseModel):
+    """Scope-bound shared-event result consumed by Forge_Command."""
+
+    schema_version: Literal["forge.dataforge.telemetry.correlation.v1"] = (
+        "forge.dataforge.telemetry.correlation.v1"
+    )
+    correlation_id: UUID
+    environment: str
+    tenant_ref: str | None
+    shared_state: Literal["available", "missing", "partial"]
+    events: list[ForgeEventCorrelationSummaryV1]
+    observed_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
