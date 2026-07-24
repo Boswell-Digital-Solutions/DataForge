@@ -17,6 +17,7 @@ psql -v ON_ERROR_STOP=1 \
 psql -v ON_ERROR_STOP=1 \
   -f tests/fixtures/telemetry/forge_events_v1_migration_verify.sql
 "$TEST_PYTHON" -m scripts.prove_forge_event_v1_postgres_api
+"$TEST_PYTHON" -m scripts.prove_forge_event_v1_postgres_race
 
 if "$TEST_PYTHON" -m alembic downgrade 20260714_01; then
   echo "ForgeEvent.v1 evidence-preserving downgrade unexpectedly succeeded" >&2
