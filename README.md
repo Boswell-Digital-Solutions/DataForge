@@ -67,6 +67,7 @@ The current contract is defined by:
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Nested repo boundary | `forge-telemetry/` is a separate git repo with its own docs stack |
 | Forge Telemetry ingress | Canonical `POST /api/v1/telemetry/events`; one `ForgeEvent.v1` per request, 65,536 RFC 8785 bytes maximum, fail-closed writer |
+| DataForge telemetry producer | Search outcomes use the pinned canonical async HTTP transport with explicit self-ingest URL and exact-bound producer key |
 | Forge Telemetry validation | Authority-pinned expected-error profile; code-only 422 responses with no submitted values |
 
 ## What DataForge Owns
@@ -105,6 +106,17 @@ Important boundary notes:
 - The canonical writer is disabled unless
   `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=true`. The capability endpoint reports
   that live state. There is no pre-v1 API fallback, compatibility alias, or dual-write.
+- DataForge's own search producer is `app/telemetry_client.py`. It emits only
+  `search.completed` and `search.failed` with an allowlisted search kind and
+  aggregate timing/count metrics. Query text, tags, domain identifiers, and raw
+  exception values never enter the event.
+- Producer admission requires `DATAFORGE_TELEMETRY_BASE_URL` and a dedicated
+  `DATAFORGE_TELEMETRY_API_KEY` bound to `service_name=dataforge`, the exact
+  `ENVIRONMENT`, `tenant_ref=null`, and `telemetry:write`. It does not reuse the
+  broad `DATAFORGE_API_KEY` or infer a deployment URL.
+- `/health/telemetry` reports non-secret capability, bounded-worker state, and
+  delivery counters. Application shutdown closes admission and observes the
+  transport's finite drain deadline.
 - `auth_secure_router.py`, `tracing_router.py`, `api_deployment_router.py`, `replication_router.py`, `cache_replication_router.py`, `dlq_router.py`, and similar modules are source-present only until mounted.
 - `forge-telemetry/` is not part of the DataForge runtime tree for documentation or ownership purposes.
 

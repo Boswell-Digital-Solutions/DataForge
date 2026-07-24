@@ -15,9 +15,8 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
-# forge-telemetry: canonical repo, pinned. Use HTTPS so Render builds do not
-# depend on SSH host-key/bootstrap state.
-forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@v0.3.0
+# Canonical ForgeEvent.v1 model and bounded HTTP transport, immutable proof pin.
+forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@9390ea322a6fb03482bb62e8d7ce1f37c697d909
 git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0

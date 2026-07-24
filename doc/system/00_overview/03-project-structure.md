@@ -17,6 +17,7 @@ DataForge/
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
+│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -224,7 +225,13 @@ chunking, embedding generation, document-cache invalidation, and corpus version 
 insert, reindex, and delete flows.
 
 ### `app/api/search.py`
-Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
+Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata. Semantic, keyword, and hybrid completion/failure paths await the canonical producer without admitting query content, tags, domain identifiers, or raw exceptions.
+
+### `app/telemetry_client.py`
+Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
+privacy allowlists, delivery counters, capability health, and finite async
+transport shutdown. It accepts search operation shape and aggregate metrics
+only; direct telemetry-table writes and pre-v1 fallback are absent.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis

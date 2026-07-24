@@ -47,6 +47,7 @@ DataForge (Source of Truth)
 | `app/api/auth_router.py` | `/auth/token` plus legacy `/api/auth` login/register/refresh/me routes |
 | `app/api/crud.py` | Database operations layer |
 | `app/api/search.py` | Vector similarity + BM25 hybrid search logic |
+| `app/telemetry_client.py` | Privacy-bounded canonical ForgeEvent.v1 search producer and async transport lifecycle |
 | `app/utils/embeddings.py` | Text chunking (500 tokens, 50 overlap) + embedding generation |
 | `app/utils/auth.py` | JWT signing + bcrypt password hashing |
 | `alembic/` | Database migrations (`47` migration files as of 2026-04-03) |

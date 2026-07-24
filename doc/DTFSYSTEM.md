@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.2 (2026-07-23) — ForgeEvent.v1 expected-error parity documented
+**Document version:** 2.3 (2026-07-23) — DataForge search producer cut over to canonical ForgeEvent.v1 transport
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -422,6 +422,7 @@ DataForge/
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
+│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -629,7 +630,13 @@ chunking, embedding generation, document-cache invalidation, and corpus version 
 insert, reindex, and delete flows.
 
 ### `app/api/search.py`
-Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata.
+Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosine operator) and BM25 full-text query in parallel, then merges via RRF. Returns ranked list of chunks with parent document metadata. Semantic, keyword, and hybrid completion/failure paths await the canonical producer without admitting query content, tags, domain identifiers, or raw exceptions.
+
+### `app/telemetry_client.py`
+Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
+privacy allowlists, delivery counters, capability health, and finite async
+transport shutdown. It accepts search operation shape and aggregate metrics
+only; direct telemetry-table writes and pre-v1 fallback are absent.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis
@@ -721,6 +728,29 @@ Credential requirements vary by router. The live mounted service currently uses 
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
 
+## DataForge Producer Contract
+
+DataForge's search path is also a canonical producer. `app/telemetry_client.py`
+submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
+`requirements.txt`; it does not write to telemetry tables directly.
+
+- The only search event types are `search.completed` and `search.failed`.
+- Attributes contain only `search_kind` (`semantic`, `keyword`, or `hybrid`).
+- Metrics are an explicit allowlist of aggregate durations, result counts, and
+  aggregate ranks/scores. Query text, tags, domain identifiers, limits,
+  thresholds, raw exceptions, and exception types are excluded.
+- Transport and validation failures are represented by stable code-only state;
+  event values and credentials are never copied into health output or logs.
+- The producer has no retry fallback or dual-write path. Its bounded async
+  worker and finite shutdown behavior come from the canonical SDK.
+- `/health/telemetry` returns the capability identity, the 65,536-byte canonical
+  event ceiling, delivery counters, and non-secret async-worker state.
+
+Production emission is intentionally unproved until the sink migration and
+writer switch are complete and a dedicated key is bound to
+`service_name=dataforge`, the exact environment, `tenant_ref=null`, and
+`telemetry:write`.
+
 | Credential type | Examples |
 |-----------------|----------|
 | No auth | `/`, `/docs`, `/redoc`, `/openapi.json`, `/health`, `/health/render`, `/ready`, `/version`, HTML dashboards |
@@ -756,6 +786,7 @@ live app surface:
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
 - Do not restore the removed telemetry batch route; ForgeEvent.v1 is the sole
   telemetry ingestion contract.
+- Do not restore the pre-v1 direct-database producer or its example scripts.
 
 ---
 
@@ -1154,6 +1185,14 @@ After these additions, PressForge uses **21 `pf_*` tables** total:
 ### Overview
 
 The hybrid search engine (`app/api/search.py`) runs two retrieval passes in parallel and merges them via Reciprocal Rank Fusion (RRF). Neither pass is optional — both run on every search request.
+
+Each semantic, keyword, and hybrid path awaits a privacy-bounded operational
+event through `app/telemetry_client.py`. The event records operation kind,
+success/failure, aggregate timing, aggregate counts/ranks, and correlation
+identity only. Search input, tags, domain identifiers, thresholds, and exception
+values are excluded at the producer boundary. Telemetry failure does not replace
+the search result or exception; it is counted and exposed as code-only health
+state.
 
 ### Pass 1: Semantic (Vector) Retrieval
 
@@ -1768,6 +1807,7 @@ surface are re-audited.
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
+| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation and bounded canonical async HTTP submission |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 
@@ -2184,12 +2224,18 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 | `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
+| `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
+| `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
+| `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
 
 **Example:**
 ```
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=false
+DATAFORGE_TELEMETRY_BASE_URL=http://127.0.0.1:8000
+DATAFORGE_TELEMETRY_API_KEY=
+DATAFORGE_TELEMETRY_TIMEOUT=5
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
@@ -2202,6 +2248,13 @@ operators can authenticate against the capability endpoint and observe
 migration and every producer key's `service_name`, `environment`, `tenant_ref`,
 and `telemetry:write` metadata have been verified. Setting it back to `false`
 stops new writes without deleting stored evidence.
+
+The writer switch controls the sink; the three `DATAFORGE_TELEMETRY_*`
+variables control DataForge's own search producer. Keep the producer key unset
+until the migration, writer switch, capability identity, and exact key binding
+are proved together. A missing or invalid producer configuration fails
+telemetry closed without failing the search request. The producer never reuses
+the service's broad DataForge API key.
 
 ## Security & JWT
 
@@ -2800,6 +2853,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | File | Purpose |
 |------|---------|
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
+| `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, capability health, finite shutdown |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -2844,6 +2898,7 @@ Appendices, glossary, and cross-references.
 | 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
 | 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
 | 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
+| 2.3 | 2026-07-23 | Replaced DataForge search's pre-v1 direct-database emitter with the privacy-bounded canonical async HTTP producer and finite shutdown contract. |
 
 ## Unmapped legacy chapters
 

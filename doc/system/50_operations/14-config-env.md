@@ -18,12 +18,18 @@ All configuration is injected via environment variables. There are no config fil
 | `DB_POOL_RECYCLE_SECONDS` | int | `1800` | NO | SQLAlchemy connection recycle interval |
 | `DATAFORGE_SKIP_STARTUP_DB_INIT` | bool | `false` | NO | Skips the best-effort pgvector startup init. Useful in tests and as an operational escape hatch |
 | `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` | bool | `false` | NO | Fail-closed canonical telemetry writer switch. Enable only after migration `20260723_01` and producer key bindings are verified |
+| `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
+| `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
+| `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
 
 **Example:**
 ```
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge
 REDIS_URL=redis://localhost:6379/0
 DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=false
+DATAFORGE_TELEMETRY_BASE_URL=http://127.0.0.1:8000
+DATAFORGE_TELEMETRY_API_KEY=
+DATAFORGE_TELEMETRY_TIMEOUT=5
 ```
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
@@ -36,6 +42,13 @@ operators can authenticate against the capability endpoint and observe
 migration and every producer key's `service_name`, `environment`, `tenant_ref`,
 and `telemetry:write` metadata have been verified. Setting it back to `false`
 stops new writes without deleting stored evidence.
+
+The writer switch controls the sink; the three `DATAFORGE_TELEMETRY_*`
+variables control DataForge's own search producer. Keep the producer key unset
+until the migration, writer switch, capability identity, and exact key binding
+are proved together. A missing or invalid producer configuration fails
+telemetry closed without failing the search request. The producer never reuses
+the service's broad DataForge API key.
 
 ## Security & JWT
 

@@ -4,7 +4,6 @@ DataForge - Knowledge Base Management System with Semantic Search
 FastAPI application entry point.
 """
 import os
-import logging
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -69,8 +68,6 @@ from app.config import (
     CORS_ALLOW_METHODS,
     CORS_ALLOW_HEADERS,
     LOG_LEVEL,
-    HOST,
-    PORT,
     COMPRESSION_ENABLED,
     FORGECOMMAND_COMPRESSION_URL,
     COMPRESSION_MIN_SIZE,
@@ -172,6 +169,13 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    try:
+        from app.telemetry_client import telemetry
+
+        await telemetry.close()
+        main_logger.info("Canonical telemetry transport closed")
+    except Exception:
+        main_logger.error("Canonical telemetry transport shutdown failed")
     main_logger.info("👋 Shutting down DataForge...")
 
 # Initialize FastAPI application
@@ -374,17 +378,14 @@ async def health_check():
 
 @app.get("/health/telemetry", tags=["info"])
 async def telemetry_status():
-    """Non-secret telemetry diagnostic — is the forge_telemetry emitter armed and
-    bound to the shared events DB? Mirrors NeuroForge's /health/telemetry so any
-    emitter is verifiable with one curl (target.project_ref should match the DB
-    Forge_Command reads). Never returns the password."""
+    """Return non-secret canonical capability, counters, and worker state."""
     try:
-        from app.api.search import telemetry as _t
-    except Exception as exc:  # import/instantiation issue — report, don't crash
-        return {"enabled": False, "reason": f"telemetry client unavailable: {exc}"}
+        from app.telemetry_client import telemetry as _t
+    except Exception:  # import/instantiation issue — report, don't crash
+        return {"enabled": False, "reason": "telemetry_client_unavailable"}
     if _t is None:
         return {"enabled": False, "reason": "telemetry client not initialized"}
-    return _t.status()
+    return await _t.status()
 
 
 @app.get("/health/render", tags=["info"])

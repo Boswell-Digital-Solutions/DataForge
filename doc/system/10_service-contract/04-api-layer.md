@@ -68,6 +68,29 @@ Credential requirements vary by router. The live mounted service currently uses 
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
 
+## DataForge Producer Contract
+
+DataForge's search path is also a canonical producer. `app/telemetry_client.py`
+submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
+`requirements.txt`; it does not write to telemetry tables directly.
+
+- The only search event types are `search.completed` and `search.failed`.
+- Attributes contain only `search_kind` (`semantic`, `keyword`, or `hybrid`).
+- Metrics are an explicit allowlist of aggregate durations, result counts, and
+  aggregate ranks/scores. Query text, tags, domain identifiers, limits,
+  thresholds, raw exceptions, and exception types are excluded.
+- Transport and validation failures are represented by stable code-only state;
+  event values and credentials are never copied into health output or logs.
+- The producer has no retry fallback or dual-write path. Its bounded async
+  worker and finite shutdown behavior come from the canonical SDK.
+- `/health/telemetry` returns the capability identity, the 65,536-byte canonical
+  event ceiling, delivery counters, and non-secret async-worker state.
+
+Production emission is intentionally unproved until the sink migration and
+writer switch are complete and a dedicated key is bound to
+`service_name=dataforge`, the exact environment, `tenant_ref=null`, and
+`telemetry:write`.
+
 | Credential type | Examples |
 |-----------------|----------|
 | No auth | `/`, `/docs`, `/redoc`, `/openapi.json`, `/health`, `/health/render`, `/ready`, `/version`, HTML dashboards |
@@ -103,3 +126,4 @@ live app surface:
 - Keep prefixes exact: the current live service uses both legacy `/api/auth` style routes and newer `/api/v1/*` families.
 - Do not restore the removed telemetry batch route; ForgeEvent.v1 is the sole
   telemetry ingestion contract.
+- Do not restore the pre-v1 direct-database producer or its example scripts.

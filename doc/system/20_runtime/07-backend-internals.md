@@ -6,6 +6,14 @@
 
 The hybrid search engine (`app/api/search.py`) runs two retrieval passes in parallel and merges them via Reciprocal Rank Fusion (RRF). Neither pass is optional — both run on every search request.
 
+Each semantic, keyword, and hybrid path awaits a privacy-bounded operational
+event through `app/telemetry_client.py`. The event records operation kind,
+success/failure, aggregate timing, aggregate counts/ranks, and correlation
+identity only. Search input, tags, domain identifiers, thresholds, and exception
+values are excluded at the producer boundary. Telemetry failure does not replace
+the search result or exception; it is counted and exposed as code-only health
+state.
+
 ### Pass 1: Semantic (Vector) Retrieval
 
 ```python
