@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     env:
       DATAFORGE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
       SECRET_KEY: test-secret-key-for-ci
@@ -90,8 +93,8 @@ jobs:
         script: |
           const fs = require('fs');
           try {
-            const testOutput = fs.readFileSync('./coverage.xml', 'utf8');
-            github.rest.issues.createComment({
+            fs.accessSync('./coverage.xml', fs.constants.R_OK);
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
