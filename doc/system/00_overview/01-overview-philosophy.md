@@ -11,10 +11,10 @@ not a bootstrap repo or passive library.
 - **Authority boundary:** Postgres-backed durable state, hybrid retrieval, policy/runtime evidence, and scoped write enforcement
 - **Mounted router objects:** `45` from `app/main.py` (audit: 2026-07-20)
 - **Router modules in source:** `50`
-- **Alembic migrations:** `63`
-- **Python files under `app/`:** `212`
-- **Pytest files:** `57`
-- **Collected tests:** `810` via `./.venv/bin/python -m pytest --collect-only -q --no-cov`
+- **Alembic migrations:** `66`
+- **Python files under `app/`:** `215`
+- **Pytest files:** `60`
+- **Collected tests:** `791` via `python -m pytest --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract

@@ -14,10 +14,11 @@ DataForge/
 ├── app/                              # Main application package (214 Python files)
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
+│   ├── telemetry_database.py         # Isolated least-privilege telemetry pool
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
-│   ├── telemetry_client.py            # Privacy-bounded canonical search producer
+│   ├── telemetry_client.py            # Canonical search producer + opt-in bounded recovery
 │   │
 │   ├── models/                       # ORM models + Pydantic schemas (67 Python files)
 │   │   ├── models.py                 # Core: users, documents, chunks, corpus state, execution index, agent registry
@@ -152,7 +153,7 @@ DataForge/
 │
 ├── static/                           # Static assets (CSS, JS) for admin UI
 │
-├── tests/                            # 59 test files, 810 collected tests as of 2026-07-24
+├── tests/                            # 60 test files, 791 collected tests as of 2026-07-24
 │   ├── test_auth.py
 │   ├── test_encryption.py
 │   ├── test_rate_limiting.py
@@ -232,8 +233,17 @@ Implements `hybrid_search()`. Runs vector similarity query (pgvector `<=>` cosin
 ### `app/telemetry_client.py`
 Owns DataForge's `ForgeEvent.v1` producer, explicit self-ingest configuration,
 privacy allowlists, delivery counters, capability health, and finite async
-transport shutdown. It accepts search operation shape and aggregate metrics
-only; direct telemetry-table writes and pre-v1 fallback are absent.
+transport shutdown. Its CP2 pilot can commit to a private bounded SQLite spool
+before one caller-owned drain worker submits canonical events over HTTP. It
+accepts search operation shape and aggregate metrics only; direct
+telemetry-table writes and pre-v1 fallback are absent.
+
+### `app/telemetry_database.py`
+
+Owns the sink's distinct PostgreSQL URL, fixed least-privilege role preflight,
+two-connection/zero-overflow pool, database-side timeouts, and per-process
+20 events/second plus 40-event burst budget. It has no fallback to
+`DATAFORGE_DATABASE_URL` or `get_db()`.
 
 ### `app/utils/cache_governance.py`
 Shared cache policy helpers: deterministic retrieval/doc/embed keys, TTL-required Redis

@@ -67,12 +67,19 @@ Credential requirements vary by router. The live mounted service currently uses 
 - `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
+- Enabled writes require the isolated `DATAFORGE_TELEMETRY_DATABASE_URL`.
+  Runtime preflight requires a distinct non-superuser/non-`BYPASSRLS` login
+  inheriting only the migration-owned `dataforge_telemetry_ingest` group role.
+  The route has no fallback to the business pool.
+- Each process admits at most 20 telemetry events/second with a 40-event burst
+  before connection checkout. The telemetry pool is two connections with zero
+  overflow and finite checkout/connect/statement/lock/transaction timeouts.
 
 ## DataForge Producer Contract
 
 DataForge's search path is also a canonical producer. `app/telemetry_client.py`
-submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
-`requirements.txt`; it does not write to telemetry tables directly.
+submits `ForgeEvent.v1` through the immutable SDK pin in `requirements.txt`; it
+does not write to telemetry tables directly.
 
 - The only search event types are `search.completed` and `search.failed`.
 - Attributes contain only `search_kind` (`semantic`, `keyword`, or `hybrid`).
@@ -81,10 +88,20 @@ submits one `ForgeEvent.v1` at a time through the immutable SDK pin in
   thresholds, raw exceptions, and exception types are excluded.
 - Transport and validation failures are represented by stable code-only state;
   event values and credentials are never copied into health output or logs.
-- The producer has no retry fallback or dual-write path. Its bounded async
-  worker and finite shutdown behavior come from the canonical SDK.
+- Direct HTTP remains the default. Setting `DATAFORGE_TELEMETRY_SPOOL_PATH`
+  explicitly enables the CP2 pilot: validated canonical bytes commit to a
+  private 512-entry/32 MiB SQLite spool and one application-owned worker drains
+  batches of four.
+- Determinate availability failures receive at most five attempts with
+  exponential 1–30 second backoff. Three consecutive downstream failures open
+  a 15-second process-local circuit. Acknowledgement-loss and expired-inflight
+  outcomes become `indeterminate` and are never retried automatically.
+- Queue admission returns truthful `accepted_not_persisted` evidence. Only an
+  inserted or exact-replay content-bound sink receipt deletes the row. Capacity
+  overflow drops the newest event truthfully; corrupt rows quarantine without
+  blocking healthy rows.
 - `/health/telemetry` returns the capability identity, the 65,536-byte canonical
-  event ceiling, delivery counters, and non-secret async-worker state.
+  event ceiling, delivery/queue counters, and non-secret async-worker state.
 
 Production emission is intentionally unproved until the sink migration and
 writer switch are complete and a dedicated key is bound to

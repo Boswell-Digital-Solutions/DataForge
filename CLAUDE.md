@@ -7,7 +7,7 @@
 **Port:** 8001
 **Location:** `/home/charlie/Forge/ecosystem/DataForge/`
 **Entry point:** `app/main.py`
-**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-24 working tree (`45` mounted router objects, `65` Alembic migrations, `59` pytest files / `810` collected tests)
+**Status:** Resident FastAPI service; documentation refreshed against the 2026-07-24 CP2 working tree (`45` mounted router objects, `66` Alembic migrations, `60` pytest files / `791` collected tests)
 
 ## CRITICAL RULES (NON-NEGOTIABLE)
 
@@ -31,7 +31,7 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 ├── 45 mounted router objects in `app/main.py`
 ├── Additional router modules exist in `app/api/` and stay inactive until explicitly mounted
 ├── 214 Python files under `app/` plus a separate sibling `../forge-telemetry/` library repo
-├── 63 Alembic migration files under `alembic/versions/`
+├── 66 Alembic migration files under `alembic/versions/`
 ├── Modular `app/models/` layout with domain-specific `*_models.py` and `*_schemas.py` files
 └── Policy/runtime governance surfaces: promotion receipts, policy envelopes, rate limits, Sentinel, secrets, press, private source
 ```
@@ -50,7 +50,8 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 | `app/api/auth_router.py` | `/auth/token` plus legacy `/api/auth` login/register/refresh/me routes |
 | `app/api/crud.py` | Database operations layer |
 | `app/api/search.py` | Vector similarity + BM25 hybrid search logic |
-| `app/telemetry_client.py` | Privacy-bounded canonical ForgeEvent.v1 search producer and async transport lifecycle |
+| `app/telemetry_client.py` | Privacy-bounded canonical ForgeEvent.v1 search producer, opt-in CP2 recovery spool, and bounded transport lifecycle |
+| `app/telemetry_database.py` | CP2 least-privilege telemetry DB role preflight, isolated two-connection pool, timeouts, and per-process rate budget |
 | `app/utils/embeddings.py` | Text chunking (500 tokens, 50 overlap) + embedding generation |
 | `app/utils/auth.py` | JWT signing + bcrypt password hashing |
 | `alembic/` | Database migrations (`63` migration files as of 2026-07-20) |
@@ -68,7 +69,7 @@ DataForge (Source of Truth for approved domains; AuthorForge content stays local
 - **Embeddings:** Voyage AI voyage-large-2 (recommended), OpenAI, Cohere fallback
 - **Auth:** python-jose 3.3.0 (JWT/JWE/JWS), passlib + bcrypt 4.1.2
 - **Migrations:** Alembic 1.13.1
-- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `59` repo test files / `810` collected tests (`./.venv/bin/python -m pytest --collect-only -q --no-cov` on 2026-07-24)
+- **Testing:** pytest 7.4, pytest-asyncio, pytest-cov, `60` repo test files / `791` collected tests (`python -m pytest --collect-only -q --no-cov` on 2026-07-24)
 
 ## Development Commands
 

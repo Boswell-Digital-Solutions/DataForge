@@ -72,7 +72,8 @@
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
-| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation and bounded canonical async HTTP submission |
+| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation, bounded canonical HTTP submission, and the opt-in private SQLite recovery spool |
+| Telemetry PostgreSQL pool | Dedicated least-privilege login, pool size 2, overflow 0, database-side timeouts, and pre-checkout rate budget |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
 

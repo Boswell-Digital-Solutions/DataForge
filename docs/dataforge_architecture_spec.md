@@ -1,6 +1,6 @@
 # DataForge Architecture Spec
 
-**Document version:** 1.2 (2026-07-23) — FT-02 telemetry ingress parity
+**Document version:** 1.3 (2026-07-24) — CP2 bounded-recovery pilot
 
 ## 1. Purpose
 
@@ -29,6 +29,31 @@ can be observed in the working tree.
 | Verification | `tests/`, `pytest.ini` | API, integration, unit, governance, security, and opt-in load testing |
 | Supporting Doctrine | `docs/`, `ops/`, `diligence/` | Architecture, runbooks, references, and compliance/supporting material |
 | Nested Repo Boundary | `forge-telemetry/` | Separate git repo with its own docs stack; do not treat as part of the DataForge runtime tree |
+
+### CP2 producer recovery pilot
+
+DataForge's search producer retains the authenticated canonical HTTP transport
+as its only downstream sink. When `DATAFORGE_TELEMETRY_SPOOL_PATH` is explicitly
+set, the producer first commits validated canonical bytes to the SDK-owned
+private SQLite spool and one application-owned worker drains bounded batches.
+The pilot has no listener, daemon, Redis queue, legacy API, direct database
+producer, or compatibility write.
+
+The spool is capped at 512 entries and 32 MiB. Drain passes claim at most four
+events, use at most five delivery attempts with 1–30 second backoff, open a
+15-second circuit after three consecutive downstream failures, and pause
+acknowledgement-loss outcomes as `indeterminate`. Such rows require explicit
+operator duplicate-risk review before retry. Unsetting the spool path restores
+the CP1b direct canonical HTTP mode; it does not restore any pre-v1 path.
+
+The sink side uses `app/telemetry_database.py`, never the business session
+dependency. Enabled writes require a distinct PostgreSQL login that inherits
+only `dataforge_telemetry_ingest`. Runtime preflight rejects the business
+username, privileged/`BYPASSRLS` logins, missing membership, and the wrong
+application name. Each process receives a two-connection pool with zero
+overflow plus finite checkout, connect, statement, lock, and transaction
+timeouts. A 20 events/second, 40-event burst budget rejects excess intake before
+telemetry checks out a connection.
 
 ## 4. Architectural Boundary
 

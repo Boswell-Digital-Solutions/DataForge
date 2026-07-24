@@ -166,6 +166,18 @@ async def lifespan(app: FastAPI):
     # Keep app startup focused on serving traffic quickly.
     main_logger.info("📊 Database migrations are managed outside app startup")
 
+    try:
+        from app.telemetry_client import telemetry
+
+        if await telemetry.start():
+            main_logger.info("Canonical telemetry lifecycle started")
+        else:
+            main_logger.warning(
+                "Canonical telemetry lifecycle is disabled or invalid"
+            )
+    except Exception:
+        main_logger.error("Canonical telemetry transport startup failed")
+
     yield
 
     # Shutdown
@@ -176,6 +188,13 @@ async def lifespan(app: FastAPI):
         main_logger.info("Canonical telemetry transport closed")
     except Exception:
         main_logger.error("Canonical telemetry transport shutdown failed")
+    try:
+        from app.telemetry_database import close_telemetry_database
+
+        close_telemetry_database()
+        main_logger.info("Canonical telemetry database pool closed")
+    except Exception:
+        main_logger.error("Canonical telemetry database pool shutdown failed")
     main_logger.info("👋 Shutting down DataForge...")
 
 # Initialize FastAPI application
@@ -394,7 +413,11 @@ async def telemetry_status():
         return {"enabled": False, "reason": "telemetry_client_unavailable"}
     if _t is None:
         return {"enabled": False, "reason": "telemetry client not initialized"}
-    return await _t.status()
+    result = await _t.status()
+    from app.telemetry_database import telemetry_storage_status
+
+    result["sink_storage"] = telemetry_storage_status()
+    return result
 
 
 @app.get("/health/render", tags=["info"])
