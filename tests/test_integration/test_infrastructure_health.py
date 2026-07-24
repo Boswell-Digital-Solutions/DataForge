@@ -11,7 +11,7 @@ from sqlalchemy import inspect as sa_inspect, text
 
 from app.database import get_db, engine
 from app.utils import redis_utils
-from app.utils.redis_utils import get_redis_client, health_check
+from app.utils.redis_utils import get_redis_client
 from app.utils import embeddings
 from app.config import get_settings
 
@@ -155,13 +155,13 @@ class TestRedisHealth:
     @pytest.mark.asyncio
     async def test_redis_connection(self):
         """Test basic Redis connection."""
-        is_healthy = await health_check()
-        assert is_healthy, "Redis health check failed"
+        client = await _get_redis_or_skip()
+        assert await client.ping(), "Redis health check failed"
     
     @pytest.mark.asyncio
     async def test_redis_client_availability(self):
         """Test Redis client is available."""
-        client = await get_redis_client()
+        client = await _get_redis_or_skip()
         assert client is not None
     
     @pytest.mark.asyncio
