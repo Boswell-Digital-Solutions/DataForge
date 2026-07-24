@@ -197,6 +197,13 @@ For validation errors (422), the format includes field-level detail:
 }
 ```
 
+The canonical `POST /api/v1/telemetry/events` boundary is stricter: it returns
+only `{"detail":{"code":"..."}}`, using the admitted expected-error profile.
+It never returns submitted field values. Shared codes include
+`unsupported_sink_schema`, `event_schema_violation`, and
+`event_size_exceeded`; malformed JSON uses `invalid_event_json`, and a
+producer-supplied `received_at` uses `sink_owned_field`.
+
 ---
 
 ## Graceful Degradation Policy

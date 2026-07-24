@@ -55,6 +55,12 @@ Credential requirements vary by router. The live mounted service currently uses 
   authority-pinned 65,536-byte ceiling. The limit is not applied separately to
   `attributes` and `metrics`; an oversized event fails with
   `event_size_exceeded`.
+- The request boundary pins
+  `forge.telemetry.expected_errors.v1` at SHA-256
+  `4dd477babf8c5c83bc02daf2c1951778d01294f307bb50a551f7160129669dbd`.
+  Its exact invalid producer fixtures return `unsupported_sink_schema` or
+  `event_schema_violation`; validation responses contain the stable code
+  without payload values.
 - A first insert returns `201`; an exact content-bound replay returns `200` with
   the original sink-owned `received_at`; reuse of an `event_id` with different
   canonical content returns `409 event_identity_conflict`.

@@ -1,0 +1,41 @@
+{
+  "schema_version": "forge.telemetry.expected_errors.v1",
+  "status": "active",
+  "event_schema_version": "ForgeEvent.v1",
+  "event_schema_sha256": "6050b55c8633cc66f3a63b71b56a636cf93df39680557c41a5967ee9cf40c100",
+  "projection": "producer_submission",
+  "shared_error_codes": {
+    "unsupported_schema": "unsupported_sink_schema",
+    "schema_violation": "event_schema_violation",
+    "event_size_violation": "event_size_exceeded"
+  },
+  "boundary_error_codes": {
+    "invalid_json": "invalid_event_json",
+    "producer_submitted_sink_field": "sink_owned_field",
+    "stored_event_missing_sink_field": "missing_sink_field",
+    "non_canonical_bytes": "non_canonical_event",
+    "event_identity_collision": "event_identity_conflict",
+    "contract_integrity_failure": "contract_integrity_failure"
+  },
+  "fixture_expectations": [
+    {
+      "fixture": "forge_event.v1.pre_v1_shape.invalid.json",
+      "fixture_sha256": "6ba4724a1fa619c4881cfc59b0b0106b5b7f0f1be3b7980bb1e1b365f3e224f4",
+      "expected_error_code": "unsupported_sink_schema"
+    },
+    {
+      "fixture": "forge_event.v1.sampling_inconsistent.submission.invalid.json",
+      "fixture_sha256": "457f2edc523c6985cf7b43f0ac0f81af7861204cfae74b9e6f340e46d99642bf",
+      "expected_error_code": "event_schema_violation"
+    },
+    {
+      "fixture": "forge_event.v1.unknown_class.submission.invalid.json",
+      "fixture_sha256": "b6b349a0a4943ef6c59947231ddda7f700d513f02db1e8e0b42bc60241ebafe4",
+      "expected_error_code": "event_schema_violation"
+    }
+  ],
+  "error_safety": {
+    "payload_value_echo": "prohibited",
+    "secret_canary_echo": "prohibited"
+  }
+}

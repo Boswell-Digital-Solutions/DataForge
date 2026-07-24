@@ -67,6 +67,7 @@ The current contract is defined by:
 | Canonical docs | `doc/system/` plus generated `doc/DTFSYSTEM.md` |
 | Nested repo boundary | `forge-telemetry/` is a separate git repo with its own docs stack |
 | Forge Telemetry ingress | Canonical `POST /api/v1/telemetry/events`; one `ForgeEvent.v1` per request, 65,536 RFC 8785 bytes maximum, fail-closed writer |
+| Forge Telemetry validation | Authority-pinned expected-error profile; code-only 422 responses with no submitted values |
 
 ## What DataForge Owns
 
@@ -98,6 +99,9 @@ Important boundary notes:
 - ForgeEvent.v1 size validation applies to the complete RFC 8785 producer
   projection, not to `attributes` and `metrics` independently; violations report
   `event_size_exceeded`.
+- The exact invalid producer fixtures and stable value-free codes are pinned
+  from `forge_contract_core` snapshot
+  `1b84d2d666d4bfaa64aaf76ca0b323c78e99f84d`.
 - The canonical writer is disabled unless
   `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED=true`. The capability endpoint reports
   that live state. There is no pre-v1 API fallback, compatibility alias, or dual-write.

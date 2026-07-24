@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.1 (2026-07-23) — FT-02 canonical telemetry event-size parity documented
+**Document version:** 2.2 (2026-07-23) — ForgeEvent.v1 expected-error parity documented
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -708,6 +708,12 @@ Credential requirements vary by router. The live mounted service currently uses 
   authority-pinned 65,536-byte ceiling. The limit is not applied separately to
   `attributes` and `metrics`; an oversized event fails with
   `event_size_exceeded`.
+- The request boundary pins
+  `forge.telemetry.expected_errors.v1` at SHA-256
+  `4dd477babf8c5c83bc02daf2c1951778d01294f307bb50a551f7160129669dbd`.
+  Its exact invalid producer fixtures return `unsupported_sink_schema` or
+  `event_schema_violation`; validation responses contain the stable code
+  without payload values.
 - A first insert returns `201`; an exact content-bound replay returns `200` with
   the original sink-owned `received_at`; reuse of an `event_id` with different
   canonical content returns `409 event_identity_conflict`.
@@ -1655,6 +1661,13 @@ For validation errors (422), the format includes field-level detail:
 }
 ```
 
+The canonical `POST /api/v1/telemetry/events` boundary is stricter: it returns
+only `{"detail":{"code":"..."}}`, using the admitted expected-error profile.
+It never returns submitted field values. Shared codes include
+`unsupported_sink_schema`, `event_schema_violation`, and
+`event_size_exceeded`; malformed JSON uses `invalid_event_json`, and a
+producer-supplied `received_at` uses `sink_owned_field`.
+
 ---
 
 ## Graceful Degradation Policy
@@ -1823,7 +1836,9 @@ reads the hash-pinned `ForgeTelemetrySinkCapability.v1`, then submits one exact
 identity resolution. The authority contract pins the complete RFC 8785 producer
 projection ceiling at 65,536 bytes and the violation code at
 `event_size_exceeded`; `attributes` and `metrics` are not independent 64 KiB
-budgets. There is no pre-v1 fallback or dual-write path.
+budgets. The authority-pinned expected-error profile gives every shared invalid
+producer fixture the same value-free code used by Python and Rust consumers.
+There is no pre-v1 fallback or dual-write path.
 
 ## BugCheck Contract
 
@@ -2828,6 +2843,7 @@ Appendices, glossary, and cross-references.
 |---------|------|--------|
 | 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
 | 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
+| 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
 
 ## Unmapped legacy chapters
 

@@ -10,6 +10,7 @@ Appendices, glossary, and cross-references.
 |---------|------|--------|
 | 2.0 | 2026-06-19 | Migrated the compiled reference to the BDS canonical-compliance documentation structure. |
 | 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
+| 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
 
 ## Unmapped legacy chapters
 

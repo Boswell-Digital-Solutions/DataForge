@@ -13,16 +13,26 @@ from typing import Any, Literal
 from uuid import UUID
 
 import rfc8785
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    field_validator,
+    model_validator,
+)
 from pydantic_core import PydanticCustomError
 
 
-CONTRACT_AUTHORITY_COMMIT = "236872abeeda52cc0f5e8834ebcceaa1a945fc47"
+CONTRACT_AUTHORITY_COMMIT = "1b84d2d666d4bfaa64aaf76ca0b323c78e99f84d"
 FORGE_EVENT_V1_SCHEMA_SHA256 = (
     "6050b55c8633cc66f3a63b71b56a636cf93df39680557c41a5967ee9cf40c100"
 )
 EVENT_DIGEST_PROFILE_SHA256 = (
     "a2efa964ab0b908ca2cbdf97fec06355aad3169414c0dcb2f3f992900b656637"
+)
+EXPECTED_ERRORS_PROFILE_SHA256 = (
+    "4dd477babf8c5c83bc02daf2c1951778d01294f307bb50a551f7160129669dbd"
 )
 SINK_CAPABILITY_FIXTURE_SHA256 = (
     "0584c14eb06bf094d9703b19fced8b0fdbd2065461104ab3c1befaba28d2d286"
@@ -55,6 +65,37 @@ MAX_CANONICAL_EVENT_BYTES = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"]["max_b
 EVENT_SIZE_VIOLATION_CODE = _TELEMETRY_RESOURCE_BOUNDS["canonical_event"][
     "violation_error_code"
 ]
+_EXPECTED_ERRORS_PROFILE = _load_contract_json(
+    "forge_event_expected_errors.v1.json",
+    EXPECTED_ERRORS_PROFILE_SHA256,
+)
+INVALID_EVENT_JSON = _EXPECTED_ERRORS_PROFILE["boundary_error_codes"]["invalid_json"]
+SINK_OWNED_FIELD = _EXPECTED_ERRORS_PROFILE["boundary_error_codes"][
+    "producer_submitted_sink_field"
+]
+UNSUPPORTED_SINK_SCHEMA = _EXPECTED_ERRORS_PROFILE["shared_error_codes"][
+    "unsupported_schema"
+]
+EVENT_SCHEMA_VIOLATION = _EXPECTED_ERRORS_PROFILE["shared_error_codes"][
+    "schema_violation"
+]
+
+
+def forge_event_validation_error_code(errors: list[dict[str, Any]]) -> str:
+    """Collapse Pydantic/FastAPI details into the admitted value-free code."""
+
+    error_types = {str(error.get("type")) for error in errors}
+    if "json_invalid" in error_types:
+        return INVALID_EVENT_JSON
+    if UNSUPPORTED_SINK_SCHEMA in error_types:
+        return UNSUPPORTED_SINK_SCHEMA
+    if EVENT_SIZE_VIOLATION_CODE in error_types:
+        return EVENT_SIZE_VIOLATION_CODE
+    if SINK_OWNED_FIELD in error_types:
+        return SINK_OWNED_FIELD
+    if any(tuple(error.get("loc", ()))[-1:] == ("received_at",) for error in errors):
+        return SINK_OWNED_FIELD
+    return EVENT_SCHEMA_VIOLATION
 
 
 class ForgeEventV1Submission(BaseModel):
@@ -86,7 +127,7 @@ class ForgeEventV1Submission(BaseModel):
     metrics: dict[str, Any]
     privacy_class: Literal["public", "internal", "restricted", "confidential"]
     retention_class: Literal["ephemeral", "short", "standard", "long", "legal_hold"]
-    sampled: bool
+    sampled: StrictBool
     sample_rate: float | None = Field(gt=0, le=1)
     sampling_reason: Literal[
         "always_on",
@@ -98,15 +139,25 @@ class ForgeEventV1Submission(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_validator("schema_version")
+    @model_validator(mode="before")
     @classmethod
-    def schema_version_is_supported(cls, value: str) -> str:
-        if value != "ForgeEvent.v1":
+    def schema_version_is_supported(cls, value: Any) -> Any:
+        if (
+            not isinstance(value, dict)
+            or value.get("schema_version") != "ForgeEvent.v1"
+        ):
             raise PydanticCustomError(
-                "unsupported_sink_schema",
-                "sink does not support event schema {schema_version}",
-                {"schema_version": value},
+                UNSUPPORTED_SINK_SCHEMA,
+                "sink does not support the submitted event schema",
             )
+        if "received_at" in value:
+            raise PydanticCustomError(
+                SINK_OWNED_FIELD,
+                "producer submission contains a sink-owned field",
+            )
+        occurred_at = value.get("occurred_at")
+        if not isinstance(occurred_at, str) or not occurred_at.endswith("Z"):
+            raise ValueError("occurred_at must use the canonical UTC representation")
         return value
 
     @field_validator("occurred_at")
@@ -141,6 +192,15 @@ class ForgeEventV1Submission(BaseModel):
     def span_id_is_canonical(cls, value: str | None) -> str | None:
         if value is not None and SPAN_ID_PATTERN.fullmatch(value) is None:
             raise ValueError("span identifiers must be nonzero lowercase 16-hex values")
+        return value
+
+    @field_validator("sample_rate", mode="before")
+    @classmethod
+    def sample_rate_is_a_number(cls, value: Any) -> Any:
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, (int, float))
+        ):
+            raise ValueError("sample_rate must be a number or null")
         return value
 
     @model_validator(mode="after")

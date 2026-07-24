@@ -35,7 +35,9 @@ reads the hash-pinned `ForgeTelemetrySinkCapability.v1`, then submits one exact
 identity resolution. The authority contract pins the complete RFC 8785 producer
 projection ceiling at 65,536 bytes and the violation code at
 `event_size_exceeded`; `attributes` and `metrics` are not independent 64 KiB
-budgets. There is no pre-v1 fallback or dual-write path.
+budgets. The authority-pinned expected-error profile gives every shared invalid
+producer fixture the same value-free code used by Python and Rust consumers.
+There is no pre-v1 fallback or dual-write path.
 
 ## BugCheck Contract
 

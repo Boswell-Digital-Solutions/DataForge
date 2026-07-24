@@ -56,6 +56,7 @@ from app.api.llm_intel_promotion_application_router import router as llm_intel_p
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
 from app.errors import register_exception_handlers
+from app.models.telemetry_schemas import forge_event_validation_error_code
 try:
     from forge_compression import PayloadSizeCollector, ZstdDictionaryMiddleware, DictionaryStore
     _HAS_COMPRESSION = True
@@ -190,7 +191,12 @@ app = FastAPI(
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Preserve legacy 404 semantics for invalid project path IDs."""
+    """Render boundary-specific validation codes without payload values."""
+    if request.url.path == "/api/v1/telemetry/events":
+        return JSONResponse(
+            status_code=422,
+            content={"detail": {"code": forge_event_validation_error_code(exc.errors())}},
+        )
     if request.url.path.startswith("/api/projects/"):
         for error in exc.errors():
             if error.get("loc") == ("path", "project_id"):
