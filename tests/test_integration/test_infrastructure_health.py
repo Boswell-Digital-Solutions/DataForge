@@ -11,7 +11,7 @@ from sqlalchemy import inspect as sa_inspect, text
 
 from app.database import get_db, engine
 from app.utils import redis_utils
-from app.utils.redis_utils import get_redis_client, health_check
+from app.utils.redis_utils import get_redis_client
 from app.utils import embeddings
 from app.config import get_settings
 
@@ -75,14 +75,19 @@ class TestDatabaseHealth:
         existing_tables = set(inspector.get_table_names())
         required_tables = [
             "users",
-            "projects",
             "diligence_projects",
             "diligence_reviews",
             "diligence_findings",
+            "forge_events_v1",
+            "authorforge_analytics_events",
         ]
         
         for table_name in required_tables:
             assert table_name in existing_tables, f"Table {table_name} not found"
+
+        # AuthorForge content stays in its embedded database. The retired cloud
+        # content table must not return as part of CI database initialization.
+        assert "projects" not in existing_tables
     
     def test_database_connection_pool(self, db: Session):
         """Test connection pool health."""
@@ -150,13 +155,13 @@ class TestRedisHealth:
     @pytest.mark.asyncio
     async def test_redis_connection(self):
         """Test basic Redis connection."""
-        is_healthy = await health_check()
-        assert is_healthy, "Redis health check failed"
+        client = await _get_redis_or_skip()
+        assert await client.ping(), "Redis health check failed"
     
     @pytest.mark.asyncio
     async def test_redis_client_availability(self):
         """Test Redis client is available."""
-        client = await get_redis_client()
+        client = await _get_redis_or_skip()
         assert client is not None
     
     @pytest.mark.asyncio
