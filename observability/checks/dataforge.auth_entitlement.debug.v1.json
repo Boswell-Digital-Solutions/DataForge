@@ -1,0 +1,53 @@
+{
+  "schema_version": "ForgeCheck.v1",
+  "check_id": "bds.dataforge.auth_entitlement.debug",
+  "revision": 1,
+  "owner": {
+    "service_name": "dataforge",
+    "team": "bds-platform"
+  },
+  "environment": "test",
+  "source": {
+    "repository": "Boswell-Digital-Solutions/DataForge",
+    "commit": "b1cc9bd45398fb0abc3c7300c4559a717a5d84fb",
+    "path": "observability/checks/dataforge.auth_entitlement.debug.v1.json"
+  },
+  "kind": "api",
+  "evaluation_mode": "debug",
+  "schedule": {
+    "cadence_seconds": 900,
+    "jitter_seconds": 60
+  },
+  "timeout_ms": 5000,
+  "assertion": {
+    "type": "http_status",
+    "target_ref": "dataforge.unauthenticated",
+    "method": "GET",
+    "path": "/api/v1/telemetry/capabilities/forge-event-v1",
+    "expected_status": 401,
+    "expression": null
+  },
+  "privacy_class": "internal",
+  "slo": {
+    "included": false,
+    "objective_ref": null
+  },
+  "cost": {
+    "paid": false,
+    "max_cost_units": 0,
+    "unit": "none",
+    "kill_switch_required": false
+  },
+  "safety": {
+    "production_destructive": false,
+    "fixture_isolated": true,
+    "fixture_account_ref": "dataforge.cp4.unauthenticated",
+    "fixture_data_ref": "dataforge.cp4.capability"
+  },
+  "enabled": true,
+  "kill_switch_ref": "forgechecks.global.enabled",
+  "labels": {
+    "boundary": "auth_entitlement",
+    "checkpoint": "cp4"
+  }
+}

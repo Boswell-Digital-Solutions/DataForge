@@ -1,0 +1,53 @@
+{
+  "schema_version": "ForgeCheck.v1",
+  "check_id": "bds.dataforge.readiness.debug",
+  "revision": 1,
+  "owner": {
+    "service_name": "dataforge",
+    "team": "bds-platform"
+  },
+  "environment": "test",
+  "source": {
+    "repository": "Boswell-Digital-Solutions/DataForge",
+    "commit": "b1cc9bd45398fb0abc3c7300c4559a717a5d84fb",
+    "path": "observability/checks/dataforge.readiness.debug.v1.json"
+  },
+  "kind": "health",
+  "evaluation_mode": "debug",
+  "schedule": {
+    "cadence_seconds": 300,
+    "jitter_seconds": 30
+  },
+  "timeout_ms": 5000,
+  "assertion": {
+    "type": "http_status",
+    "target_ref": "dataforge",
+    "method": "GET",
+    "path": "/health/ready",
+    "expected_status": 200,
+    "expression": null
+  },
+  "privacy_class": "internal",
+  "slo": {
+    "included": false,
+    "objective_ref": null
+  },
+  "cost": {
+    "paid": false,
+    "max_cost_units": 0,
+    "unit": "none",
+    "kill_switch_required": false
+  },
+  "safety": {
+    "production_destructive": false,
+    "fixture_isolated": false,
+    "fixture_account_ref": null,
+    "fixture_data_ref": null
+  },
+  "enabled": true,
+  "kill_switch_ref": "forgechecks.global.enabled",
+  "labels": {
+    "boundary": "readiness",
+    "checkpoint": "cp4"
+  }
+}

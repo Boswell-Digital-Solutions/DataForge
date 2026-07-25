@@ -154,10 +154,16 @@ def telemetry_database_limits() -> TelemetryDatabaseLimits:
 
 
 def _writer_enabled() -> bool:
-    return os.getenv(
+    switches = (
         "DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED",
-        "false",
-    ).strip().lower() in {"1", "true", "yes", "on"}
+        "DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED",
+        "DATAFORGE_FORGE_CHECK_EVIDENCE_WRITE_ENABLED",
+        "DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED",
+    )
+    return any(
+        os.getenv(name, "false").strip().lower() in {"1", "true", "yes", "on"}
+        for name in switches
+    )
 
 
 def _configured_database_url() -> str:
@@ -305,7 +311,7 @@ def _verify_runtime_role(session: Session) -> None:
 
 
 def get_telemetry_db() -> Generator[Session | None, None, None]:
-    """Yield from only the bounded telemetry pool when the writer is enabled."""
+    """Yield from the bounded telemetry pool when an evidence route is enabled."""
 
     if not _writer_enabled():
         yield None
