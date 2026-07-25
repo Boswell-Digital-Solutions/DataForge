@@ -16,6 +16,7 @@ import rfc8785
 from forge_telemetry import (
     ForgeCheckResultV1,
     ForgeCheckRunReceiptV1,
+    TelemetryDerivationReceiptV1,
 )
 from pydantic import (
     BaseModel,
@@ -449,6 +450,105 @@ class ForgeCheckEvidenceReadV1(BaseModel):
     tenant_ref: str | None
     shared_state: Literal["available", "missing", "partial"]
     items: list[ForgeCheckEvidenceReadItemV1]
+    observed_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class TelemetryRoutineAggregatePayloadV1(BaseModel):
+    """Hash-bound routine-success aggregate; never source evidence."""
+
+    schema_version: Literal["forge.dataforge.telemetry-routine-aggregate.v1"]
+    aggregate_id: UUID
+    group_key: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evidence_kind: Literal[
+        "forge_event",
+        "forge_check_result",
+        "forge_check_run_receipt",
+    ]
+    service_or_check: str
+    environment: str
+    tenant_ref: str | None
+    privacy_class: Literal["public", "internal", "restricted", "confidential"]
+    retention_class: Literal[
+        "ephemeral",
+        "short",
+        "standard",
+        "long",
+        "legal_hold",
+    ]
+    decision_reason_code: str
+    source_count: int = Field(ge=1, le=500)
+    window_start_at: datetime
+    window_end_at: datetime
+    clock_basis: Literal["received_at"]
+    policy_id: str
+    policy_version: str
+    policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    policy_mode: Literal["shadow"]
+    source_overwritten: Literal[False]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class TelemetryRetentionDecisionReadItemV1(BaseModel):
+    """Bounded CP5 shadow-decision projection for Forge_Command."""
+
+    decision_id: UUID
+    source_kind: Literal[
+        "forge_event",
+        "forge_check_result",
+        "forge_check_run_receipt",
+    ]
+    source_ref: str
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_received_at: datetime
+    service_or_check: str
+    environment: str
+    tenant_ref: str | None
+    privacy_class: Literal["public", "internal", "restricted", "confidential"]
+    retention_class: Literal[
+        "ephemeral",
+        "short",
+        "standard",
+        "long",
+        "legal_hold",
+    ]
+    legal_class: Literal["standard", "regulated", "legal_hold"]
+    action: Literal["retain", "aggregate_then_delete", "delete", "legal_hold"]
+    reason_code: str
+    projected_delete_at: datetime | None
+    applied: Literal[False]
+    source_overwritten: Literal[False]
+    receipt: TelemetryDerivationReceiptV1
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class TelemetryRoutineAggregateReadItemV1(BaseModel):
+    aggregate: TelemetryRoutineAggregatePayloadV1
+    receipt: TelemetryDerivationReceiptV1
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class TelemetryRetentionShadowReadV1(BaseModel):
+    """Read-only, scope-bound CP5 shadow-policy projection."""
+
+    schema_version: Literal[
+        "forge.dataforge.telemetry-retention-shadow-read.v1"
+    ] = "forge.dataforge.telemetry-retention-shadow-read.v1"
+    environment: str
+    tenant_ref: str | None
+    policy_id: str
+    policy_version: str
+    policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    policy_mode: Literal["shadow"]
+    clock_basis: Literal["received_at"]
+    deletion_enabled: Literal[False]
+    shared_state: Literal["available", "missing", "partial", "restricted"]
+    decisions: list[TelemetryRetentionDecisionReadItemV1]
+    aggregates: list[TelemetryRoutineAggregateReadItemV1]
     observed_at: datetime
 
     model_config = ConfigDict(extra="forbid")
