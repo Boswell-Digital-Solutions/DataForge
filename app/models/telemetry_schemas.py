@@ -13,6 +13,10 @@ from typing import Any, Literal
 from uuid import UUID
 
 import rfc8785
+from forge_telemetry import (
+    ForgeCheckResultV1,
+    ForgeCheckRunReceiptV1,
+)
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -308,9 +312,9 @@ def forge_event_v1_write_enabled() -> bool:
 
 
 class ForgeEventV1IngestResponse(BaseModel):
-    schema_version: Literal["forge.dataforge.telemetry.ingest.v1"] = (
+    schema_version: Literal[
         "forge.dataforge.telemetry.ingest.v1"
-    )
+    ] = "forge.dataforge.telemetry.ingest.v1"
     event_id: UUID
     event_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
     received_at: datetime
@@ -349,14 +353,102 @@ class ForgeEventCorrelationSummaryV1(BaseModel):
 class ForgeEventCorrelationReadV1(BaseModel):
     """Scope-bound shared-event result consumed by Forge_Command."""
 
-    schema_version: Literal["forge.dataforge.telemetry.correlation.v1"] = (
+    schema_version: Literal[
         "forge.dataforge.telemetry.correlation.v1"
-    )
+    ] = "forge.dataforge.telemetry.correlation.v1"
     correlation_id: UUID
     environment: str
     tenant_ref: str | None
     shared_state: Literal["available", "missing", "partial"]
     events: list[ForgeEventCorrelationSummaryV1]
+    observed_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ForgeCheckEvidenceSubmissionV1(BaseModel):
+    """DataForge envelope for one canonical CP4 result/receipt pair."""
+
+    schema_version: Literal["forge.dataforge.forge-check-evidence.v1"]
+    environment: str
+    tenant_ref: str | None
+    result: ForgeCheckResultV1
+    receipt: ForgeCheckRunReceiptV1
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("environment", "tenant_ref")
+    @classmethod
+    def scope_is_canonical(cls, value: str | None) -> str | None:
+        if value is not None and IDENTIFIER_PATTERN.fullmatch(value) is None:
+            raise ValueError("check evidence scope is invalid")
+        return value
+
+    @model_validator(mode="after")
+    def evidence_is_exactly_linked_and_debug_only(
+        self,
+    ) -> ForgeCheckEvidenceSubmissionV1:
+        result = self.result
+        receipt = self.receipt
+        if result.environment != self.environment:
+            raise ValueError("check evidence environment mismatch")
+        if (
+            result.result_id != receipt.result_id
+            or result.run_id != receipt.run_id
+            or result.check_id != receipt.check_id
+            or result.definition_sha256 != receipt.definition_sha256
+            or result.evaluation_mode != receipt.evaluation_mode
+            or result.status != receipt.status
+            or result.started_at != receipt.started_at
+            or result.cost_units_observed != receipt.cost.observed_cost_units
+        ):
+            raise ValueError("check result and receipt linkage mismatch")
+        if receipt.runner.service_name != "forgeagents":
+            raise ValueError("check evidence runner is not ForgeAgents")
+        if result.evaluation_mode != "debug":
+            raise ValueError("CP4 accepts debug evidence only")
+        return self
+
+
+def forge_check_payload_digest(
+    payload: ForgeCheckResultV1 | ForgeCheckRunReceiptV1,
+) -> str:
+    """Return an exact RFC 8785 digest for immutable check evidence."""
+
+    return hashlib.sha256(rfc8785.dumps(payload.model_dump(mode="json"))).hexdigest()
+
+
+class ForgeCheckEvidenceIngestResponseV1(BaseModel):
+    schema_version: Literal[
+        "forge.dataforge.forge-check-evidence.ingest.v1"
+    ] = "forge.dataforge.forge-check-evidence.ingest.v1"
+    result_id: UUID
+    receipt_id: UUID
+    result_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    receipt_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    received_at: datetime
+    identity_outcome: Literal["inserted", "exact_replay"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ForgeCheckEvidenceReadItemV1(BaseModel):
+    result: ForgeCheckResultV1
+    receipt: ForgeCheckRunReceiptV1
+    result_received_at: datetime
+    receipt_received_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ForgeCheckEvidenceReadV1(BaseModel):
+    schema_version: Literal[
+        "forge.dataforge.forge-check-evidence.read.v1"
+    ] = "forge.dataforge.forge-check-evidence.read.v1"
+    environment: str
+    tenant_ref: str | None
+    shared_state: Literal["available", "missing", "partial"]
+    items: list[ForgeCheckEvidenceReadItemV1]
     observed_at: datetime
 
     model_config = ConfigDict(extra="forbid")

@@ -86,6 +86,9 @@ def test_disabled_writer_never_requires_or_opens_telemetry_database(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED", "false")
+    monkeypatch.setenv("DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED", "false")
+    monkeypatch.setenv("DATAFORGE_FORGE_CHECK_EVIDENCE_WRITE_ENABLED", "false")
+    monkeypatch.setenv("DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED", "false")
     monkeypatch.delenv("DATAFORGE_TELEMETRY_DATABASE_URL", raising=False)
     dependency = get_telemetry_db()
 

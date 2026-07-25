@@ -10,20 +10,30 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.admin_keys_router import AuthContext, require_api_key
 from app.logging_config import get_logger
-from app.models.telemetry_models import ForgeEventV1Record
+from app.models.telemetry_models import (
+    ForgeCheckResultV1Record,
+    ForgeCheckRunReceiptV1Record,
+    ForgeEventV1Record,
+)
 from app.models.telemetry_schemas import (
+    ForgeCheckEvidenceIngestResponseV1,
+    ForgeCheckEvidenceReadItemV1,
+    ForgeCheckEvidenceReadV1,
+    ForgeCheckEvidenceSubmissionV1,
     ForgeEventCorrelationReadV1,
     ForgeEventCorrelationSummaryV1,
     ForgeEventV1IngestResponse,
     ForgeEventV1Submission,
     ForgeTelemetrySinkCapabilityV1,
     event_digest,
+    forge_check_payload_digest,
     forge_event_v1_write_enabled,
     forge_telemetry_sink_capability,
 )
@@ -37,10 +47,16 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v1/telemetry", tags=["telemetry"])
 MAX_CORRELATION_EVENTS = 200
 MAX_CORRELATION_RESPONSE_BYTES = 256 * 1024
+MAX_CHECK_EVIDENCE_ITEMS = 200
+MAX_CHECK_EVIDENCE_RESPONSE_BYTES = 256 * 1024
 
 
 class EventIdentityConflict(ValueError):
     """The event ID is already bound to different canonical content."""
+
+
+class CheckEvidenceIdentityConflict(ValueError):
+    """A result or receipt ID is already bound to different content."""
 
 
 def forge_event_correlation_read_enabled() -> bool:
@@ -48,6 +64,28 @@ def forge_event_correlation_read_enabled() -> bool:
 
     return (
         os.getenv("DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED", "false")
+        .strip()
+        .lower()
+        == "true"
+    )
+
+
+def forge_check_evidence_write_enabled() -> bool:
+    """Fail closed unless the CP4 evidence writer is explicitly enabled."""
+
+    return (
+        os.getenv("DATAFORGE_FORGE_CHECK_EVIDENCE_WRITE_ENABLED", "false")
+        .strip()
+        .lower()
+        == "true"
+    )
+
+
+def forge_check_evidence_read_enabled() -> bool:
+    """Fail closed unless the CP4 evidence read projection is enabled."""
+
+    return (
+        os.getenv("DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED", "false")
         .strip()
         .lower()
         == "true"
@@ -85,6 +123,64 @@ def _authorize_correlation_read(
             detail={"code": "telemetry_subject_binding_mismatch"},
         )
     return {scope for scope in scopes if isinstance(scope, str)}
+
+
+def _authorize_check_evidence_write(
+    auth: AuthContext,
+    evidence: ForgeCheckEvidenceSubmissionV1,
+) -> None:
+    if auth.auth_mode != "api_key" or auth.key_info is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_service_key_required"},
+        )
+    metadata = auth.key_info.metadata or {}
+    scopes = metadata.get("scopes")
+    if not isinstance(scopes, list) or "telemetry:write:checks" not in scopes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "forge_check_write_scope_required"},
+        )
+    expected_binding = {
+        "service_name": "forgeagents",
+        "environment": evidence.environment,
+        "tenant_ref": evidence.tenant_ref,
+    }
+    if any(metadata.get(field) != value for field, value in expected_binding.items()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_subject_binding_mismatch"},
+        )
+
+
+def _authorize_check_evidence_read(
+    auth: AuthContext,
+    *,
+    environment: str,
+    tenant_ref: str | None,
+) -> None:
+    if auth.auth_mode != "api_key" or auth.key_info is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_service_key_required"},
+        )
+    metadata = auth.key_info.metadata or {}
+    scopes = metadata.get("scopes")
+    if not isinstance(scopes, list) or "telemetry:read:checks" not in scopes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "forge_check_read_scope_required"},
+        )
+    expected_binding = {
+        "service_name": "forge_command",
+        "environment": environment,
+        "tenant_ref": tenant_ref,
+    }
+    if any(metadata.get(field) != value for field, value in expected_binding.items()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_subject_binding_mismatch"},
+        )
 
 
 def _admit_telemetry_rate_budget(
@@ -229,6 +325,157 @@ def _persist_event(
     raise RuntimeError("canonical telemetry ingest requires PostgreSQL")
 
 
+def _check_result_values(
+    evidence: ForgeCheckEvidenceSubmissionV1,
+    digest: str,
+) -> dict[str, Any]:
+    result = evidence.result
+    return {
+        "result_id": result.result_id,
+        "payload_digest": digest,
+        "payload": result.model_dump(mode="json"),
+        "run_id": result.run_id,
+        "check_id": result.check_id,
+        "check_revision": result.check_revision,
+        "definition_sha256": result.definition_sha256,
+        "environment": evidence.environment,
+        "tenant_ref": evidence.tenant_ref,
+        "evaluation_mode": result.evaluation_mode,
+        "status": result.status,
+        "reason_code": result.reason_code,
+        "started_at": result.started_at,
+        "finished_at": result.finished_at,
+        "duration_ms": result.duration_ms,
+        "assertion_passed": result.assertion_passed,
+        "slo_included": result.slo.included,
+        "uptime_included": result.slo.uptime_included,
+        "baseline_included": result.slo.baseline_included,
+        "cost_units_observed": result.cost_units_observed,
+        "privacy_class": result.privacy_class,
+        "correlation_id": result.correlation_id,
+        "trace_id": result.trace_id,
+    }
+
+
+def _check_receipt_values(
+    evidence: ForgeCheckEvidenceSubmissionV1,
+    digest: str,
+) -> dict[str, Any]:
+    receipt = evidence.receipt
+    return {
+        "receipt_id": receipt.receipt_id,
+        "payload_digest": digest,
+        "payload": receipt.model_dump(mode="json"),
+        "run_id": receipt.run_id,
+        "result_id": receipt.result_id,
+        "check_id": receipt.check_id,
+        "definition_sha256": receipt.definition_sha256,
+        "environment": evidence.environment,
+        "tenant_ref": evidence.tenant_ref,
+        "source_repository": receipt.source.repository,
+        "source_commit": receipt.source.commit,
+        "source_path": receipt.source.path,
+        "runner_service_name": receipt.runner.service_name,
+        "runner_version": receipt.runner.version,
+        "trigger": receipt.trigger,
+        "evaluation_mode": receipt.evaluation_mode,
+        "status": receipt.status,
+        "started_at": receipt.started_at,
+        "observed_at": receipt.observed_at,
+        "slo_included": receipt.slo.included,
+        "uptime_included": receipt.slo.uptime_included,
+        "baseline_included": receipt.slo.baseline_included,
+        "slo_reason": receipt.slo.reason,
+        "max_cost_units": receipt.cost.max_cost_units,
+        "observed_cost_units": receipt.cost.observed_cost_units,
+        "cost_unit": receipt.cost.unit,
+        "kill_switch_ref": receipt.kill_switch.ref,
+        "kill_switch_enabled": receipt.kill_switch.enabled,
+        "evidence_refs": [str(value) for value in receipt.evidence_refs],
+    }
+
+
+def _insert_check_row(
+    db: Session,
+    model: type[ForgeCheckResultV1Record] | type[ForgeCheckRunReceiptV1Record],
+    values: dict[str, Any],
+    key: str,
+) -> bool:
+    dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
+        statement = (
+            postgresql_insert(model.__table__)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=[key])
+        )
+    elif dialect == "sqlite":
+        statement = (
+            sqlite_insert(model.__table__)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=[key])
+        )
+    else:
+        raise RuntimeError("canonical check evidence requires PostgreSQL")
+    return db.execute(statement).rowcount == 1
+
+
+def _persist_check_evidence(
+    db: Session,
+    evidence: ForgeCheckEvidenceSubmissionV1,
+    result_digest: str,
+    receipt_digest: str,
+) -> str:
+    result_inserted = _insert_check_row(
+        db,
+        ForgeCheckResultV1Record,
+        _check_result_values(evidence, result_digest),
+        "result_id",
+    )
+    stored_result = db.execute(
+        select(ForgeCheckResultV1Record).where(
+            ForgeCheckResultV1Record.result_id == evidence.result.result_id
+        )
+    ).scalar_one()
+    if (
+        stored_result.payload_digest != result_digest
+        or stored_result.environment != evidence.environment
+        or stored_result.tenant_ref != evidence.tenant_ref
+    ):
+        raise CheckEvidenceIdentityConflict("check_result_identity_conflict")
+
+    receipt_inserted = _insert_check_row(
+        db,
+        ForgeCheckRunReceiptV1Record,
+        _check_receipt_values(evidence, receipt_digest),
+        "receipt_id",
+    )
+    receipt_by_id = db.execute(
+        select(ForgeCheckRunReceiptV1Record).where(
+            ForgeCheckRunReceiptV1Record.receipt_id == evidence.receipt.receipt_id
+        )
+    ).scalar_one_or_none()
+    receipt_by_result = db.execute(
+        select(ForgeCheckRunReceiptV1Record).where(
+            ForgeCheckRunReceiptV1Record.result_id == evidence.result.result_id
+        )
+    ).scalar_one_or_none()
+    stored_receipt = receipt_by_id or receipt_by_result
+    if (
+        stored_receipt is None
+        or (
+            receipt_by_id is not None
+            and receipt_by_result is not None
+            and receipt_by_id.receipt_id != receipt_by_result.receipt_id
+        )
+        or stored_receipt.receipt_id != evidence.receipt.receipt_id
+        or stored_receipt.payload_digest != receipt_digest
+        or stored_receipt.environment != evidence.environment
+        or stored_receipt.tenant_ref != evidence.tenant_ref
+    ):
+        raise CheckEvidenceIdentityConflict("check_receipt_identity_conflict")
+    return "inserted" if result_inserted or receipt_inserted else "exact_replay"
+
+
 @router.get(
     "/capabilities/forge-event-v1",
     response_model=ForgeTelemetrySinkCapabilityV1,
@@ -239,6 +486,173 @@ def get_forge_event_v1_capability(
     """Return the exact active canonical sink capability."""
 
     return forge_telemetry_sink_capability()
+
+
+@router.post(
+    "/checks/evidence",
+    response_model=ForgeCheckEvidenceIngestResponseV1,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(_admit_telemetry_rate_budget)],
+)
+def ingest_forge_check_evidence(
+    evidence: ForgeCheckEvidenceSubmissionV1,
+    response: Response,
+    db: Session | None = Depends(get_telemetry_db),
+    auth: AuthContext = Depends(require_api_key),
+) -> ForgeCheckEvidenceIngestResponseV1:
+    """Persist one debug-only result and its directly linked receipt."""
+
+    if not forge_check_evidence_write_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "forge_check_evidence_write_disabled"},
+        )
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
+        )
+    _authorize_check_evidence_write(auth, evidence)
+    result_digest = forge_check_payload_digest(evidence.result)
+    receipt_digest = forge_check_payload_digest(evidence.receipt)
+    try:
+        identity_outcome = _persist_check_evidence(
+            db,
+            evidence,
+            result_digest,
+            receipt_digest,
+        )
+        record = db.execute(
+            select(ForgeCheckResultV1Record).where(
+                ForgeCheckResultV1Record.result_id == evidence.result.result_id
+            )
+        ).scalar_one()
+        db.commit()
+    except CheckEvidenceIdentityConflict as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": str(exc)},
+        ) from exc
+    except (RuntimeError, SQLAlchemyError) as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_persistence_unavailable"},
+        ) from exc
+
+    if identity_outcome == "exact_replay":
+        response.status_code = status.HTTP_200_OK
+    return ForgeCheckEvidenceIngestResponseV1(
+        result_id=evidence.result.result_id,
+        receipt_id=evidence.receipt.receipt_id,
+        result_digest=result_digest,
+        receipt_digest=receipt_digest,
+        received_at=record.received_at,
+        identity_outcome=identity_outcome,
+    )
+
+
+@router.get(
+    "/checks/results",
+    response_model=ForgeCheckEvidenceReadV1,
+    dependencies=[Depends(_admit_telemetry_rate_budget)],
+)
+def read_forge_check_evidence(
+    environment: str = Query(pattern=r"^[a-z0-9][a-z0-9._:-]*$"),
+    tenant_ref: str | None = Query(default=None, pattern=r"^[a-z0-9][a-z0-9._:-]*$"),
+    check_id: str | None = Query(default=None, pattern=r"^[a-z0-9][a-z0-9._:-]*$"),
+    limit: int = Query(default=50, ge=1, le=MAX_CHECK_EVIDENCE_ITEMS),
+    db: Session | None = Depends(get_telemetry_db),
+    auth: AuthContext = Depends(require_api_key),
+) -> ForgeCheckEvidenceReadV1:
+    """Return a bounded, scope-bound result and receipt projection."""
+
+    if not forge_check_evidence_read_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "forge_check_evidence_read_disabled"},
+        )
+    _authorize_check_evidence_read(
+        auth,
+        environment=environment,
+        tenant_ref=tenant_ref,
+    )
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
+        )
+    statement = (
+        select(ForgeCheckResultV1Record, ForgeCheckRunReceiptV1Record)
+        .join(
+            ForgeCheckRunReceiptV1Record,
+            ForgeCheckRunReceiptV1Record.result_id
+            == ForgeCheckResultV1Record.result_id,
+        )
+        .where(
+            ForgeCheckResultV1Record.environment == environment,
+            ForgeCheckRunReceiptV1Record.environment == environment,
+        )
+        .order_by(
+            ForgeCheckRunReceiptV1Record.observed_at.desc(),
+            ForgeCheckRunReceiptV1Record.receipt_id,
+        )
+        .limit(limit + 1)
+    )
+    if tenant_ref is None:
+        statement = statement.where(
+            ForgeCheckResultV1Record.tenant_ref.is_(None),
+            ForgeCheckRunReceiptV1Record.tenant_ref.is_(None),
+        )
+    else:
+        statement = statement.where(
+            ForgeCheckResultV1Record.tenant_ref == tenant_ref,
+            ForgeCheckRunReceiptV1Record.tenant_ref == tenant_ref,
+        )
+    if check_id is not None:
+        statement = statement.where(ForgeCheckResultV1Record.check_id == check_id)
+    try:
+        rows = list(db.execute(statement).all())
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_persistence_unavailable"},
+        ) from exc
+
+    partial = len(rows) > limit
+    observed_at = datetime.now(UTC)
+    items: list[ForgeCheckEvidenceReadItemV1] = []
+    for result_record, receipt_record in rows[:limit]:
+        items.append(
+            ForgeCheckEvidenceReadItemV1(
+                result=result_record.payload,
+                receipt=receipt_record.payload,
+                result_received_at=result_record.received_at,
+                receipt_received_at=receipt_record.received_at,
+            )
+        )
+        size_probe = ForgeCheckEvidenceReadV1(
+            environment=environment,
+            tenant_ref=tenant_ref,
+            shared_state="partial",
+            items=items,
+            observed_at=observed_at,
+        )
+        if len(size_probe.model_dump_json().encode("utf-8")) > (
+            MAX_CHECK_EVIDENCE_RESPONSE_BYTES
+        ):
+            items.pop()
+            partial = True
+            break
+
+    return ForgeCheckEvidenceReadV1(
+        environment=environment,
+        tenant_ref=tenant_ref,
+        shared_state="partial" if partial else ("available" if items else "missing"),
+        items=items,
+        observed_at=observed_at,
+    )
 
 
 @router.get(
@@ -362,7 +776,9 @@ def read_forge_event_correlation(
         correlation_id=correlation_id,
         environment=environment,
         tenant_ref=tenant_ref,
-        shared_state="partial" if partial else ("available" if summaries else "missing"),
+        shared_state="partial"
+        if partial
+        else ("available" if summaries else "missing"),
         events=summaries,
         observed_at=observed_at,
     )

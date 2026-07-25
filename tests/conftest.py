@@ -237,6 +237,8 @@ def setup_test_env(monkeypatch):
     monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-testing-only")
     monkeypatch.setenv("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
     monkeypatch.setenv("DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED", "true")
+    monkeypatch.setenv("DATAFORGE_FORGE_CHECK_EVIDENCE_WRITE_ENABLED", "true")
+    monkeypatch.setenv("DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED", "true")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
 
