@@ -306,6 +306,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
 | `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, opt-in bounded SQLite recovery, capability health, finite shutdown |
 | `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_database.py` | Isolated canonical telemetry PostgreSQL pool, least-privilege role preflight, timeouts, and rate budget |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/app/telemetry_incidents.py` | CP6 evidence-grounded deterministic candidate builder and immutable source verifier |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -331,6 +332,15 @@ The current canonical reference is generated `doc/DTFSYSTEM.md`, assembled from 
 When older phase summaries or historical completion documents conflict with the generated
 system docs, the generated system docs win.
 
+## CP6 Rollback Invariant
+
+Disable `DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED` and
+`DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED`, then rotate the dedicated producer
+and reader keys. Downgrading from `20260725_03` revokes CP6 table policies and
+runtime grants but deliberately retains all candidate rows. Source evidence is
+never rewritten or deleted. CP6 rollback does not restore a legacy incident
+path and does not authorize CP7.
+
 ---
 
-*Forge Documentation Protocol v2 — Last updated: 2026-07-24*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-25*

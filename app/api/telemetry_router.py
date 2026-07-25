@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from forge_telemetry import TelemetryDerivationReceiptV1
+from forge_telemetry import IncidentCandidateV1, TelemetryDerivationReceiptV1
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -22,6 +22,7 @@ from app.models.telemetry_models import (
     ForgeCheckResultV1Record,
     ForgeCheckRunReceiptV1Record,
     ForgeEventV1Record,
+    IncidentCandidateV1Record,
     TelemetryDerivationReceiptV1Record,
     TelemetryRetentionDecisionV1Record,
     TelemetryRoutineAggregateV1Record,
@@ -36,6 +37,10 @@ from app.models.telemetry_schemas import (
     ForgeEventV1IngestResponse,
     ForgeEventV1Submission,
     ForgeTelemetrySinkCapabilityV1,
+    IncidentCandidateIngestResponseV1,
+    IncidentCandidateReadItemV1,
+    IncidentCandidateReadV1,
+    IncidentCandidateSubmissionV1,
     TelemetryRetentionDecisionReadItemV1,
     TelemetryRetentionShadowReadV1,
     TelemetryRoutineAggregatePayloadV1,
@@ -44,6 +49,11 @@ from app.models.telemetry_schemas import (
     forge_check_payload_digest,
     forge_event_v1_write_enabled,
     forge_telemetry_sink_capability,
+    incident_candidate_payload_digest,
+)
+from app.telemetry_incidents import (
+    IncidentCandidateSourceError,
+    verify_incident_candidate_sources,
 )
 from app.telemetry_retention import (
     RETENTION_CLOCK_BASIS,
@@ -66,6 +76,8 @@ MAX_CHECK_EVIDENCE_ITEMS = 200
 MAX_CHECK_EVIDENCE_RESPONSE_BYTES = 256 * 1024
 MAX_RETENTION_SHADOW_ITEMS = 50
 MAX_RETENTION_SHADOW_RESPONSE_BYTES = 512 * 1024
+MAX_INCIDENT_CANDIDATE_ITEMS = 25
+MAX_INCIDENT_CANDIDATE_RESPONSE_BYTES = 512 * 1024
 
 
 class EventIdentityConflict(ValueError):
@@ -74,6 +86,10 @@ class EventIdentityConflict(ValueError):
 
 class CheckEvidenceIdentityConflict(ValueError):
     """A result or receipt ID is already bound to different content."""
+
+
+class IncidentCandidateIdentityConflict(ValueError):
+    """A candidate ID is already bound to different canonical content."""
 
 
 def forge_event_correlation_read_enabled() -> bool:
@@ -115,6 +131,34 @@ def telemetry_retention_shadow_read_enabled() -> bool:
     return (
         os.getenv(
             "DATAFORGE_TELEMETRY_RETENTION_SHADOW_READ_ENABLED",
+            "false",
+        )
+        .strip()
+        .lower()
+        == "true"
+    )
+
+
+def incident_candidate_write_enabled() -> bool:
+    """Fail closed unless the CP6 candidate writer is explicitly enabled."""
+
+    return (
+        os.getenv(
+            "DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED",
+            "false",
+        )
+        .strip()
+        .lower()
+        == "true"
+    )
+
+
+def incident_candidate_read_enabled() -> bool:
+    """Fail closed unless the CP6 candidate-only read is explicitly enabled."""
+
+    return (
+        os.getenv(
+            "DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED",
             "false",
         )
         .strip()
@@ -233,6 +277,81 @@ def _authorize_retention_shadow_read(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "telemetry_retention_read_scope_required"},
+        )
+    expected_binding = {
+        "service_name": "forge_command",
+        "environment": environment,
+        "tenant_ref": tenant_ref,
+    }
+    if any(metadata.get(field) != value for field, value in expected_binding.items()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_subject_binding_mismatch"},
+        )
+    return {scope for scope in scopes if isinstance(scope, str)}
+
+
+def _authorize_incident_candidate_write(
+    auth: AuthContext,
+    submission: IncidentCandidateSubmissionV1,
+) -> None:
+    """Require the exact analysis producer identity and CP6 write scope."""
+
+    producer_service = submission.candidate.analysis_provenance.producer_service
+    if producer_service not in {"dataforge", "neuroforge"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "incident_candidate_producer_forbidden"},
+        )
+    if auth.auth_mode != "api_key" or auth.key_info is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_service_key_required"},
+        )
+    metadata = auth.key_info.metadata or {}
+    scopes = metadata.get("scopes")
+    if (
+        not isinstance(scopes, list)
+        or "telemetry:write:incident-candidates" not in scopes
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "incident_candidate_write_scope_required"},
+        )
+    expected_binding = {
+        "service_name": producer_service,
+        "environment": submission.environment,
+        "tenant_ref": submission.tenant_ref,
+    }
+    if any(metadata.get(field) != value for field, value in expected_binding.items()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_subject_binding_mismatch"},
+        )
+
+
+def _authorize_incident_candidate_read(
+    auth: AuthContext,
+    *,
+    environment: str,
+    tenant_ref: str | None,
+) -> set[str]:
+    """Require Forge_Command's dedicated CP6 read identity and exact scope."""
+
+    if auth.auth_mode != "api_key" or auth.key_info is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_service_key_required"},
+        )
+    metadata = auth.key_info.metadata or {}
+    scopes = metadata.get("scopes")
+    if (
+        not isinstance(scopes, list)
+        or "telemetry:read:incident-candidates" not in scopes
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "incident_candidate_read_scope_required"},
         )
     expected_binding = {
         "service_name": "forge_command",
@@ -538,6 +657,113 @@ def _persist_check_evidence(
     ):
         raise CheckEvidenceIdentityConflict("check_receipt_identity_conflict")
     return "inserted" if result_inserted or receipt_inserted else "exact_replay"
+
+
+def _incident_candidate_values(
+    submission: IncidentCandidateSubmissionV1,
+    digest: str,
+) -> dict[str, Any]:
+    candidate = submission.candidate
+    provenance = candidate.analysis_provenance
+    authority = candidate.authority
+    return {
+        "candidate_id": candidate.candidate_id,
+        "payload_digest": digest,
+        "payload": candidate.model_dump(mode="json"),
+        "fingerprint_version": candidate.deduplication.fingerprint_version,
+        "fingerprint_sha256": candidate.deduplication.fingerprint_sha256,
+        "environment": submission.environment,
+        "tenant_ref": submission.tenant_ref,
+        "correlation_id": candidate.correlation_id,
+        "trace_ids": candidate.trace_ids,
+        "window_clock_basis": candidate.window.clock_basis,
+        "window_start_at": candidate.window.start_at,
+        "window_end_at": candidate.window.end_at,
+        "suspected_cause_code": candidate.suspected_cause.cause_code,
+        "confidence_basis_points": candidate.confidence.score_basis_points,
+        "confidence_method": candidate.confidence.method,
+        "uncertainty_state": candidate.uncertainty.state,
+        "privacy_class": candidate.privacy_class,
+        "analysis_kind": provenance.analysis_kind,
+        "producer_service": provenance.producer_service,
+        "producer_version": provenance.producer_version,
+        "provider": provenance.provider,
+        "model": provenance.model,
+        "prompt_sha256": provenance.prompt_sha256,
+        "model_response_sha256": provenance.model_response_sha256,
+        "run_receipt_ref": provenance.run_receipt_ref,
+        "candidate_only": authority.candidate_only,
+        "can_repair": authority.can_repair,
+        "can_rollback": authority.can_rollback,
+        "can_notify": authority.can_notify,
+        "can_promote": authority.can_promote,
+        "requires_human_decision": authority.requires_human_decision,
+        "source_overwritten": authority.source_overwritten,
+        "created_at": candidate.created_at,
+    }
+
+
+def _persist_incident_candidate(
+    db: Session,
+    submission: IncidentCandidateSubmissionV1,
+    digest: str,
+) -> tuple[str, IncidentCandidateV1Record]:
+    candidate = submission.candidate
+    values = _incident_candidate_values(submission, digest)
+    dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
+        statement = (
+            postgresql_insert(IncidentCandidateV1Record.__table__)
+            .values(**values)
+            .on_conflict_do_nothing()
+        )
+    elif dialect == "sqlite":
+        statement = (
+            sqlite_insert(IncidentCandidateV1Record.__table__)
+            .values(**values)
+            .on_conflict_do_nothing()
+        )
+    else:
+        raise RuntimeError("incident candidates require PostgreSQL")
+    inserted = db.execute(statement).rowcount == 1
+    if inserted:
+        record = db.get(IncidentCandidateV1Record, candidate.candidate_id)
+        if record is None:
+            raise RuntimeError("incident candidate insert was not readable")
+        return "inserted", record
+
+    by_id = db.get(IncidentCandidateV1Record, candidate.candidate_id)
+    if by_id is not None:
+        if (
+            by_id.payload_digest == digest
+            and by_id.fingerprint_sha256
+            == candidate.deduplication.fingerprint_sha256
+            and by_id.environment == submission.environment
+            and by_id.tenant_ref == submission.tenant_ref
+        ):
+            return "exact_replay", by_id
+        raise IncidentCandidateIdentityConflict(
+            "incident_candidate_identity_conflict"
+        )
+
+    by_fingerprint = db.execute(
+        select(IncidentCandidateV1Record).where(
+            IncidentCandidateV1Record.fingerprint_sha256
+            == candidate.deduplication.fingerprint_sha256
+        )
+    ).scalar_one_or_none()
+    if by_fingerprint is not None:
+        if (
+            by_fingerprint.environment != submission.environment
+            or by_fingerprint.tenant_ref != submission.tenant_ref
+        ):
+            raise IncidentCandidateIdentityConflict(
+                "incident_candidate_scope_conflict"
+            )
+        return "deduplicated", by_fingerprint
+    raise IncidentCandidateIdentityConflict(
+        "incident_candidate_identity_conflict"
+    )
 
 
 @router.get(
@@ -1084,6 +1310,227 @@ def _retention_shadow_response(
         shared_state=shared_state,
         decisions=decisions,
         aggregates=aggregates,
+        observed_at=observed_at,
+    )
+
+
+@router.post(
+    "/incidents/candidates",
+    response_model=IncidentCandidateIngestResponseV1,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(_admit_telemetry_rate_budget)],
+)
+def ingest_incident_candidate(
+    submission: IncidentCandidateSubmissionV1,
+    response: Response,
+    db: Session | None = Depends(get_telemetry_db),
+    auth: AuthContext = Depends(require_api_key),
+) -> IncidentCandidateIngestResponseV1:
+    """Persist one source-proved candidate without granting action authority."""
+
+    if not incident_candidate_write_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "incident_candidate_write_disabled"},
+        )
+    _authorize_incident_candidate_write(auth, submission)
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
+        )
+    digest = incident_candidate_payload_digest(submission.candidate)
+    try:
+        verify_incident_candidate_sources(db, submission.candidate)
+        identity_outcome, record = _persist_incident_candidate(
+            db,
+            submission,
+            digest,
+        )
+        db.commit()
+        db.refresh(record)
+    except IncidentCandidateSourceError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": str(exc)},
+        ) from exc
+    except IncidentCandidateIdentityConflict as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": str(exc)},
+        ) from exc
+    except (RuntimeError, SQLAlchemyError) as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_persistence_unavailable"},
+        ) from exc
+
+    if identity_outcome != "inserted":
+        response.status_code = status.HTTP_200_OK
+    return IncidentCandidateIngestResponseV1(
+        candidate_id=record.candidate_id,
+        candidate_digest=record.payload_digest,
+        fingerprint_sha256=record.fingerprint_sha256,
+        received_at=record.received_at,
+        identity_outcome=identity_outcome,
+    )
+
+
+@router.get(
+    "/incidents/candidates",
+    response_model=IncidentCandidateReadV1,
+    dependencies=[Depends(_admit_telemetry_rate_budget)],
+)
+def read_incident_candidates(
+    environment: str = Query(pattern=r"^[a-z0-9][a-z0-9._:-]*$"),
+    tenant_ref: str | None = Query(default=None, pattern=r"^[a-z0-9][a-z0-9._:-]*$"),
+    limit: int = Query(default=25, ge=1, le=MAX_INCIDENT_CANDIDATE_ITEMS),
+    db: Session | None = Depends(get_telemetry_db),
+    auth: AuthContext = Depends(require_api_key),
+) -> IncidentCandidateReadV1:
+    """Return a bounded, read-only candidate projection to Forge_Command."""
+
+    if not incident_candidate_read_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "incident_candidate_read_disabled"},
+        )
+    scopes = _authorize_incident_candidate_read(
+        auth,
+        environment=environment,
+        tenant_ref=tenant_ref,
+    )
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
+        )
+
+    statement = (
+        select(IncidentCandidateV1Record)
+        .where(IncidentCandidateV1Record.environment == environment)
+        .order_by(
+            IncidentCandidateV1Record.created_at.desc(),
+            IncidentCandidateV1Record.candidate_id,
+        )
+        .limit(limit + 1)
+    )
+    if tenant_ref is None:
+        statement = statement.where(IncidentCandidateV1Record.tenant_ref.is_(None))
+    else:
+        statement = statement.where(
+            IncidentCandidateV1Record.tenant_ref == tenant_ref
+        )
+    try:
+        records = list(db.execute(statement).scalars())
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_persistence_unavailable"},
+        ) from exc
+
+    partial = len(records) > limit
+    restricted_count = 0
+    can_read_restricted = (
+        "telemetry:read:incident-candidates:restricted" in scopes
+    )
+    candidates: list[IncidentCandidateReadItemV1] = []
+    observed_at = datetime.now(UTC)
+    try:
+        for record in records[:limit]:
+            if (
+                record.privacy_class in {"restricted", "confidential"}
+                and not can_read_restricted
+            ):
+                restricted_count += 1
+                continue
+            candidate = IncidentCandidateV1.model_validate(record.payload)
+            digest = incident_candidate_payload_digest(candidate)
+            if (
+                digest != record.payload_digest
+                or candidate.candidate_id != record.candidate_id
+                or candidate.environment != environment
+                or candidate.tenant_ref != tenant_ref
+                or candidate.deduplication.fingerprint_version
+                != record.fingerprint_version
+                or candidate.deduplication.fingerprint_sha256
+                != record.fingerprint_sha256
+                or candidate.analysis_provenance.analysis_kind
+                != record.analysis_kind
+                or candidate.analysis_provenance.producer_service
+                != record.producer_service
+                or candidate.analysis_provenance.producer_version
+                != record.producer_version
+                or candidate.analysis_provenance.provider != record.provider
+                or candidate.analysis_provenance.model != record.model
+                or candidate.analysis_provenance.prompt_sha256
+                != record.prompt_sha256
+                or candidate.analysis_provenance.model_response_sha256
+                != record.model_response_sha256
+                or candidate.analysis_provenance.run_receipt_ref
+                != record.run_receipt_ref
+                or record.candidate_only is not True
+                or record.can_repair is not False
+                or record.can_rollback is not False
+                or record.can_notify is not False
+                or record.can_promote is not False
+                or record.requires_human_decision is not True
+                or record.source_overwritten is not False
+                or candidate.authority.candidate_only is not True
+                or candidate.authority.can_repair is not False
+                or candidate.authority.can_rollback is not False
+                or candidate.authority.can_notify is not False
+                or candidate.authority.can_promote is not False
+                or candidate.authority.requires_human_decision is not True
+                or candidate.authority.source_overwritten is not False
+            ):
+                raise ValueError("stored incident candidate mismatch")
+            candidates.append(
+                IncidentCandidateReadItemV1(
+                    candidate=candidate,
+                    candidate_digest=digest,
+                    received_at=record.received_at,
+                )
+            )
+            size_probe = IncidentCandidateReadV1(
+                environment=environment,
+                tenant_ref=tenant_ref,
+                shared_state="partial",
+                candidates=candidates,
+                observed_at=observed_at,
+            )
+            if len(size_probe.model_dump_json().encode()) > (
+                MAX_INCIDENT_CANDIDATE_RESPONSE_BYTES
+            ):
+                candidates.pop()
+                partial = True
+                break
+    except (TypeError, ValueError) as exc:
+        logger.error(
+            "CP6 incident candidate projection rejected stored evidence",
+            extra={"environment": environment, "tenant_ref": tenant_ref},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "incident_candidate_evidence_invalid"},
+        ) from exc
+
+    if restricted_count:
+        partial = bool(candidates) or partial
+    if candidates:
+        shared_state = "partial" if partial else "available"
+    elif restricted_count:
+        shared_state = "restricted"
+    else:
+        shared_state = "missing"
+    return IncidentCandidateReadV1(
+        environment=environment,
+        tenant_ref=tenant_ref,
+        shared_state=shared_state,
+        candidates=candidates,
         observed_at=observed_at,
     )
 

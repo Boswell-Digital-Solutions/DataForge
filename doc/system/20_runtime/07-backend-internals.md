@@ -55,6 +55,22 @@ The canonical ingest route resolves `get_telemetry_db()`, not the shared
 policies. Runtime preflight verifies the distinct login's group membership and
 non-privileged posture before allowing persistence.
 
+## CP6 Candidate Derivation
+
+`app/telemetry_incidents.py` builds deterministic-rules candidates from a
+failed, timed-out, blocked, or indeterminate check and same-scope correlated
+events. The output names exact source record IDs and hashes, the evidence-time
+window and clock, privacy/retention/legal classes, suspected cause,
+alternatives, confidence calibration, explicit uncertainty, and missing
+deployment/configuration/baseline/trace evidence.
+
+The builder records null provider/model/prompt/response fields because no model
+participates. A NeuroForge submission must instead carry complete provider,
+model, prompt hash, response hash, and run receipt provenance. Both paths use
+the versioned content fingerprint and the same immutable candidate authority:
+candidate-only, no repair/rollback/notify/promote authority, human decision
+required, and source evidence not overwritten.
+
 ### Pass 1: Semantic (Vector) Retrieval
 
 ```python

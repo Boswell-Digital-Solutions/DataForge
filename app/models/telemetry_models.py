@@ -276,3 +276,48 @@ class TelemetryRoutineAggregateV1Record(Base):
     policy_sha256 = Column(String(64), nullable=False)
     policy_mode = Column(String(16), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class IncidentCandidateV1Record(Base):
+    """Immutable CP6 derived candidate; never incident or action authority."""
+
+    __tablename__ = "telemetry_incident_candidates_v1"
+
+    candidate_id = Column(UUID(as_uuid=True), primary_key=True)
+    payload_digest = Column(String(64), nullable=False)
+    payload = Column(JSON, nullable=False)
+    fingerprint_version = Column(String(64), nullable=False)
+    fingerprint_sha256 = Column(String(64), nullable=False, unique=True, index=True)
+    environment = Column(Text, nullable=False, index=True)
+    tenant_ref = Column(Text, nullable=True, index=True)
+    correlation_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    trace_ids = Column(JSON, nullable=False)
+    window_clock_basis = Column(String(32), nullable=False)
+    window_start_at = Column(DateTime(timezone=True), nullable=False)
+    window_end_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    suspected_cause_code = Column(String(96), nullable=False, index=True)
+    confidence_basis_points = Column(Integer, nullable=False)
+    confidence_method = Column(String(32), nullable=False)
+    uncertainty_state = Column(String(16), nullable=False)
+    privacy_class = Column(String(16), nullable=False)
+    analysis_kind = Column(String(32), nullable=False)
+    producer_service = Column(Text, nullable=False)
+    producer_version = Column(String(64), nullable=False)
+    provider = Column(Text, nullable=True)
+    model = Column(Text, nullable=True)
+    prompt_sha256 = Column(String(64), nullable=True)
+    model_response_sha256 = Column(String(64), nullable=True)
+    run_receipt_ref = Column(Text, nullable=True)
+    candidate_only = Column(Boolean, nullable=False)
+    can_repair = Column(Boolean, nullable=False)
+    can_rollback = Column(Boolean, nullable=False)
+    can_notify = Column(Boolean, nullable=False)
+    can_promote = Column(Boolean, nullable=False)
+    requires_human_decision = Column(Boolean, nullable=False)
+    source_overwritten = Column(Boolean, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    received_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
