@@ -29,6 +29,9 @@ All configuration is injected via environment variables. There are no config fil
 | `DATAFORGE_TELEMETRY_DB_IDLE_IN_TX_TIMEOUT_MS` | int | `5000` | NO | Database-enforced idle transaction timeout; `1000..30000` |
 | `DATAFORGE_TELEMETRY_INGEST_RATE_PER_SECOND` | float | `20` | NO | Per-process admission rate before connection checkout; `0.1..100` |
 | `DATAFORGE_TELEMETRY_INGEST_RATE_BURST` | int | `40` | NO | Per-process admission burst; `1..200` |
+| `DATAFORGE_TELEMETRY_RETENTION_SHADOW_READ_ENABLED` | bool | `false` | NO | CP5 bounded shadow projection only; never applies deletion |
+| `DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED` | bool | `false` | NO | CP6 fail-closed candidate admission switch |
+| `DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED` | bool | `false` | NO | CP6 fail-closed bounded Forge_Command projection switch |
 | `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
 | `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
 | `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
@@ -78,6 +81,12 @@ downstream. Only a content-bound `inserted` or `exact_replay` receipt removes a
 row. `indeterminate` rows remain paused until an operator explicitly accepts
 duplicate risk; the application never retries them automatically. Unset the
 spool path to roll back to direct canonical HTTP.
+
+CP6 admission and read are independent. Keep both incident-candidate switches
+false until migration `20260725_03`, the `dataforge_telemetry_ingest` grants/RLS
+policies, the candidate producer key, and the Forge_Command reader key are
+proved. Turning them off stops analysis intake/exposure without deleting
+candidate rows or source evidence.
 
 ## Security & JWT
 

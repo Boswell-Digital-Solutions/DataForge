@@ -26,7 +26,13 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical ForgeEvent.v1 capability and ingest, friction ingest |
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/api/v1/telemetry/incidents/candidates`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical telemetry evidence, CP6 candidate-only analysis, friction ingest |
+
+Forge_Command is the first CP6 consumer. It receives a bounded, read-only
+candidate projection and must label every row as derived/candidate-only.
+NeuroForge may propose model-assisted candidates only with complete model
+provenance. Neither consumer nor producer receives authority from the candidate
+to execute a repair, rollback, notification, or promotion.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 Forge:SMITH and other producers use the authenticated canonical telemetry HTTP

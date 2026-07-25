@@ -15,6 +15,7 @@ DataForge/
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── telemetry_database.py         # Isolated least-privilege telemetry pool
+│   ├── telemetry_incidents.py        # CP6 source proof + deterministic candidates
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
@@ -29,7 +30,7 @@ DataForge/
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
 │   │   ├── authorforge_analytics_models.py / _schemas.py
 │   │   │                                               # Dedicated strict content-free analytics v1
-│   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
+│   │   ├── telemetry_models.py / _schemas.py            # Canonical evidence, derivations, and CP6 candidate contracts
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance

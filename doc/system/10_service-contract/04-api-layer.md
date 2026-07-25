@@ -1,6 +1,6 @@
 # §4 — API Layer
 
-*Last updated: 2026-07-24*
+*Last updated: 2026-07-25*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
 on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
@@ -36,7 +36,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, canonical ForgeEvent.v1 capability and ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST/GET /api/v1/telemetry/incidents/candidates`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard events, canonical telemetry evidence, candidate-only CP6 analysis, and Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
@@ -74,6 +74,31 @@ Credential requirements vary by router. The live mounted service currently uses 
 - Each process admits at most 20 telemetry events/second with a 40-event burst
   before connection checkout. The telemetry pool is two connections with zero
   overflow and finite checkout/connect/statement/lock/transaction timeouts.
+
+## CP6 Incident Candidate Boundary
+
+- `POST /api/v1/telemetry/incidents/candidates` admits exactly one
+  `IncidentCandidate.v1`. The caller must have
+  `telemetry:write:incident-candidates`, match the candidate environment and
+  tenant, and be bound to the exact `dataforge` or `neuroforge` producer.
+- The initial DataForge admission slice proves every source hash and observed
+  time against immutable `ForgeEvent.v1` or `ForgeCheckResult.v1` rows. Other
+  source kinds allowed by the shared contract are rejected as unverifiable
+  until a separately proved durable source mapping exists.
+- Exact candidate replay is idempotent. A new candidate ID with the same
+  versioned fingerprint returns the retained candidate as `deduplicated`.
+- `GET /api/v1/telemetry/incidents/candidates` requires a Forge_Command key
+  bound to the exact environment and tenant with
+  `telemetry:read:incident-candidates`. Restricted/confidential candidates
+  additionally require `telemetry:read:incident-candidates:restricted`.
+- Reads are limited to 25 candidates and 512 KiB. Every stored payload digest,
+  fingerprint, provenance field, scope field, and authority column is checked
+  again before exposure.
+- Both endpoints default disabled under independent read/write switches. The
+  API contains no CP6 repair, rollback, notification, promotion, or incident
+  declaration route.
+- `derived_candidate` means analysis evidence only. It is not incident truth,
+  does not overwrite source evidence, and always requires a human decision.
 
 ## DataForge Producer Contract
 

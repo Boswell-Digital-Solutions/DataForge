@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.4 (2026-07-24) — CP2 bounded-recovery producer pilot
+**Document version:** 2.5 (2026-07-25) — CP6 candidate-only incident analysis
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -438,6 +438,7 @@ DataForge/
 │   ├── main.py                       # FastAPI app + lifespan + router registration (45 mounted routers)
 │   ├── database.py                   # SQLAlchemy engine, SessionLocal, get_db()
 │   ├── telemetry_database.py         # Isolated least-privilege telemetry pool
+│   ├── telemetry_incidents.py        # CP6 source proof + deterministic candidates
 │   ├── config.py                     # Environment config and validation
 │   ├── security_config.py            # Security policy helpers
 │   ├── logging_config.py             # Structured logging setup
@@ -452,7 +453,7 @@ DataForge/
 │   │   ├── authorforge_v2_models.py / _schemas.py      # Legacy mappings; migration/audit only
 │   │   ├── authorforge_analytics_models.py / _schemas.py
 │   │   │                                               # Dedicated strict content-free analytics v1
-│   │   ├── telemetry_models.py / _schemas.py            # Canonical events mapping + generic ingest contract
+│   │   ├── telemetry_models.py / _schemas.py            # Canonical evidence, derivations, and CP6 candidate contracts
 │   │   ├── bugcheck_models.py / _schemas.py            # BugCheck runs, findings, enrichments
 │   │   ├── buildguard_models.py / _schemas.py          # BuildGuard quality gate records
 │   │   ├── compression_models.py / _schemas.py         # Compression dictionary governance
@@ -690,7 +691,7 @@ Always run `alembic upgrade head` after pulling new code.
 
 # §4 — API Layer
 
-*Last updated: 2026-07-24*
+*Last updated: 2026-07-25*
 
 The live API contract is whatever `app.main:app` mounts. A route audit against `app.routes`
 on 2026-07-20 confirmed `45` mounted router objects plus app-level docs, HTML views, and
@@ -726,7 +727,7 @@ There is **no root `/metrics` route mounted by default** in the current app.
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
 | Agents, runs, and BugCheck | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/bugcheck`, `/api/v1/experience` | `POST /api/v1/agents`, `POST /api/v1/forge-run/persist`, `POST /api/v1/bugcheck/runs/{run_id}/findings`, `POST /api/v1/experience` | Agent registry, execution evidence, BugCheck persistence, experience store |
 | Governance and runtime shaping | `/api/v1/runtime-promotion`, `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing` | `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`, `POST /api/v1/runtime-promotion/candidates/{candidate_id}/approve`, `PUT /api/v1/policy-envelopes/{policy_key}`, `POST /api/v1/policy-runs/ledger` | Promotion receipts, candidate review, deterministic policy envelopes, bandit state, reward records |
-| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard event ingest, canonical ForgeEvent.v1 capability and ingest, Tarcie friction ingest |
+| Diligence and event persistence | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry`, `/ingest/tarcie` | `POST /api/diligence/reviews`, `POST /api/diligence/findings`, `POST /api/v1/events`, `GET /api/v1/telemetry/capabilities/forge-event-v1`, `POST /api/v1/telemetry/events`, `POST/GET /api/v1/telemetry/incidents/candidates`, `POST /ingest/tarcie` | Compliance review workflows, BuildGuard events, canonical telemetry evidence, candidate-only CP6 analysis, and Tarcie friction ingest |
 | Platform and operator data surfaces | `/secrets`, `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits`, `/api/v1/sentinel`, `/api/compression/dictionaries`, `/api/v1/press`, `/api/v1/private-source-profiles` | `POST /secrets/sync`, `POST /api/v1/rate-limits/check`, `POST /api/v1/sentinel/sweeps`, `POST /api/compression/dictionaries`, `POST /api/v1/private-source-profiles`, `POST /api/v1/press/automation/runs` | Secrets relay, catalog/pricing/costs, rate-limit governance, Sentinel persistence, compression dictionaries, private-source profiles, and PressForge automation |
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
@@ -764,6 +765,31 @@ Credential requirements vary by router. The live mounted service currently uses 
 - Each process admits at most 20 telemetry events/second with a 40-event burst
   before connection checkout. The telemetry pool is two connections with zero
   overflow and finite checkout/connect/statement/lock/transaction timeouts.
+
+## CP6 Incident Candidate Boundary
+
+- `POST /api/v1/telemetry/incidents/candidates` admits exactly one
+  `IncidentCandidate.v1`. The caller must have
+  `telemetry:write:incident-candidates`, match the candidate environment and
+  tenant, and be bound to the exact `dataforge` or `neuroforge` producer.
+- The initial DataForge admission slice proves every source hash and observed
+  time against immutable `ForgeEvent.v1` or `ForgeCheckResult.v1` rows. Other
+  source kinds allowed by the shared contract are rejected as unverifiable
+  until a separately proved durable source mapping exists.
+- Exact candidate replay is idempotent. A new candidate ID with the same
+  versioned fingerprint returns the retained candidate as `deduplicated`.
+- `GET /api/v1/telemetry/incidents/candidates` requires a Forge_Command key
+  bound to the exact environment and tenant with
+  `telemetry:read:incident-candidates`. Restricted/confidential candidates
+  additionally require `telemetry:read:incident-candidates:restricted`.
+- Reads are limited to 25 candidates and 512 KiB. Every stored payload digest,
+  fingerprint, provenance field, scope field, and authority column is checked
+  again before exposure.
+- Both endpoints default disabled under independent read/write switches. The
+  API contains no CP6 repair, rollback, notification, promotion, or incident
+  declaration route.
+- `derived_candidate` means analysis evidence only. It is not incident truth,
+  does not overwrite source evidence, and always requires a human decision.
 
 ## DataForge Producer Contract
 
@@ -1294,6 +1320,22 @@ The canonical ingest route resolves `get_telemetry_db()`, not the shared
 `dataforge_telemetry_ingest` group role, least-privilege grants, and RLS
 policies. Runtime preflight verifies the distinct login's group membership and
 non-privileged posture before allowing persistence.
+
+## CP6 Candidate Derivation
+
+`app/telemetry_incidents.py` builds deterministic-rules candidates from a
+failed, timed-out, blocked, or indeterminate check and same-scope correlated
+events. The output names exact source record IDs and hashes, the evidence-time
+window and clock, privacy/retention/legal classes, suspected cause,
+alternatives, confidence calibration, explicit uncertainty, and missing
+deployment/configuration/baseline/trace evidence.
+
+The builder records null provider/model/prompt/response fields because no model
+participates. A NeuroForge submission must instead carry complete provider,
+model, prompt hash, response hash, and run receipt provenance. Both paths use
+the versioned content fingerprint and the same immutable candidate authority:
+candidate-only, no repair/rollback/notify/promote authority, human decision
+required, and source evidence not overwritten.
 
 ### Pass 1: Semantic (Vector) Retrieval
 
@@ -1908,7 +1950,7 @@ surface are re-audited.
 | Component | Notes |
 |-----------|-------|
 | Logging stack | Structured JSON logging plus correlation IDs on the mounted app surface |
-| forge-telemetry | Immutable commit pin providing `ForgeEvent.v1` validation, bounded canonical HTTP submission, and the opt-in private SQLite recovery spool |
+| forge-telemetry | Immutable commit pin providing canonical telemetry contracts, including strict `IncidentCandidate.v1` validation, digest/fingerprint helpers, bounded HTTP submission, and the opt-in private SQLite recovery spool |
 | Telemetry PostgreSQL pool | Dedicated least-privilege login, pool size 2, overflow 0, database-side timeouts, and pre-checkout rate budget |
 | Security headers / timeout middleware | Active in the mounted FastAPI app |
 | OpenTelemetry / metrics helpers | Present in source, but the tracing/metrics routers are not mounted by default |
@@ -1969,7 +2011,13 @@ module present in the repo.
 | PressForge | `/api/v1/press` | Automation jobs, runs, logs, overrides, media workflows, campaign state |
 | Pricing / provider governance | `/api/v1/models`, `/api/v1/pricing`, `/api/v1/costs`, `/api/v1/batch`, `/api/v1/rate-limits` | Catalog, pricing snapshots, cost ledgers, batch queue, rate-limit state |
 | Policy and runtime shaping | `/api/v1/policy-envelopes`, `/api/v1/policy-runs`, `/api/v1/policy-routing`, `/api/v1/runtime-promotion` | Deterministic policy envelopes, ledgers, reward records, runtime-promotion receipts/candidates |
-| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical ForgeEvent.v1 capability and ingest, friction ingest |
+| Diligence / events / telemetry / Tarcie | `/api/diligence`, `/api/v1/events`, `/api/v1/telemetry/capabilities/forge-event-v1`, `/api/v1/telemetry/events`, `/api/v1/telemetry/incidents/candidates`, `/ingest/tarcie` | Compliance review records, BuildGuard events, canonical telemetry evidence, CP6 candidate-only analysis, friction ingest |
+
+Forge_Command is the first CP6 consumer. It receives a bounded, read-only
+candidate projection and must label every row as derived/candidate-only.
+NeuroForge may propose model-assisted candidates only with complete model
+provenance. Neither consumer nor producer receives authority from the candidate
+to execute a repair, rollback, notification, or promotion.
 | Private source ingestion | `/api/v1/private-source-profiles` | Operator-curated source profile persistence |
 
 Forge:SMITH and other producers use the authenticated canonical telemetry HTTP
@@ -2356,6 +2404,9 @@ All configuration is injected via environment variables. There are no config fil
 | `DATAFORGE_TELEMETRY_DB_IDLE_IN_TX_TIMEOUT_MS` | int | `5000` | NO | Database-enforced idle transaction timeout; `1000..30000` |
 | `DATAFORGE_TELEMETRY_INGEST_RATE_PER_SECOND` | float | `20` | NO | Per-process admission rate before connection checkout; `0.1..100` |
 | `DATAFORGE_TELEMETRY_INGEST_RATE_BURST` | int | `40` | NO | Per-process admission burst; `1..200` |
+| `DATAFORGE_TELEMETRY_RETENTION_SHADOW_READ_ENABLED` | bool | `false` | NO | CP5 bounded shadow projection only; never applies deletion |
+| `DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED` | bool | `false` | NO | CP6 fail-closed candidate admission switch |
+| `DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED` | bool | `false` | NO | CP6 fail-closed bounded Forge_Command projection switch |
 | `DATAFORGE_TELEMETRY_BASE_URL` | URL | unset | For emission | Explicit canonical DataForge ingest origin; no deployment-URL inference |
 | `DATAFORGE_TELEMETRY_API_KEY` | secret | unset | For emission | Dedicated `telemetry:write` key bound to `service_name=dataforge`, exact `ENVIRONMENT`, and `tenant_ref=null`; never falls back to `DATAFORGE_API_KEY` |
 | `DATAFORGE_TELEMETRY_TIMEOUT` | float seconds | `5` | NO | Positive finite canonical transport timeout |
@@ -2405,6 +2456,12 @@ downstream. Only a content-bound `inserted` or `exact_replay` receipt removes a
 row. `indeterminate` rows remain paused until an operator explicitly accepts
 duplicate risk; the application never retries them automatically. Unset the
 spool path to roll back to direct canonical HTTP.
+
+CP6 admission and read are independent. Keep both incident-candidate switches
+false until migration `20260725_03`, the `dataforge_telemetry_ingest` grants/RLS
+policies, the candidate producer key, and the Forge_Command reader key are
+proved. Turning them off stops analysis intake/exposure without deleting
+candidate rows or source evidence.
 
 ## Security & JWT
 
@@ -2629,7 +2686,7 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 
 # §15 — Testing
 
-*Last updated: 2026-07-24*
+*Last updated: 2026-07-25*
 
 ## Current Audited Snapshot
 
@@ -2700,6 +2757,14 @@ without PostgreSQL or Redis.
 - `tests/test_seed_model_catalog.py`
 - `tests/test_sql_integration.py`
 - `tests/test_token_revocation.py`
+- `tests/test_telemetry_incidents.py` — CP6 derivation, source-hash proof,
+  idempotency/deduplication, exact producer/reader binding, restricted
+  projection, kill switches, route inventory, and corrupt-authority rejection.
+
+The CP6 PostgreSQL proof is
+`scripts/prove_telemetry_cp6_postgres.sh`. It verifies migration
+`20260725_03`, least-privilege grants/RLS, hard false action constraints,
+backup/restore, evidence-retaining downgrade, and re-upgrade.
 
 ### Unit / Security / Load
 
@@ -3080,6 +3145,7 @@ mounted consumers are actually using Redis-backed derived state. If Redis memory
 | `/home/charlie/Forge/ecosystem/DataForge/app/main.py` | FastAPI app, router registration, lifespan |
 | `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_client.py` | Canonical privacy-bounded search producer, opt-in bounded SQLite recovery, capability health, finite shutdown |
 | `/home/charlie/Forge/ecosystem/DataForge/app/telemetry_database.py` | Isolated canonical telemetry PostgreSQL pool, least-privilege role preflight, timeouts, and rate budget |
+| `/home/charlie/Forge/ecosystem/cloud-systems/DataForge/app/telemetry_incidents.py` | CP6 evidence-grounded deterministic candidate builder and immutable source verifier |
 | `/home/charlie/Forge/ecosystem/DataForge/app/database.py` | SQLAlchemy engine, session factory |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/models.py` | Core shared ORM tables only |
 | `/home/charlie/Forge/ecosystem/DataForge/app/models/schemas.py` | Core shared schemas only |
@@ -3105,9 +3171,18 @@ The current canonical reference is generated `doc/DTFSYSTEM.md`, assembled from 
 When older phase summaries or historical completion documents conflict with the generated
 system docs, the generated system docs win.
 
+## CP6 Rollback Invariant
+
+Disable `DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED` and
+`DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED`, then rotate the dedicated producer
+and reader keys. Downgrading from `20260725_03` revokes CP6 table policies and
+runtime grants but deliberately retains all candidate rows. Source evidence is
+never rewritten or deleted. CP6 rollback does not restore a legacy incident
+path and does not authorize CP7.
+
 ---
 
-*Forge Documentation Protocol v2 — Last updated: 2026-07-24*
+*Forge Documentation Protocol v2 — Last updated: 2026-07-25*
 
 ---
 
@@ -3125,6 +3200,7 @@ Appendices, glossary, and cross-references.
 | 2.1 | 2026-07-23 | Documented the authority-pinned FT-02 65,536-byte complete canonical telemetry-event boundary and stable `event_size_exceeded` behavior. |
 | 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
 | 2.3 | 2026-07-23 | Replaced DataForge search's pre-v1 direct-database emitter with the privacy-bounded canonical async HTTP producer and finite shutdown contract. |
+| 2.5 | 2026-07-25 | Added CP6 evidence-grounded, candidate-only incident analysis with strict provenance, source proof, bounded read exposure, and evidence-preserving rollback. |
 
 ## Unmapped legacy chapters
 

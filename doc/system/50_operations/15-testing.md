@@ -1,6 +1,6 @@
 # §15 — Testing
 
-*Last updated: 2026-07-24*
+*Last updated: 2026-07-25*
 
 ## Current Audited Snapshot
 
@@ -71,6 +71,14 @@ without PostgreSQL or Redis.
 - `tests/test_seed_model_catalog.py`
 - `tests/test_sql_integration.py`
 - `tests/test_token_revocation.py`
+- `tests/test_telemetry_incidents.py` — CP6 derivation, source-hash proof,
+  idempotency/deduplication, exact producer/reader binding, restricted
+  projection, kill switches, route inventory, and corrupt-authority rejection.
+
+The CP6 PostgreSQL proof is
+`scripts/prove_telemetry_cp6_postgres.sh`. It verifies migration
+`20260725_03`, least-privilege grants/RLS, hard false action constraints,
+backup/restore, evidence-retaining downgrade, and re-upgrade.
 
 ### Unit / Security / Load
 

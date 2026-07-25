@@ -15,8 +15,8 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
-# Canonical ForgeEvent.v1 model, bounded HTTP transport, and recovery spool.
-forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@c464f2ae207ac3d23602c1244d583ced43da65f8
+# Canonical telemetry models, including IncidentCandidate.v1, and transport.
+forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@804706640050e76eb8069bd2fb064eaadfc612ee
 git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@master#egg=forge-contract-core
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0

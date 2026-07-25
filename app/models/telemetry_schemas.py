@@ -16,7 +16,9 @@ import rfc8785
 from forge_telemetry import (
     ForgeCheckResultV1,
     ForgeCheckRunReceiptV1,
+    IncidentCandidateV1,
     TelemetryDerivationReceiptV1,
+    incident_candidate_digest,
 )
 from pydantic import (
     BaseModel,
@@ -549,6 +551,77 @@ class TelemetryRetentionShadowReadV1(BaseModel):
     shared_state: Literal["available", "missing", "partial", "restricted"]
     decisions: list[TelemetryRetentionDecisionReadItemV1]
     aggregates: list[TelemetryRoutineAggregateReadItemV1]
+    observed_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class IncidentCandidateSubmissionV1(BaseModel):
+    """Scope-bound envelope for one immutable CP6 candidate."""
+
+    schema_version: Literal["forge.dataforge.incident-candidate.v1"]
+    environment: str
+    tenant_ref: str | None
+    candidate: IncidentCandidateV1
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("environment", "tenant_ref")
+    @classmethod
+    def scope_is_canonical(cls, value: str | None) -> str | None:
+        if value is not None and IDENTIFIER_PATTERN.fullmatch(value) is None:
+            raise ValueError("incident candidate scope is invalid")
+        return value
+
+    @model_validator(mode="after")
+    def candidate_is_exactly_scope_bound(self) -> IncidentCandidateSubmissionV1:
+        if (
+            self.candidate.environment != self.environment
+            or self.candidate.tenant_ref != self.tenant_ref
+        ):
+            raise ValueError("incident candidate scope mismatch")
+        return self
+
+
+def incident_candidate_payload_digest(candidate: IncidentCandidateV1) -> str:
+    """Return the exact canonical digest for immutable candidate storage."""
+
+    return incident_candidate_digest(candidate)
+
+
+class IncidentCandidateIngestResponseV1(BaseModel):
+    schema_version: Literal[
+        "forge.dataforge.incident-candidate.ingest.v1"
+    ] = "forge.dataforge.incident-candidate.ingest.v1"
+    candidate_id: UUID
+    candidate_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fingerprint_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    received_at: datetime
+    identity_outcome: Literal["inserted", "exact_replay", "deduplicated"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class IncidentCandidateReadItemV1(BaseModel):
+    candidate: IncidentCandidateV1
+    candidate_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    received_at: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class IncidentCandidateReadV1(BaseModel):
+    """Bounded candidate-only CP6 projection for Forge_Command."""
+
+    schema_version: Literal[
+        "forge.dataforge.incident-candidate.read.v1"
+    ] = "forge.dataforge.incident-candidate.read.v1"
+    environment: str
+    tenant_ref: str | None
+    shared_state: Literal["available", "missing", "partial", "restricted"]
+    candidate_only: Literal[True] = True
+    actions_enabled: Literal[False] = False
+    candidates: list[IncidentCandidateReadItemV1]
     observed_at: datetime
 
     model_config = ConfigDict(extra="forbid")

@@ -160,6 +160,8 @@ def _writer_enabled() -> bool:
         "DATAFORGE_FORGE_CHECK_EVIDENCE_WRITE_ENABLED",
         "DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED",
         "DATAFORGE_TELEMETRY_RETENTION_SHADOW_READ_ENABLED",
+        "DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED",
+        "DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED",
     )
     return any(
         os.getenv(name, "false").strip().lower() in {"1", "true", "yes", "on"}
