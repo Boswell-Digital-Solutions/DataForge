@@ -1,0 +1,37 @@
+{
+  "schema_version": "forge.dataforge.telemetry-retention-policy.v1",
+  "policy_id": "bds.telemetry.retention",
+  "version": "1.0.0-shadow",
+  "mode": "shadow",
+  "clock_basis": "received_at",
+  "producer_version": "cp5.shadow.v1",
+  "slow_check_threshold_ms": 2000,
+  "source_limit": 500,
+  "retention_days": {
+    "ephemeral": 1,
+    "short": 7,
+    "standard": 30,
+    "long": 365
+  },
+  "failure_retention_days": 90,
+  "governed_retention_days": 365,
+  "sampled_normal_trace_retention_days": 7,
+  "check_evidence_default_retention_class": "standard",
+  "check_evidence_default_legal_class": "standard",
+  "routine_success_action": "aggregate_then_delete",
+  "sampled_normal_trace_action": "retain",
+  "failure_action": "retain",
+  "governed_action": "retain",
+  "legal_hold_action": "legal_hold",
+  "deletion_enabled": false,
+  "source_overwrite_enabled": false,
+  "aggregate_dimensions": [
+    "evidence_kind",
+    "service_or_check",
+    "environment",
+    "tenant_ref",
+    "privacy_class",
+    "retention_class",
+    "decision_reason"
+  ]
+}

@@ -21,7 +21,7 @@ from forge_telemetry import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FORGE_TELEMETRY_COMMIT = "0e87ee2ccf14407be0ed007c878e59058354d51e"
+FORGE_TELEMETRY_COMMIT = "c464f2ae207ac3d23602c1244d583ced43da65f8"
 
 
 class FakeCanonicalTransport:

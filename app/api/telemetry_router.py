@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from forge_telemetry import TelemetryDerivationReceiptV1
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
@@ -21,6 +22,9 @@ from app.models.telemetry_models import (
     ForgeCheckResultV1Record,
     ForgeCheckRunReceiptV1Record,
     ForgeEventV1Record,
+    TelemetryDerivationReceiptV1Record,
+    TelemetryRetentionDecisionV1Record,
+    TelemetryRoutineAggregateV1Record,
 )
 from app.models.telemetry_schemas import (
     ForgeCheckEvidenceIngestResponseV1,
@@ -32,10 +36,21 @@ from app.models.telemetry_schemas import (
     ForgeEventV1IngestResponse,
     ForgeEventV1Submission,
     ForgeTelemetrySinkCapabilityV1,
+    TelemetryRetentionDecisionReadItemV1,
+    TelemetryRetentionShadowReadV1,
+    TelemetryRoutineAggregatePayloadV1,
+    TelemetryRoutineAggregateReadItemV1,
     event_digest,
     forge_check_payload_digest,
     forge_event_v1_write_enabled,
     forge_telemetry_sink_capability,
+)
+from app.telemetry_retention import (
+    RETENTION_CLOCK_BASIS,
+    RETENTION_POLICY_ID,
+    RETENTION_POLICY_MODE,
+    RETENTION_POLICY_SHA256,
+    RETENTION_POLICY_VERSION,
 )
 from app.telemetry_database import (
     get_telemetry_db,
@@ -49,6 +64,8 @@ MAX_CORRELATION_EVENTS = 200
 MAX_CORRELATION_RESPONSE_BYTES = 256 * 1024
 MAX_CHECK_EVIDENCE_ITEMS = 200
 MAX_CHECK_EVIDENCE_RESPONSE_BYTES = 256 * 1024
+MAX_RETENTION_SHADOW_ITEMS = 50
+MAX_RETENTION_SHADOW_RESPONSE_BYTES = 512 * 1024
 
 
 class EventIdentityConflict(ValueError):
@@ -86,6 +103,20 @@ def forge_check_evidence_read_enabled() -> bool:
 
     return (
         os.getenv("DATAFORGE_FORGE_CHECK_EVIDENCE_READ_ENABLED", "false")
+        .strip()
+        .lower()
+        == "true"
+    )
+
+
+def telemetry_retention_shadow_read_enabled() -> bool:
+    """Fail closed unless the CP5 read-only shadow projection is enabled."""
+
+    return (
+        os.getenv(
+            "DATAFORGE_TELEMETRY_RETENTION_SHADOW_READ_ENABLED",
+            "false",
+        )
         .strip()
         .lower()
         == "true"
@@ -181,6 +212,39 @@ def _authorize_check_evidence_read(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "telemetry_subject_binding_mismatch"},
         )
+
+
+def _authorize_retention_shadow_read(
+    auth: AuthContext,
+    *,
+    environment: str,
+    tenant_ref: str | None,
+) -> set[str]:
+    """Require Forge_Command's dedicated CP5 read identity and exact scope."""
+
+    if auth.auth_mode != "api_key" or auth.key_info is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_service_key_required"},
+        )
+    metadata = auth.key_info.metadata or {}
+    scopes = metadata.get("scopes")
+    if not isinstance(scopes, list) or "telemetry:read:retention" not in scopes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_retention_read_scope_required"},
+        )
+    expected_binding = {
+        "service_name": "forge_command",
+        "environment": environment,
+        "tenant_ref": tenant_ref,
+    }
+    if any(metadata.get(field) != value for field, value in expected_binding.items()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "telemetry_subject_binding_mismatch"},
+        )
+    return {scope for scope in scopes if isinstance(scope, str)}
 
 
 def _admit_telemetry_rate_budget(
@@ -780,6 +844,246 @@ def read_forge_event_correlation(
         if partial
         else ("available" if summaries else "missing"),
         events=summaries,
+        observed_at=observed_at,
+    )
+
+
+@router.get(
+    "/retention/shadow",
+    response_model=TelemetryRetentionShadowReadV1,
+)
+def read_telemetry_retention_shadow(
+    environment: str = Query(min_length=1, max_length=128),
+    tenant_ref: str | None = Query(default=None, max_length=128),
+    db: Session | None = Depends(get_telemetry_db),
+    auth: AuthContext = Depends(require_api_key),
+) -> TelemetryRetentionShadowReadV1:
+    """Return bounded, read-only CP5 shadow decisions and aggregates."""
+
+    if not telemetry_retention_shadow_read_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_retention_shadow_read_disabled"},
+        )
+    scopes = _authorize_retention_shadow_read(
+        auth,
+        environment=environment,
+        tenant_ref=tenant_ref,
+    )
+    if db is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_database_configuration_invalid"},
+        )
+
+    decision_query = (
+        select(
+            TelemetryRetentionDecisionV1Record,
+            TelemetryDerivationReceiptV1Record,
+        )
+        .join(
+            TelemetryDerivationReceiptV1Record,
+            TelemetryRetentionDecisionV1Record.receipt_id
+            == TelemetryDerivationReceiptV1Record.receipt_id,
+        )
+        .where(
+            TelemetryRetentionDecisionV1Record.environment == environment,
+            TelemetryRetentionDecisionV1Record.policy_mode == RETENTION_POLICY_MODE,
+        )
+        .order_by(
+            TelemetryRetentionDecisionV1Record.window_end_at.desc(),
+            TelemetryRetentionDecisionV1Record.decision_id,
+        )
+        .limit(MAX_RETENTION_SHADOW_ITEMS + 1)
+    )
+    aggregate_query = (
+        select(
+            TelemetryRoutineAggregateV1Record,
+            TelemetryDerivationReceiptV1Record,
+        )
+        .join(
+            TelemetryDerivationReceiptV1Record,
+            TelemetryRoutineAggregateV1Record.receipt_id
+            == TelemetryDerivationReceiptV1Record.receipt_id,
+        )
+        .where(
+            TelemetryRoutineAggregateV1Record.environment == environment,
+            TelemetryRoutineAggregateV1Record.policy_mode == RETENTION_POLICY_MODE,
+        )
+        .order_by(
+            TelemetryRoutineAggregateV1Record.window_end_at.desc(),
+            TelemetryRoutineAggregateV1Record.aggregate_id,
+        )
+        .limit(MAX_RETENTION_SHADOW_ITEMS + 1)
+    )
+    if tenant_ref is None:
+        decision_query = decision_query.where(
+            TelemetryRetentionDecisionV1Record.tenant_ref.is_(None)
+        )
+        aggregate_query = aggregate_query.where(
+            TelemetryRoutineAggregateV1Record.tenant_ref.is_(None)
+        )
+    else:
+        decision_query = decision_query.where(
+            TelemetryRetentionDecisionV1Record.tenant_ref == tenant_ref
+        )
+        aggregate_query = aggregate_query.where(
+            TelemetryRoutineAggregateV1Record.tenant_ref == tenant_ref
+        )
+
+    try:
+        raw_decisions = list(db.execute(decision_query).all())
+        raw_aggregates = list(db.execute(aggregate_query).all())
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_persistence_unavailable"},
+        ) from exc
+
+    partial = (
+        len(raw_decisions) > MAX_RETENTION_SHADOW_ITEMS
+        or len(raw_aggregates) > MAX_RETENTION_SHADOW_ITEMS
+    )
+    raw_decisions = raw_decisions[:MAX_RETENTION_SHADOW_ITEMS]
+    raw_aggregates = raw_aggregates[:MAX_RETENTION_SHADOW_ITEMS]
+    can_read_restricted = "telemetry:read:retention:restricted" in scopes
+    restricted_count = 0
+    decisions: list[TelemetryRetentionDecisionReadItemV1] = []
+    aggregates: list[TelemetryRoutineAggregateReadItemV1] = []
+    observed_at = datetime.now(UTC)
+
+    try:
+        for record, receipt_record in raw_decisions:
+            if (
+                record.privacy_class in {"restricted", "confidential"}
+                and not can_read_restricted
+            ):
+                restricted_count += 1
+                continue
+            receipt = TelemetryDerivationReceiptV1.model_validate(
+                receipt_record.payload
+            )
+            decisions.append(
+                TelemetryRetentionDecisionReadItemV1(
+                    decision_id=record.decision_id,
+                    source_kind=record.source_kind,
+                    source_ref=record.source_ref,
+                    source_sha256=record.source_sha256,
+                    source_received_at=record.source_received_at,
+                    service_or_check=record.service_or_check,
+                    environment=record.environment,
+                    tenant_ref=record.tenant_ref,
+                    privacy_class=record.privacy_class,
+                    retention_class=record.retention_class,
+                    legal_class=record.legal_class,
+                    action=record.action,
+                    reason_code=record.reason_code,
+                    projected_delete_at=record.projected_delete_at,
+                    applied=record.applied,
+                    source_overwritten=record.source_overwritten,
+                    receipt=receipt,
+                )
+            )
+            size_probe = _retention_shadow_response(
+                environment=environment,
+                tenant_ref=tenant_ref,
+                decisions=decisions,
+                aggregates=aggregates,
+                observed_at=observed_at,
+                shared_state="partial",
+            )
+            if len(size_probe.model_dump_json().encode()) > (
+                MAX_RETENTION_SHADOW_RESPONSE_BYTES
+            ):
+                decisions.pop()
+                partial = True
+                break
+
+        remaining = MAX_RETENTION_SHADOW_ITEMS - len(decisions)
+        if len(raw_aggregates) > remaining:
+            partial = True
+        for record, receipt_record in raw_aggregates[:remaining]:
+            if (
+                record.privacy_class in {"restricted", "confidential"}
+                and not can_read_restricted
+            ):
+                restricted_count += 1
+                continue
+            receipt = TelemetryDerivationReceiptV1.model_validate(
+                receipt_record.payload
+            )
+            aggregate = TelemetryRoutineAggregatePayloadV1.model_validate(
+                record.payload
+            )
+            aggregates.append(
+                TelemetryRoutineAggregateReadItemV1(
+                    aggregate=aggregate,
+                    receipt=receipt,
+                )
+            )
+            size_probe = _retention_shadow_response(
+                environment=environment,
+                tenant_ref=tenant_ref,
+                decisions=decisions,
+                aggregates=aggregates,
+                observed_at=observed_at,
+                shared_state="partial",
+            )
+            if len(size_probe.model_dump_json().encode()) > (
+                MAX_RETENTION_SHADOW_RESPONSE_BYTES
+            ):
+                aggregates.pop()
+                partial = True
+                break
+    except (TypeError, ValueError) as exc:
+        logger.error(
+            "CP5 telemetry retention projection rejected stored evidence",
+            extra={"environment": environment, "tenant_ref": tenant_ref},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "telemetry_retention_evidence_invalid"},
+        ) from exc
+
+    if restricted_count:
+        partial = bool(decisions or aggregates) or partial
+    if decisions or aggregates:
+        shared_state = "partial" if partial else "available"
+    elif restricted_count:
+        shared_state = "restricted"
+    else:
+        shared_state = "missing"
+    return _retention_shadow_response(
+        environment=environment,
+        tenant_ref=tenant_ref,
+        decisions=decisions,
+        aggregates=aggregates,
+        observed_at=observed_at,
+        shared_state=shared_state,
+    )
+
+
+def _retention_shadow_response(
+    *,
+    environment: str,
+    tenant_ref: str | None,
+    decisions: list[TelemetryRetentionDecisionReadItemV1],
+    aggregates: list[TelemetryRoutineAggregateReadItemV1],
+    observed_at: datetime,
+    shared_state: str,
+) -> TelemetryRetentionShadowReadV1:
+    return TelemetryRetentionShadowReadV1(
+        environment=environment,
+        tenant_ref=tenant_ref,
+        policy_id=RETENTION_POLICY_ID,
+        policy_version=RETENTION_POLICY_VERSION,
+        policy_sha256=RETENTION_POLICY_SHA256,
+        policy_mode=RETENTION_POLICY_MODE,
+        clock_basis=RETENTION_CLOCK_BASIS,
+        deletion_enabled=False,
+        shared_state=shared_state,
+        decisions=decisions,
+        aggregates=aggregates,
         observed_at=observed_at,
     )
 

@@ -140,3 +140,139 @@ class ForgeCheckRunReceiptV1Record(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+class TelemetryDerivationReceiptV1Record(Base):
+    """Immutable CP5 derivation provenance; never source evidence."""
+
+    __tablename__ = "telemetry_derivation_receipts_v1"
+    __table_args__ = (
+        UniqueConstraint("derivation_id", name="uq_telemetry_derivation_id"),
+        UniqueConstraint(
+            "output_kind",
+            "output_ref",
+            name="uq_telemetry_derivation_output",
+        ),
+    )
+
+    receipt_id = Column(UUID(as_uuid=True), primary_key=True)
+    derivation_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    payload_digest = Column(String(64), nullable=False)
+    payload = Column(JSON, nullable=False)
+    derivation_type = Column(String(32), nullable=False, index=True)
+    producer_service_name = Column(Text, nullable=False)
+    producer_version = Column(String(64), nullable=False)
+    policy_id = Column(Text, nullable=False, index=True)
+    policy_version = Column(String(64), nullable=False)
+    policy_sha256 = Column(String(64), nullable=False)
+    policy_mode = Column(String(16), nullable=False)
+    clock_basis = Column(String(16), nullable=False)
+    window_start_at = Column(DateTime(timezone=True), nullable=False)
+    window_end_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    output_kind = Column(String(32), nullable=False)
+    output_ref = Column(UUID(as_uuid=True), nullable=False)
+    output_sha256 = Column(String(64), nullable=False)
+    decision_action = Column(String(32), nullable=False)
+    decision_reason_code = Column(String(96), nullable=False)
+    decision_applied = Column(Boolean, nullable=False)
+    source_overwritten = Column(Boolean, nullable=False)
+    uncertainty_state = Column(String(16), nullable=False)
+    source_count = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    received_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class TelemetryRetentionDecisionV1Record(Base):
+    """One shadow retention decision linked to exact source evidence."""
+
+    __tablename__ = "telemetry_retention_decisions_v1"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_kind",
+            "source_ref",
+            "policy_sha256",
+            "window_end_at",
+            name="uq_telemetry_retention_source_policy_window",
+        ),
+    )
+
+    decision_id = Column(UUID(as_uuid=True), primary_key=True)
+    receipt_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "telemetry_derivation_receipts_v1.receipt_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        unique=True,
+    )
+    source_kind = Column(String(32), nullable=False, index=True)
+    source_ref = Column(Text, nullable=False, index=True)
+    source_sha256 = Column(String(64), nullable=False)
+    source_received_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    service_or_check = Column(Text, nullable=False)
+    environment = Column(Text, nullable=False, index=True)
+    tenant_ref = Column(Text, nullable=True, index=True)
+    privacy_class = Column(String(16), nullable=False)
+    retention_class = Column(String(16), nullable=False)
+    legal_class = Column(String(16), nullable=False)
+    policy_id = Column(Text, nullable=False)
+    policy_version = Column(String(64), nullable=False)
+    policy_sha256 = Column(String(64), nullable=False)
+    policy_mode = Column(String(16), nullable=False)
+    clock_basis = Column(String(16), nullable=False)
+    window_start_at = Column(DateTime(timezone=True), nullable=False)
+    window_end_at = Column(DateTime(timezone=True), nullable=False)
+    action = Column(String(32), nullable=False)
+    reason_code = Column(String(96), nullable=False)
+    projected_delete_at = Column(DateTime(timezone=True), nullable=True)
+    applied = Column(Boolean, nullable=False)
+    source_overwritten = Column(Boolean, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class TelemetryRoutineAggregateV1Record(Base):
+    """Routine-success aggregate derived without replacing its sources."""
+
+    __tablename__ = "telemetry_routine_aggregates_v1"
+    __table_args__ = (
+        UniqueConstraint(
+            "group_key",
+            "policy_sha256",
+            "window_end_at",
+            name="uq_telemetry_aggregate_group_policy_window",
+        ),
+    )
+
+    aggregate_id = Column(UUID(as_uuid=True), primary_key=True)
+    receipt_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "telemetry_derivation_receipts_v1.receipt_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        unique=True,
+    )
+    payload_digest = Column(String(64), nullable=False)
+    payload = Column(JSON, nullable=False)
+    group_key = Column(String(64), nullable=False, index=True)
+    evidence_kind = Column(String(32), nullable=False)
+    service_or_check = Column(Text, nullable=False)
+    environment = Column(Text, nullable=False, index=True)
+    tenant_ref = Column(Text, nullable=True, index=True)
+    privacy_class = Column(String(16), nullable=False)
+    retention_class = Column(String(16), nullable=False)
+    decision_reason_code = Column(String(96), nullable=False)
+    source_count = Column(Integer, nullable=False)
+    window_start_at = Column(DateTime(timezone=True), nullable=False)
+    window_end_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    policy_id = Column(Text, nullable=False)
+    policy_version = Column(String(64), nullable=False)
+    policy_sha256 = Column(String(64), nullable=False)
+    policy_mode = Column(String(16), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
