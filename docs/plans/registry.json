@@ -1,0 +1,44 @@
+{
+  "$schema": "https://github.com/Boswell-Digital-Solutions/forge/blob/main/docs/canonical/plan_registry_v1.schema.json",
+  "schema_version": "bds.plan-registry.v1",
+  "as_of": "2026-07-26",
+  "authority": {
+    "organization": "Boswell-Digital-Solutions",
+    "registry_repository": "Boswell-Digital-Solutions/forge",
+    "decision_owner": "Charlie Boswell",
+    "protocol_path": "docs/canonical/plan_registry_protocol_v1.md"
+  },
+  "repositories": [
+    {
+      "repository": "Boswell-Digital-Solutions/DataForge",
+      "repository_state": "active",
+      "inventory_status": "pending_inventory",
+      "local_registry_path": "docs/plans/registry.json",
+      "notes": "Pilot registry seeds the directly evidenced Sentinel schema artifact. The archived production report and misplaced VibeForge Phase 4 plan are not treated as active DataForge plans; broader reconciliation remains pending."
+    }
+  ],
+  "plans": [
+    {
+      "plan_id": "BDS-DF-SENTINEL-SCHEMA-001",
+      "title": "DataForge Sentinel Schema",
+      "version": "1",
+      "owner_repository": "Boswell-Digital-Solutions/DataForge",
+      "scope": "repository",
+      "lifecycle_status": "implemented_unverified",
+      "plan_path": "doc/sentinel/DATAFORGE_SCHEMA_PLAN.md",
+      "tracking_issue": null,
+      "implementation": {
+        "completed_slices": null,
+        "total_slices": null,
+        "evidence_status": "missing_closeout"
+      },
+      "next_action": "Reconcile the documented schema against current models, migration, router, tests, and doc/system; then convert it to implemented truth or archive it with closeout evidence.",
+      "blocker": "The named models and migration exist, but the plan-shaped document has no closeout receipt or current plan-to-code reconciliation.",
+      "doc_system_paths": [],
+      "last_verified": null,
+      "archive": null,
+      "superseded_by": null,
+      "closeout_reason": null
+    }
+  ]
+}
