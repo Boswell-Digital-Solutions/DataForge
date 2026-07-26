@@ -12,9 +12,9 @@
     {
       "repository": "Boswell-Digital-Solutions/DataForge",
       "repository_state": "active",
-      "inventory_status": "pending_inventory",
+      "inventory_status": "verified",
       "local_registry_path": "docs/plans/registry.json",
-      "notes": "Pilot registry seeds the directly evidenced Sentinel schema artifact. The archived production report and misplaced VibeForge Phase 4 plan are not treated as active DataForge plans; broader reconciliation remains pending."
+      "notes": "Verified 2026-07-26 inventory. The registry tracks the Sentinel schema and DataForge CSSA implementation family. docs/archive status reports, migration references, and partner-owned plans are historical or supporting evidence rather than active DataForge plans."
     }
   ],
   "plans": [
@@ -35,6 +35,31 @@
       "next_action": "Reconcile the documented schema against current models, migration, router, tests, and doc/system; then convert it to implemented truth or archive it with closeout evidence.",
       "blocker": "The named models and migration exist, but the plan-shaped document has no closeout receipt or current plan-to-code reconciliation.",
       "doc_system_paths": [],
+      "last_verified": null,
+      "archive": null,
+      "superseded_by": null,
+      "closeout_reason": null
+    },
+    {
+      "plan_id": "BDS-DF-CSSA-AUTHORITY-001",
+      "title": "DataForge Cloud Service Security Authority",
+      "version": "1",
+      "owner_repository": "Boswell-Digital-Solutions/DataForge",
+      "scope": "cross_repository",
+      "lifecycle_status": "implemented_unverified",
+      "plan_path": "docs/cloud-security/",
+      "tracking_issue": null,
+      "implementation": {
+        "completed_slices": 1,
+        "total_slices": null,
+        "evidence_status": "partial"
+      },
+      "next_action": "Reconcile the accepted Phase 0 authority model and current ledger, quota, router, migration, RLS, and test implementation against all later CSSA phase gates.",
+      "blocker": "Phase 0 acceptance and substantial code exist, but no current phase-by-phase closeout proves the DataForge CSSA responsibility complete.",
+      "doc_system_paths": [
+        "doc/system/40_governance/12-governance.md",
+        "doc/system/10_service-contract/04-api-layer.md"
+      ],
       "last_verified": null,
       "archive": null,
       "superseded_by": null,
