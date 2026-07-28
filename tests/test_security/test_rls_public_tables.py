@@ -19,6 +19,7 @@ Run it against a local/disposable Postgres, e.g.:
 Never point DATAFORGE_RLS_TEST_POSTGRES_URL at a production database -- this
 test creates and drops a throwaway database on the target server.
 """
+
 from __future__ import annotations
 
 import os
@@ -65,51 +66,102 @@ def _require_admin_dsn() -> str:
     return ADMIN_DSN
 
 
-@pytest.fixture(scope="module")
-def migrated_db_url():
-    """Create a throwaway database, run the real Alembic chain against it, yield its URL, then drop it."""
-    admin_dsn = _require_admin_dsn()
-    admin_url = sa.engine.make_url(admin_dsn)
-    db_name = f"dataforge_rls_test_{uuid.uuid4().hex[:12]}"
-
+def _create_database(admin_url: sa.URL, prefix: str) -> tuple[str, sa.URL]:
+    db_name = f"{prefix}_{uuid.uuid4().hex[:12]}"
     admin_engine = sa.create_engine(admin_url, isolation_level="AUTOCOMMIT")
     try:
         with admin_engine.connect() as conn:
             conn.execute(sa.text(f'CREATE DATABASE "{db_name}"'))
     finally:
         admin_engine.dispose()
+    return db_name, admin_url.set(database=db_name)
 
-    test_url = admin_url.set(database=db_name)
+
+def _drop_database(admin_url: sa.URL, db_name: str) -> None:
+    admin_engine = sa.create_engine(admin_url, isolation_level="AUTOCOMMIT")
+    try:
+        with admin_engine.connect() as conn:
+            conn.execute(
+                sa.text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :db AND pid <> pg_backend_pid()"
+                ),
+                {"db": db_name},
+            )
+            conn.execute(sa.text(f'DROP DATABASE IF EXISTS "{db_name}"'))
+    finally:
+        admin_engine.dispose()
+
+
+def _run_alembic(test_url: sa.URL, *arguments: str) -> None:
+    env = {
+        **os.environ,
+        "DATAFORGE_DATABASE_URL": test_url.render_as_string(hide_password=False),
+    }
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", *arguments],
+        cwd=str(REPO_ROOT),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    assert result.returncode == 0, (
+        f"alembic {' '.join(arguments)} failed against the throwaway test database:\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+
+
+@pytest.fixture(scope="module")
+def migrated_db_url():
+    """Create a throwaway database, run the real Alembic chain against it, yield its URL, then drop it."""
+    admin_dsn = _require_admin_dsn()
+    admin_url = sa.engine.make_url(admin_dsn)
+    db_name, test_url = _create_database(admin_url, "dataforge_rls_test")
 
     try:
-        env = {**os.environ, "DATAFORGE_DATABASE_URL": test_url.render_as_string(hide_password=False)}
-        result = subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
-            cwd=str(REPO_ROOT),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-        assert result.returncode == 0, (
-            "alembic upgrade head failed against the throwaway test database:\n"
-            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
-        )
+        _run_alembic(test_url, "upgrade", "head")
         yield test_url
     finally:
-        admin_engine = sa.create_engine(admin_url, isolation_level="AUTOCOMMIT")
+        _drop_database(admin_url, db_name)
+
+
+@pytest.fixture(scope="module")
+def legacy_agent_registry_db_url():
+    """Reproduce the production database created by the old metadata.create_all path."""
+    admin_dsn = _require_admin_dsn()
+    admin_url = sa.engine.make_url(admin_dsn)
+    db_name, test_url = _create_database(admin_url, "dataforge_legacy_registry_test")
+
+    try:
+        _run_alembic(test_url, "upgrade", "20260712_03")
+
+        # This is the exact pre-Alembic path used by DataForge from 2026-01-27
+        # through 2026-02-14. It creates the table and ORM-named indexes but
+        # cannot add an Alembic revision to alembic_version.
+        from app.models.models import AgentRegistry
+
+        engine = sa.create_engine(test_url)
         try:
-            with admin_engine.connect() as conn:
+            AgentRegistry.__table__.create(bind=engine)
+            with engine.begin() as conn:
                 conn.execute(
-                    sa.text(
-                        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-                        "WHERE datname = :db AND pid <> pg_backend_pid()"
+                    AgentRegistry.__table__.insert().values(
+                        id="legacy-agent-registry-proof",
+                        name="Legacy Registry Proof",
+                        agent_type="researcher",
+                        status="idle",
+                        user_id=None,
+                        agent_data={"source": "legacy-create-all"},
                     ),
-                    {"db": db_name},
                 )
-                conn.execute(sa.text(f'DROP DATABASE IF EXISTS "{db_name}"'))
         finally:
-            admin_engine.dispose()
+            engine.dispose()
+
+        _run_alembic(test_url, "upgrade", "head")
+        yield test_url
+    finally:
+        _drop_database(admin_url, db_name)
 
 
 def _rls_status(engine: sa.Engine) -> dict[str, bool]:
@@ -137,7 +189,9 @@ class TestRLSEnabledOnDriftedTables:
 
     @pytest.mark.parametrize("table_name", DRIFTED_TABLES)
     def test_table_has_rls_enabled(self, rls_status: dict[str, bool], table_name: str):
-        assert table_name in rls_status, f"{table_name} was not created by the migration chain"
+        assert table_name in rls_status, (
+            f"{table_name} was not created by the migration chain"
+        )
         assert rls_status[table_name] is True, (
             f"public.{table_name} has RLS disabled -- this is the exact "
             "rls_disabled_in_public regression migration 20260711_01 fixes"
@@ -167,8 +221,46 @@ class TestOwnerRoleBypassesRLS:
                     )
                 )
                 row = conn.execute(
-                    sa.text("SELECT high_water FROM cssa_counters WHERE counter = 'rls_test_counter'")
+                    sa.text(
+                        "SELECT high_water FROM cssa_counters WHERE counter = 'rls_test_counter'"
+                    )
                 ).fetchone()
             assert row is not None and row[0] == 1
+        finally:
+            engine.dispose()
+
+
+class TestLegacyAgentRegistryAdoption:
+    """The Render migration must adopt the live legacy table without losing data.
+
+    Revision `20260714_01` runs against production databases where
+    `agent_registry` already exists -- created by `metadata.create_all` between
+    2026-01-27 and 2026-02-14, before the table was under Alembic control. A
+    migration that assumes it is creating the table from nothing either fails the
+    deploy or, worse, replaces a populated table.
+
+    The rollback direction is deliberately *not* covered here: revision
+    `20260724_01` refuses to downgrade at all, because AuthorForge analytics
+    storage is evidence-preserving. Nothing downstream of it can be rolled back
+    without a separately reviewed retirement migration, so a test that walked the
+    chain backwards would be asserting against a path the chain forbids.
+    """
+
+    def test_upgrade_preserves_the_adopted_registry(self, legacy_agent_registry_db_url):
+        engine = sa.create_engine(legacy_agent_registry_db_url)
+        try:
+            # The fixture already proves the chain reached head -- `_run_alembic`
+            # asserts on the exit status. What is worth asserting here is that it
+            # got there over the top of live data without disturbing it.
+            with engine.connect() as conn:
+                row = conn.execute(
+                    sa.text(
+                        "SELECT name, agent_data FROM agent_registry "
+                        "WHERE id = 'legacy-agent-registry-proof'"
+                    )
+                ).one()
+            assert row[0] == "Legacy Registry Proof"
+            assert row[1] == {"source": "legacy-create-all"}
+            assert _rls_status(engine)["agent_registry"] is True
         finally:
             engine.dispose()
