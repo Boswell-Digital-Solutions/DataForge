@@ -19,8 +19,9 @@ cd "$(dirname "$0")/.."
 python --version
 python -m pip install --upgrade pip
 
-# Provision token auth for the private forge-* git dependencies. On Render,
-# FORGE_TELEMETRY_TOKEN is required and must have read access to both repos.
+# Provision build-only auth for the private forge-* git dependencies. On
+# Render, prefer the BDS Fleet Operator GitHub App pair; the legacy token is a
+# migration fallback only and is unrelated to runtime telemetry credentials.
 bash scripts/render-git-auth.sh
 
 python -m pip install --no-cache-dir -r requirements.txt

@@ -817,7 +817,9 @@ does not write to telemetry tables directly.
   overflow drops the newest event truthfully; corrupt rows quarantine without
   blocking healthy rows.
 - `/health/telemetry` returns the capability identity, the 65,536-byte canonical
-  event ceiling, delivery/queue counters, and non-secret async-worker state.
+  event ceiling, delivery/queue counters, non-secret async-worker state, isolated
+  sink configuration/preflight state, and the ForgeEvent.v1 write and correlation
+  read rollout-switch states. It never returns credential or database URL values.
 
 Production emission is intentionally unproved until the sink migration and
 writer switch are complete and a dedicated key is bound to
@@ -2584,13 +2586,16 @@ The app-level config currently exposes:
 
 | Variable | Required on Render | Notes |
 |----------|--------------------|-------|
-| `FORGE_TELEMETRY_TOKEN` | YES | Preferred build-only GitHub token with `Contents:Read` on the pinned `forge-telemetry` and `forge_contract_core` repositories |
-| `GITHUB_TOKEN` | Fallback | Accepted only when `FORGE_TELEMETRY_TOKEN` is absent |
+| `FORGE_PRIVATE_DEPS_APP_CLIENT_ID` | YES (preferred) | BDS Fleet Operator client ID; configure only with the matching private key |
+| `FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY` | YES (preferred) | BDS Fleet Operator PEM; exchanged during each build for a short-lived token scoped to `forge-telemetry` and `forge_contract_core` with `Contents:Read` |
+| `FORGE_TELEMETRY_TOKEN` | Legacy fallback | Build-only migration fallback; despite its name, it is unrelated to runtime telemetry |
+| `GITHUB_TOKEN` | Legacy fallback | Accepted only when neither App credential is configured and `FORGE_TELEMETRY_TOKEN` is absent |
 
-The build uses HTTPS token rewriting in `scripts/render-git-auth.sh`; it does not consume
-`SSH_KEY` or `SSH_KEY_B64`. Never print either token. The web build is the sole Render migration
-runner. The cron build verifies exactly one Alembic head and its runtime preflight verifies the
-`supabase_log_events` table, but the cron does not run migrations concurrently.
+The build uses a path-scoped Git credential helper in `scripts/render-git-auth.sh`; it does not
+consume `SSH_KEY` or `SSH_KEY_B64`. Never print App credentials or minted/legacy tokens. An
+incomplete App pair fails closed instead of falling back. The web build is the sole Render
+migration runner. The cron build verifies exactly one Alembic head and its runtime preflight
+verifies the `supabase_log_events` table, but the cron does not run migrations concurrently.
 
 ## Supabase Log Poller
 
