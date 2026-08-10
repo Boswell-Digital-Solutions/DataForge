@@ -214,6 +214,13 @@ The app-level config currently exposes:
 | `FORGE_TELEMETRY_TOKEN` | Legacy fallback | Build-only migration fallback; despite its name, it is unrelated to runtime telemetry |
 | `GITHUB_TOKEN` | Legacy fallback | Accepted only when neither App credential is configured and `FORGE_TELEMETRY_TOKEN` is absent |
 
+Operator-confirmed infrastructure fact (2026-08-10): BDS Fleet Operator is installed for all
+repositories in the Boswell-Digital-Solutions organization and already has the permissions this
+build requires, including access to `forge-telemetry` and `forge_contract_core`. Repository access
+is therefore not a rollout prerequisite to reconfirm for each service. The remaining per-service
+operation is to bind the existing App client ID and private key in Render without exposing their
+values in documentation, logs, issues, pull requests, or chat.
+
 The build uses a path-scoped Git credential helper in `scripts/render-git-auth.sh`; it does not
 consume `SSH_KEY` or `SSH_KEY_B64`. Never print App credentials or minted/legacy tokens. An
 incomplete App pair fails closed instead of falling back. The web build is the sole Render

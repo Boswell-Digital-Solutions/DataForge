@@ -99,7 +99,7 @@ mint_installation_token() {
   api_request GET \
     "https://api.github.com/orgs/$GITHUB_ORG/installation" \
     "$jwt" "$installation_file" \
-    || fail "BDS Fleet Operator is not installed for $GITHUB_ORG or its App credentials were rejected."
+    || fail "BDS Fleet Operator credentials were rejected by GitHub. Verify that this service received the complete existing credential pair."
   installation_id="$(json_field "$installation_file" id)" \
     || fail "GitHub returned no installation ID for $GITHUB_ORG."
 
@@ -115,7 +115,7 @@ mint_installation_token() {
     api_request GET \
       "https://api.github.com/repos/$GITHUB_ORG/$repository" \
       "$token" "$repository_file" \
-      || fail "the minted installation token cannot read $GITHUB_ORG/$repository. Check the App installation's repository access and Contents permission."
+      || fail "the minted installation token cannot read $GITHUB_ORG/$repository. The App's organization-wide access is operator-confirmed; verify that this service received the complete existing credential pair."
   done
 
   rm -rf -- "$temp_dir"
