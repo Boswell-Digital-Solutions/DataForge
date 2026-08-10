@@ -209,13 +209,23 @@ The app-level config currently exposes:
 
 | Variable | Required on Render | Notes |
 |----------|--------------------|-------|
-| `FORGE_TELEMETRY_TOKEN` | YES | Preferred build-only GitHub token with `Contents:Read` on the pinned `forge-telemetry` and `forge_contract_core` repositories |
-| `GITHUB_TOKEN` | Fallback | Accepted only when `FORGE_TELEMETRY_TOKEN` is absent |
+| `FORGE_PRIVATE_DEPS_APP_CLIENT_ID` | YES (preferred) | BDS Fleet Operator client ID; configure only with the matching private key |
+| `FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY` | YES (preferred) | BDS Fleet Operator PEM; exchanged during each build for a short-lived token scoped to `forge-telemetry` and `forge_contract_core` with `Contents:Read` |
+| `FORGE_TELEMETRY_TOKEN` | Legacy fallback | Build-only migration fallback; despite its name, it is unrelated to runtime telemetry |
+| `GITHUB_TOKEN` | Legacy fallback | Accepted only when neither App credential is configured and `FORGE_TELEMETRY_TOKEN` is absent |
 
-The build uses HTTPS token rewriting in `scripts/render-git-auth.sh`; it does not consume
-`SSH_KEY` or `SSH_KEY_B64`. Never print either token. The web build is the sole Render migration
-runner. The cron build verifies exactly one Alembic head and its runtime preflight verifies the
-`supabase_log_events` table, but the cron does not run migrations concurrently.
+Operator-confirmed infrastructure fact (2026-08-10): BDS Fleet Operator is installed for all
+repositories in the Boswell-Digital-Solutions organization and already has the permissions this
+build requires, including access to `forge-telemetry` and `forge_contract_core`. Repository access
+is therefore not a rollout prerequisite to reconfirm for each service. The remaining per-service
+operation is to bind the existing App client ID and private key in Render without exposing their
+values in documentation, logs, issues, pull requests, or chat.
+
+The build uses a path-scoped Git credential helper in `scripts/render-git-auth.sh`; it does not
+consume `SSH_KEY` or `SSH_KEY_B64`. Never print App credentials or minted/legacy tokens. An
+incomplete App pair fails closed instead of falling back. The web build is the sole Render
+migration runner. The cron build verifies exactly one Alembic head and its runtime preflight
+verifies the `supabase_log_events` table, but the cron does not run migrations concurrently.
 
 ## Supabase Log Poller
 

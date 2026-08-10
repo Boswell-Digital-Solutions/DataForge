@@ -22,9 +22,13 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
+      - key: FORGE_PRIVATE_DEPS_APP_CLIENT_ID
+        sync: false  # BDS Fleet Operator client ID; required with the private key
+      - key: FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY
+        sync: false  # BDS Fleet Operator PEM; used only to mint a short-lived,
+                     # read-only installation token for the two private dependencies
       - key: FORGE_TELEMETRY_TOKEN
-        sync: false  # Build-only GitHub token with Contents:Read on the pinned
-                     # forge-telemetry and forge_contract_core repositories.
+        sync: false  # Legacy build-only migration fallback; not a runtime telemetry key
       - key: DATAFORGE_DATABASE_URL
         sync: false  # Set Supabase connection string in Render dashboard
       - key: DATAFORGE_TELEMETRY_DATABASE_URL
@@ -88,8 +92,12 @@ services:
         value: "3.11.10"
       - key: ENVIRONMENT
         value: production
+      - key: FORGE_PRIVATE_DEPS_APP_CLIENT_ID
+        sync: false  # Same BDS Fleet Operator client ID as the web service.
+      - key: FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY
+        sync: false  # Same BDS Fleet Operator private key as the web service.
       - key: FORGE_TELEMETRY_TOKEN
-        sync: false  # Same build-only GitHub token as the web service.
+        sync: false  # Legacy build-only migration fallback; not runtime telemetry.
       - key: LOG_LEVEL
         value: INFO
       - key: DATAFORGE_DATABASE_URL
