@@ -153,6 +153,12 @@ def telemetry_database_limits() -> TelemetryDatabaseLimits:
     )
 
 
+def _switch_enabled(name: str) -> bool:
+    """Return one non-secret telemetry rollout switch state."""
+
+    return os.getenv(name, "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _writer_enabled() -> bool:
     switches = (
         "DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED",
@@ -163,10 +169,7 @@ def _writer_enabled() -> bool:
         "DATAFORGE_INCIDENT_CANDIDATE_WRITE_ENABLED",
         "DATAFORGE_INCIDENT_CANDIDATE_READ_ENABLED",
     )
-    return any(
-        os.getenv(name, "false").strip().lower() in {"1", "true", "yes", "on"}
-        for name in switches
-    )
+    return any(_switch_enabled(name) for name in switches)
 
 
 def _configured_database_url() -> str:
@@ -413,7 +416,16 @@ def require_telemetry_rate_budget() -> None:
 
 
 def telemetry_storage_status() -> dict[str, Any]:
-    """Return only non-secret pool, timeout, role, and rate-budget state."""
+    """Return only non-secret rollout, pool, role, and rate-budget state."""
+
+    rollout = {
+        "forge_event_v1_write_enabled": _switch_enabled(
+            "DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED"
+        ),
+        "correlation_read_enabled": _switch_enabled(
+            "DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED"
+        ),
+    }
 
     try:
         limits = telemetry_database_limits()
@@ -435,6 +447,7 @@ def telemetry_storage_status() -> dict[str, Any]:
         budget = _get_rate_budget().status()
         return {
             "configured": configured,
+            "rollout": rollout,
             "role_preflight_complete": _role_preflight_complete,
             "pool": {
                 **pool_state,
@@ -454,6 +467,7 @@ def telemetry_storage_status() -> dict[str, Any]:
     except TelemetryDatabaseConfigurationError as exc:
         return {
             "configured": False,
+            "rollout": rollout,
             "error_code": exc.code,
         }
 
