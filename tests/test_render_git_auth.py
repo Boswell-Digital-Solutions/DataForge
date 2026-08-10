@@ -184,6 +184,29 @@ class RenderGitAuthTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+        for repository in PRIVATE_REPOS:
+            helper_key = (
+                "credential.https://github.com/Boswell-Digital-Solutions/"
+                f"{repository}.git.helper"
+            )
+            for stale_helper in (
+                "cache --timeout=300",
+                f"store --file={self.tmp_path}/stale-credentials",
+            ):
+                subprocess.run(
+                    [
+                        "git",
+                        "config",
+                        "--global",
+                        "--add",
+                        helper_key,
+                        stale_helper,
+                    ],
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
 
         result = subprocess.run(
             ["bash", str(SCRIPT)],
@@ -210,6 +233,23 @@ class RenderGitAuthTests(unittest.TestCase):
         self.assertEqual(stale_rewrites.returncode, 1)
 
         for repository in PRIVATE_REPOS:
+            helper_key = (
+                "credential.https://github.com/Boswell-Digital-Solutions/"
+                f"{repository}.git.helper"
+            )
+            helpers = subprocess.run(
+                ["git", "config", "--global", "--get-all", helper_key],
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(helpers.returncode, 0, helpers.stderr)
+            self.assertEqual(len(helpers.stdout.splitlines()), 2)
+            self.assertEqual(helpers.stdout.splitlines()[0], "")
+            self.assertIn("store --file=", helpers.stdout.splitlines()[1])
+            self.assertNotIn("stale-credentials", helpers.stdout)
+
             credential = subprocess.run(
                 ["git", "credential", "fill"],
                 input=(

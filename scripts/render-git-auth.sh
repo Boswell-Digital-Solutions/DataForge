@@ -142,7 +142,7 @@ clear_legacy_url_rewrites() {
 
 configure_git() {
   local token="$1"
-  local credentials_file repository credential_scope
+  local credentials_file repository credential_scope helper_key
 
   credentials_file="$(mktemp "${TMPDIR:-/tmp}/dataforge-git-credentials.XXXXXX")" \
     || fail "could not create the temporary Git credential store."
@@ -156,9 +156,16 @@ configure_git() {
   git config --global "credential.https://github.com.useHttpPath" true
   for repository in "${PRIVATE_REPOS[@]}"; do
     credential_scope="https://github.com/${GITHUB_ORG}/${repository}.git"
-    git config --global "credential.${credential_scope}.helper" ""
+    helper_key="credential.${credential_scope}.helper"
+
+    # Cached Render build homes can accumulate this multi-valued key across
+    # deploys. A plain assignment then fails with "cannot overwrite multiple
+    # values". Remove every prior value before installing the deliberate empty
+    # reset entry and the one build-scoped credential store.
+    git config --global --unset-all "$helper_key" >/dev/null 2>&1 || true
+    git config --global --add "$helper_key" ""
     git config --global --add \
-      "credential.${credential_scope}.helper" \
+      "$helper_key" \
       "store --file=$credentials_file"
 
     printf 'protocol=https\nhost=github.com\npath=%s/%s.git\nusername=x-access-token\npassword=%s\n\n' \
