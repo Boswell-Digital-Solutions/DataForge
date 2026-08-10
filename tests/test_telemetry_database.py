@@ -137,7 +137,25 @@ def test_storage_health_never_exposes_database_url(monkeypatch) -> None:
     assert status["pool"]["size"] == 2
     assert status["pool"]["max_overflow"] == 0
     assert status["rate_budget"]["burst"] == 40
+    assert status["rollout"] == {
+        "forge_event_v1_write_enabled": True,
+        "correlation_read_enabled": False,
+    }
     assert secret not in rendered
+
+
+def test_storage_health_reports_non_secret_rollout_switches(monkeypatch) -> None:
+    monkeypatch.setenv("DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED", "false")
+    monkeypatch.setenv("DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED", "yes")
+    monkeypatch.delenv("DATAFORGE_TELEMETRY_DATABASE_URL", raising=False)
+
+    status = telemetry_storage_status()
+
+    assert status["configured"] is False
+    assert status["rollout"] == {
+        "forge_event_v1_write_enabled": False,
+        "correlation_read_enabled": True,
+    }
 
 
 def test_canonical_ingest_has_no_business_pool_fallback() -> None:

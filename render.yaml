@@ -27,6 +27,14 @@ services:
                      # forge-telemetry and forge_contract_core repositories.
       - key: DATAFORGE_DATABASE_URL
         sync: false  # Set Supabase connection string in Render dashboard
+      - key: DATAFORGE_TELEMETRY_DATABASE_URL
+        sync: false  # Dedicated least-privilege telemetry runtime login; never
+                     # reuse DATAFORGE_DATABASE_URL or a privileged database role.
+      - key: DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED
+        sync: false  # Operator rollout switch. Keep false until the isolated
+                     # telemetry role, migration, and producer bindings are proved.
+      - key: DATAFORGE_TELEMETRY_CORRELATION_READ_ENABLED
+        sync: false  # Operator rollout switch for the bounded Forge_Command read.
       - key: OPENAI_API_KEY
         sync: false
       - key: VOYAGE_API_KEY

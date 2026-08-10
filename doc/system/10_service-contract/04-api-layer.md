@@ -126,7 +126,9 @@ does not write to telemetry tables directly.
   overflow drops the newest event truthfully; corrupt rows quarantine without
   blocking healthy rows.
 - `/health/telemetry` returns the capability identity, the 65,536-byte canonical
-  event ceiling, delivery/queue counters, and non-secret async-worker state.
+  event ceiling, delivery/queue counters, non-secret async-worker state, isolated
+  sink configuration/preflight state, and the ForgeEvent.v1 write and correlation
+  read rollout-switch states. It never returns credential or database URL values.
 
 Production emission is intentionally unproved until the sink migration and
 writer switch are complete and a dedicated key is bound to
