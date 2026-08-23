@@ -1,0 +1,30 @@
+{
+  "schema_version": "dataforge.dfg_gov_01.source_lock.v1",
+  "observed_at": "2026-08-23",
+  "repositories": {
+    "DataForge": "63c213f4b88454eed360f02b150a2855f340aa1b",
+    "hephaestus": "a53fc4a843f58272e6119b8f7d9b824ee41be66c",
+    "forge_contract_core": "d6a18a1395c97923a295805e21d75ce76d57db75",
+    "ForgeMath": "76f623dbd9d5cb23818b1a220f2ae2679d550840",
+    "Forge_Command": "c01310283fbf7d4eee140f2510f1f8537ef7e567"
+  },
+  "hfx_14e2": {
+    "pull_request": 70,
+    "reviewed_head": "35bc8f8bc404fdbec3c36f879df17dbfc65c6920",
+    "merge_commit": "d6a18a1395c97923a295805e21d75ce76d57db75",
+    "ci_run": 32639020516,
+    "ci_conclusion": "success"
+  },
+  "registries": {
+    "artifact_family_registry": {"version": "1.21.0", "blob_sha": "b89fdab933296a6218f415b464d193d8ca76a962"},
+    "repo_role_matrix": {"version": "1.12.0", "blob_sha": "000fcc6e59e7a7043527a2e83ce302e1e66a7f90"},
+    "version_registry": {"version": "1.15.0", "blob_sha": "f31ef3b67bc72d14b6e0d13205bbceb552355da9"}
+  },
+  "hfx_14e2_schema_blobs": {
+    "model_artifact_manifest.v1": "9743a62069d5474971bb22feacb209762194f3ed",
+    "model_artifact_lifecycle_receipt.v1": "3b753f4c5344ce24cc93df2fb83de773f96dbe87",
+    "model_artifact_attestation_bundle.v1": "616ec83dd92fd3e98b2d5ed233aac088ce7bc93b",
+    "model_artifact_admission_receipt.v1": "4f601e6d3ef1aafabba2fc972af11019ad9eeb11",
+    "cloud_training_cleanup_receipt.v1": "a054730ec4d91063c2e6895be661fc81ca409242"
+  }
+}

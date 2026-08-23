@@ -1,0 +1,31 @@
+{
+  "schema_version": "dataforge.dataset_governance_candidate.v0",
+  "candidate_status": "UNADMITTED_OFFLINE_ONLY",
+  "dataset_id": "dataset:synthetic-continuity-001",
+  "snapshot_ref": {"contract": "CorpusSnapshotRef.v1", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+  "snapshot_state": "CANDIDATE",
+  "source_assets": [
+    {"source_asset_id": "asset:synthetic-001", "content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "authority_owner": "Charlie Boswell", "classification": "SYNTHETIC", "evidence_refs": ["sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"]}
+  ],
+  "source_units": [
+    {"source_unit_id": "unit:001", "source_asset_id": "asset:synthetic-001", "unit_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+    {"source_unit_id": "unit:002", "source_asset_id": "asset:synthetic-001", "unit_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+  ],
+  "use_authorizations": [
+    {"authorization_id": "auth:synthetic-001", "source_asset_id": "asset:synthetic-001", "decision": "GRANTED", "permitted_uses": ["RETRIEVAL", "EVALUATION", "TRAINING"], "evidence_refs": ["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"]}
+  ],
+  "eligibility_decisions": [
+    {"source_asset_id": "asset:synthetic-001", "use": "RETRIEVAL", "status": "ELIGIBLE", "authorization_ref": "auth:synthetic-001", "reason_codes": ["EXPLICIT_GRANT"]},
+    {"source_asset_id": "asset:synthetic-001", "use": "EVALUATION", "status": "ELIGIBLE", "authorization_ref": "auth:synthetic-001", "reason_codes": ["EXPLICIT_GRANT"]},
+    {"source_asset_id": "asset:synthetic-001", "use": "TRAINING", "status": "ELIGIBLE", "authorization_ref": "auth:synthetic-001", "reason_codes": ["EXPLICIT_GRANT", "NO_BLOCKING_CONTAMINATION"]}
+  ],
+  "similarity_groups": [
+    {"group_id": "similarity:001", "member_unit_ids": ["unit:001", "unit:002"], "evidence_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}
+  ],
+  "split_assignments": [
+    {"source_unit_id": "unit:001", "group_id": "similarity:001", "split": "TRAIN", "assignment_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"},
+    {"source_unit_id": "unit:002", "group_id": "similarity:001", "split": "TRAIN", "assignment_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"}
+  ],
+  "contamination_findings": [],
+  "revocation_impacts": []
+}
