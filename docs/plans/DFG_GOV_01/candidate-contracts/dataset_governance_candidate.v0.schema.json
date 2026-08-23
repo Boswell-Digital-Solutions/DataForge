@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dataforge/candidates/dataset_governance_candidate/v0",
+  "title": "DataForgeDatasetGovernanceCandidateV0",
+  "description": "Unadmitted offline candidate; never runtime, storage, training, promotion, or authorization authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_status", "dataset_id", "snapshot_ref", "snapshot_state", "source_assets", "source_units", "use_authorizations", "eligibility_decisions", "similarity_groups", "split_assignments", "contamination_findings", "revocation_impacts"],
+  "properties": {
+    "schema_version": {"const": "dataforge.dataset_governance_candidate.v0"},
+    "candidate_status": {"const": "UNADMITTED_OFFLINE_ONLY"},
+    "dataset_id": {"type": "string"},
+    "snapshot_ref": {"type": "object", "required": ["contract", "digest"], "additionalProperties": false, "properties": {"contract": {"const": "CorpusSnapshotRef.v1"}, "digest": {"$ref": "#/definitions/digest"}}},
+    "snapshot_state": {"enum": ["CANDIDATE", "INVALIDATED"]},
+    "source_assets": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/source_asset"}},
+    "source_units": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/source_unit"}},
+    "use_authorizations": {"type": "array", "items": {"$ref": "#/definitions/authorization"}},
+    "eligibility_decisions": {"type": "array", "minItems": 3, "items": {"$ref": "#/definitions/eligibility"}},
+    "similarity_groups": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/group"}},
+    "split_assignments": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/assignment"}},
+    "contamination_findings": {"type": "array", "items": {"$ref": "#/definitions/contamination"}},
+    "revocation_impacts": {"type": "array", "items": {"$ref": "#/definitions/revocation"}}
+  },
+  "definitions": {
+    "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "use": {"enum": ["RETRIEVAL", "EVALUATION", "TRAINING"]},
+    "source_asset": {"type": "object", "additionalProperties": false, "required": ["source_asset_id", "content_digest", "authority_owner", "classification", "evidence_refs"], "properties": {"source_asset_id": {"type": "string"}, "content_digest": {"$ref": "#/definitions/digest"}, "authority_owner": {"type": "string"}, "classification": {"enum": ["SYNTHETIC", "PUBLIC_APPROVED", "PRIVATE_APPROVED", "RESTRICTED"]}, "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/definitions/digest"}}}},
+    "source_unit": {"type": "object", "additionalProperties": false, "required": ["source_unit_id", "source_asset_id", "unit_digest"], "properties": {"source_unit_id": {"type": "string"}, "source_asset_id": {"type": "string"}, "unit_digest": {"$ref": "#/definitions/digest"}}},
+    "authorization": {"type": "object", "additionalProperties": false, "required": ["authorization_id", "source_asset_id", "decision", "permitted_uses", "evidence_refs"], "properties": {"authorization_id": {"type": "string"}, "source_asset_id": {"type": "string"}, "decision": {"enum": ["GRANTED", "DENIED", "REVOKED", "EXPIRED"]}, "permitted_uses": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/definitions/use"}}, "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/definitions/digest"}}}},
+    "eligibility": {"type": "object", "additionalProperties": false, "required": ["source_asset_id", "use", "status", "authorization_ref", "reason_codes"], "properties": {"source_asset_id": {"type": "string"}, "use": {"$ref": "#/definitions/use"}, "status": {"enum": ["ELIGIBLE", "INELIGIBLE", "PENDING"]}, "authorization_ref": {"type": "string"}, "reason_codes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}}},
+    "group": {"type": "object", "additionalProperties": false, "required": ["group_id", "member_unit_ids", "evidence_digest"], "properties": {"group_id": {"type": "string"}, "member_unit_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}, "evidence_digest": {"$ref": "#/definitions/digest"}}},
+    "assignment": {"type": "object", "additionalProperties": false, "required": ["source_unit_id", "group_id", "split", "assignment_digest"], "properties": {"source_unit_id": {"type": "string"}, "group_id": {"type": "string"}, "split": {"enum": ["TRAIN", "VALIDATION", "TEST"]}, "assignment_digest": {"$ref": "#/definitions/digest"}}},
+    "contamination": {"type": "object", "additionalProperties": false, "required": ["finding_id", "source_unit_id", "severity", "blocks_training", "evidence_digest"], "properties": {"finding_id": {"type": "string"}, "source_unit_id": {"type": "string"}, "severity": {"enum": ["INFO", "WARNING", "BLOCKING"]}, "blocks_training": {"type": "boolean"}, "evidence_digest": {"$ref": "#/definitions/digest"}}},
+    "revocation": {"type": "object", "additionalProperties": false, "required": ["authorization_ref", "affected_source_asset_ids", "affected_snapshot_digest", "impact_state", "evidence_digest"], "properties": {"authorization_ref": {"type": "string"}, "affected_source_asset_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}, "affected_snapshot_digest": {"$ref": "#/definitions/digest"}, "impact_state": {"const": "INVALIDATED"}, "evidence_digest": {"$ref": "#/definitions/digest"}}}
+  }
+}

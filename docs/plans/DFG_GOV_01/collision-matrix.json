@@ -1,0 +1,21 @@
+{
+  "schema_version": "dataforge.dfg_gov_01.collision_matrix.v1",
+  "candidate_family": "dataforge.dataset_governance_candidate.v0",
+  "candidate_status": "unadmitted",
+  "dispositions": [
+    {"concept": "CorpusSnapshotRef.v1", "disposition": "reuse", "owner": "hephaestus"},
+    {"concept": "DatasetProfile.v1", "disposition": "reuse", "owner": "hephaestus"},
+    {"concept": "EvaluationPlan.v1", "disposition": "reuse", "owner": "hephaestus"},
+    {"concept": "ModelArtifactManifest.v1", "disposition": "reuse", "owner": "forge_contract_core"},
+    {"concept": "ModelArtifactLifecycleReceipt.v1", "disposition": "reuse", "owner": "forge_contract_core"},
+    {"concept": "ModelArtifactAttestationBundle.v1", "disposition": "reuse", "owner": "forge_contract_core"},
+    {"concept": "ModelArtifactAdmissionReceipt.v1", "disposition": "reuse", "owner": "forge_contract_core"},
+    {"concept": "source identity", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "use authorization", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "eligibility decision", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "similarity group and split assignment", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "contamination finding", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "revocation impact projection", "disposition": "candidate_gap", "owner": "unassigned"},
+    {"concept": "producer consumer signer store roles", "disposition": "defer", "owner": "HFX-14E.3"}
+  ]
+}

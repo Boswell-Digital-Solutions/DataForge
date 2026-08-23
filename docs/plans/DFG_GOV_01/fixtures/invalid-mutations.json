@@ -1,0 +1,12 @@
+{
+  "schema_version": "dataforge.dfg_gov_01.invalid_mutations.v1",
+  "base_fixture": "valid.json",
+  "cases": [
+    {"id": "missing_authorization", "operation": "remove_authorizations", "expected_code": "authorization_missing"},
+    {"id": "eligibility_conflation", "operation": "remove_evaluation_eligibility", "expected_code": "eligibility_set_incomplete"},
+    {"id": "revoked_source", "operation": "revoke_but_keep_eligible", "expected_code": "authorization_not_granted"},
+    {"id": "split_leakage", "operation": "move_second_unit_to_test", "expected_code": "similarity_split_leakage"},
+    {"id": "blocking_contamination", "operation": "add_blocking_contamination", "expected_code": "training_contamination_block"},
+    {"id": "authorforge_content_field", "operation": "add_forbidden_content_field", "expected_code": "forbidden_content_field"}
+  ]
+}

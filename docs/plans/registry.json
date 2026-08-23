@@ -1,7 +1,7 @@
 {
   "$schema": "https://github.com/Boswell-Digital-Solutions/forge/blob/main/docs/canonical/plan_registry_v1.schema.json",
   "schema_version": "bds.plan-registry.v1",
-  "as_of": "2026-07-26",
+  "as_of": "2026-08-23",
   "authority": {
     "organization": "Boswell-Digital-Solutions",
     "registry_repository": "Boswell-Digital-Solutions/forge",
@@ -14,7 +14,7 @@
       "repository_state": "active",
       "inventory_status": "verified",
       "local_registry_path": "docs/plans/registry.json",
-      "notes": "Verified 2026-07-26 inventory. The registry tracks the Sentinel schema and DataForge CSSA implementation family. docs/archive status reports, migration references, and partner-owned plans are historical or supporting evidence rather than active DataForge plans."
+      "notes": "Verified 2026-07-26 baseline plus authorized DFG-GOV-01 candidate-only reconciliation on 2026-08-23. docs/archive status reports, migration references, and partner-owned plans remain historical or supporting evidence."
     }
   ],
   "plans": [
@@ -60,6 +60,24 @@
         "doc/system/40_governance/12-governance.md",
         "doc/system/10_service-contract/04-api-layer.md"
       ],
+      "last_verified": null,
+      "archive": null,
+      "superseded_by": null,
+      "closeout_reason": null
+    },
+    {
+      "plan_id": "DFG-GOV-01",
+      "title": "Dataset Governance Contract Reconciliation",
+      "version": "1",
+      "owner_repository": "Boswell-Digital-Solutions/DataForge",
+      "scope": "cross_repository",
+      "lifecycle_status": "implemented_unverified",
+      "plan_path": "docs/plans/DFG_GOV_01/README.md",
+      "tracking_issue": null,
+      "implementation": {"completed_slices": 1, "total_slices": 1, "evidence_status": "local_verification_pending"},
+      "next_action": "Run the bounded validator/tests and obtain owner acceptance before any HFX-14E.3 consumer or persistence proposal.",
+      "blocker": "The candidate remains unadmitted; every runtime, storage, provider, deployment, and training authority remains false.",
+      "doc_system_paths": [],
       "last_verified": null,
       "archive": null,
       "superseded_by": null,
