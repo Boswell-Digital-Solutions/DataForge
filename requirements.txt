@@ -17,7 +17,7 @@ pgvector==0.2.4
 
 # Canonical telemetry models, including IncidentCandidate.v1, and transport.
 forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@804706640050e76eb8069bd2fb064eaadfc612ee
-forge-contract-core @ git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@4f6b644baa7c476f20a883c678b06558d666e1bf
+forge-contract-core @ git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@4198a9076b32f2693d5dc7550b2817246b94b4be
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
 
