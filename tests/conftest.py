@@ -37,6 +37,7 @@ from app.models.runtime_promotion_candidate_models import (
 )
 from app.models.context_pack_models import ContextPack  # serve-from-precomputed context-pack store
 from app.models.model_outcome_models import ModelOutcome  # durable model-learning receipts
+from app.models.rate_card_models import RateCardSnapshot  # Cost Provenance Tranche 3 (RFC-CP-03)
 
 from app.utils.auth import get_password_hash
 from app.utils.rate_limit import rate_limiter as simple_rate_limiter

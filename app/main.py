@@ -27,6 +27,7 @@ from app.api.secrets_router import router as secrets_router  # LLM Provider Secr
 from app.api.tarcie_router import router as tarcie_router  # Tarcie friction capture ingest
 from app.api.context_pack_router import router as context_pack_router  # Governed precomputed context packs (serve-from-precomputed)
 from app.api.model_outcome_router import router as model_outcome_router  # Durable model-learning receipts
+from app.api.rate_card_router import router as rate_card_router  # Durable RateCardSnapshot.v1 store (RFC-CP-03, Cost Provenance Tranche 3)
 from app.api.fpvs_router import router as fpvs_router  # FPVS Phase 1 endpoints
 from app.api.forge_run_router import router as forge_run_router  # ForgeAgents run persistence (Phase 2)
 from app.api.agents_registry_router import router as agents_registry_router  # ForgeAgents agent persistence
@@ -325,6 +326,7 @@ app.include_router(secrets_router)  # LLM Provider Secrets (synced from Forge_Co
 app.include_router(tarcie_router)  # Tarcie friction capture ingest
 app.include_router(context_pack_router)  # Governed precomputed context packs (serve-from-precomputed)
 app.include_router(model_outcome_router)  # Durable model-learning receipts (Category Champion Matrix replay source)
+app.include_router(rate_card_router)  # Durable RateCardSnapshot.v1 store (RFC-CP-03, Cost Provenance Tranche 3)
 app.include_router(forge_run_router)  # ForgeAgents run persistence (Phase 2)
 app.include_router(agents_registry_router)  # ForgeAgents agent registry persistence
 app.include_router(bugcheck_router)  # BugCheck Agent persistence (runs, findings, enrichments)
