@@ -6,6 +6,13 @@
 services:
   - type: web
     name: dataforge
+    # NOTE: "dataforge" was already taken platform-wide when this service was
+    # created, so Render silently bound it to a suffixed hostname instead of
+    # the plain one this "name" implies. The real, live hostname is
+    # https://dataforge-pzmo.onrender.com — verify in the Render dashboard
+    # ("your service is live at") if this ever needs re-confirming, don't
+    # assume https://dataforge.onrender.com (unbound, hangs on every path).
+    # See docs/KNOWN_ISSUES.md.
     runtime: python
     repo: https://github.com/Boswell-Digital-Solutions/DataForge.git
     branch: master

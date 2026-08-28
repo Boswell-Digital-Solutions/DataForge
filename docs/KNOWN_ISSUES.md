@@ -66,4 +66,38 @@ GitHub Actions secrets separately hold the CI copy).
 
 ---
 
-_Last updated: 2026-08-27_
+## No Verification That the Assumed `onrender.com` Hostname Matches What Render Actually Bound
+
+- **Location**: `render.yaml` (`name: dataforge`); any doc, script, or support
+  ticket referencing `https://dataforge.onrender.com`
+- **Status**: Confirmed 2026-08-28. `render.yaml` requests `name: dataforge`,
+  but `onrender.com` subdomains are unique across Render's entire platform —
+  the plain `dataforge` slug was already taken, so Render silently bound the
+  real service to `dataforge-pzmo.onrender.com` at creation time instead.
+  Every real client (`Author-Forge`, `cortex_bds`) has always used the
+  correct `-pzmo` hostname and was never affected. But a separate production
+  incident investigation and a Render support escalation both tested the
+  unbound `dataforge.onrender.com` (Cloudflare has no origin route for it,
+  so every path hangs indefinitely) and misdiagnosed it as a Render platform
+  bug before the hostname mismatch was found.
+- **Impact**: Medium. No production consumer was ever broken, but the wrong
+  assumption cost a full incident investigation and a support ticket before
+  the real (non-)cause was found. The same failure mode can recur for any
+  service whose `render.yaml` `name` collides with an existing slug
+  elsewhere on the platform.
+- **Cause**: Nothing checks that a service's assumed `<name>.onrender.com`
+  hostname is the one Render actually bound — `render.yaml`'s `name` field
+  is a request, not a guarantee, and there's no drift check between the two.
+
+### Suggested Fix
+
+Record each service's actual bound hostname (from the Render dashboard's
+"your service is live at" field) somewhere durable — e.g., a comment next
+to `name:` in `render.yaml` — so it doesn't have to be rediscovered live
+from the dashboard during a future incident. Worth checking for every other
+Forge service on Render too, not just DataForge, since the same silent
+suffixing can happen to any of them.
+
+---
+
+_Last updated: 2026-08-28_
