@@ -55,6 +55,12 @@ Postgres-backed proofs live in `scripts/prove_*.sh` (ForgeEvent.v1 storage, tele
   (`auth_secure_router`, `projects_router`, `dlq_router`, `replication_router`, and others).
   Source presence is not activation — check `app/main.py` before assuming an endpoint is live.
 - Embedding dimensions are pinned at 1536; embeddings across providers are not interchangeable.
+- `render.yaml`'s `name: dataforge` is a request, not a guarantee — `onrender.com`
+  subdomains are unique platform-wide, and the plain `dataforge` slug was already
+  taken, so Render silently bound the real service to **`dataforge-pzmo.onrender.com`**
+  instead. `https://dataforge.onrender.com` (no suffix) is not this service and hangs
+  indefinitely on every path. Always verify the live hostname in the Render
+  dashboard ("your service is live at") before testing or documenting it externally.
 
 ```bash
 ./scripts/context-bundle.sh --list          # focused context presets: core, api, schema, testing
