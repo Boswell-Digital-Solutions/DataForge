@@ -115,6 +115,24 @@ class RateCardSnapshotListResponse(BaseModel):
     total: int
 
 
+class PublicRateCardSnapshotOut(BaseModel):
+    """Deliberately reduced public projection for BDS Website pricing displays."""
+
+    schema_version: str = "RateCardSnapshot.v1"
+    provider: str
+    model: str
+    model_version: str | None
+    currency: str
+    uncached_input_rate_micros_per_million_tokens: int | None
+    cached_input_rate_micros_per_million_tokens: int | None
+    cache_write_rate_micros_per_million_tokens: int | None
+    reasoning_rate_micros_per_million_tokens: int | None
+    output_rate_micros_per_million_tokens: int | None
+    effective_from: str | None
+    effective_to: str | None
+    rounding_rule: str
+
+
 def _to_payload_dict(body: RateCardSnapshotIn) -> dict[str, Any]:
     """Serialize the incoming body to the exact JSON shape the contract validates."""
     return body.model_dump(mode="json")
@@ -143,6 +161,23 @@ def _row_to_out(row: RateCardSnapshot) -> RateCardSnapshotOut:
         superseded_by=row.superseded_by,
         rounding_rule=row.rounding_rule,
         digest=row.digest,
+    )
+
+
+def _row_to_public_out(row: RateCardSnapshot) -> PublicRateCardSnapshotOut:
+    return PublicRateCardSnapshotOut(
+        provider=row.provider,
+        model=row.model,
+        model_version=row.model_version,
+        currency=row.currency,
+        uncached_input_rate_micros_per_million_tokens=row.uncached_input_rate_micros_per_million_tokens,
+        cached_input_rate_micros_per_million_tokens=row.cached_input_rate_micros_per_million_tokens,
+        cache_write_rate_micros_per_million_tokens=row.cache_write_rate_micros_per_million_tokens,
+        reasoning_rate_micros_per_million_tokens=row.reasoning_rate_micros_per_million_tokens,
+        output_rate_micros_per_million_tokens=row.output_rate_micros_per_million_tokens,
+        effective_from=_iso_z(row.effective_from),
+        effective_to=_iso_z(row.effective_to),
+        rounding_rule=row.rounding_rule,
     )
 
 
@@ -246,6 +281,7 @@ def list_rate_cards(
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_api_key),
 ) -> RateCardSnapshotListResponse:
     q = db.query(RateCardSnapshot)
     if provider:
@@ -270,6 +306,7 @@ def get_active_rate_card(
     model: str = Query(...),
     model_version: str | None = Query(None),
     db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_api_key),
 ) -> RateCardSnapshotOut:
     q = (
         db.query(RateCardSnapshot)
@@ -286,3 +323,28 @@ def get_active_rate_card(
     if row is None:
         raise HTTPException(status_code=404, detail="no ACTIVE rate card for this provider/model")
     return _row_to_out(row)
+
+
+@router.get("/public/active", response_model=PublicRateCardSnapshotOut)
+def get_public_active_rate_card(
+    provider: str = Query(...),
+    model: str = Query(...),
+    model_version: str | None = Query(None),
+    db: Session = Depends(get_db),
+) -> PublicRateCardSnapshotOut:
+    """Public BDS Website projection; raw provenance/governance fields stay private."""
+    q = (
+        db.query(RateCardSnapshot)
+        .filter(RateCardSnapshot.provider == provider)
+        .filter(RateCardSnapshot.model == model)
+        .filter(RateCardSnapshot.status == "ACTIVE")
+    )
+    q = (
+        q.filter(RateCardSnapshot.model_version.is_(None))
+        if model_version is None
+        else q.filter(RateCardSnapshot.model_version == model_version)
+    )
+    row = q.order_by(RateCardSnapshot.effective_from.desc()).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="no ACTIVE rate card for this provider/model")
+    return _row_to_public_out(row)

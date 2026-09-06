@@ -72,10 +72,10 @@ def _init_db():
         conn.execute(text(
             "CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)"
         ))
-        # Deny the PostgREST/anon Data API by default; the postgres owner (this
-        # connection) bypasses RLS, so validation/issuance keep working. Holds
-        # key hashes, so protect it even on a fresh DB.
-        conn.execute(text("ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY"))
+        # Deny the PostgREST/anon Data API by default. SQLite is used only by
+        # the unit-test harness and does not implement PostgreSQL RLS syntax.
+        if conn.dialect.name == "postgresql":
+            conn.execute(text("ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY"))
     logger.info("DataForge API keys table ready in Postgres (api_keys, RLS enabled)")
 
 
