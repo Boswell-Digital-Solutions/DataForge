@@ -1,6 +1,6 @@
 # Known Issues
 
-This document tracks known issues that are not blocking but should be addressed.
+This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
 ## No Expiry Alerting for Issued API Keys
 
@@ -101,3 +101,13 @@ suffixing can happen to any of them.
 ---
 
 _Last updated: 2026-08-28_
+
+## Model findings pilot intake
+
+Pilot: `BDS-MODEL-FINDINGS-TOP10-v0.1`. See [the review checklist and evidence rules](MODEL_FINDINGS_PILOT.md) and [session log](model-findings/sessions.yaml).
+
+Initial phase: **`baseline_after_merge`**. During the comparison baseline, continue normal issue handling. During structured intake, record each distinct model-raised concern here or link it to an existing record before closing the review. Untested claims are **unverified**. Keep verification separate from open/deferred/closed disposition, preserve disproven claims, and require relevant evidence for fix closure. Existing entries retain their historical provenance and are not reverified by this addition.
+
+### Pilot findings
+
+New observations go below this heading or into existing linked entries. Setup observations are marked separately and do not count as pilot effectiveness results.
