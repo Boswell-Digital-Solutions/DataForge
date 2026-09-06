@@ -2,6 +2,8 @@
 Pytest configuration and shared fixtures for DataForge tests.
 """
 import os
+import sys
+from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -18,6 +20,12 @@ os.environ.setdefault("DATAFORGE_DATABASE_URL", SQLALCHEMY_TEST_DATABASE_URL)
 os.environ.setdefault("DATAFORGE_SKIP_STARTUP_DB_INIT", "1")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
+
+# Tests must validate against the workspace contract source, not a stale
+# globally installed forge_telemetry wheel.
+_workspace_telemetry = Path(__file__).resolve().parents[2] / "forge-telemetry"
+if _workspace_telemetry.is_dir():
+    sys.path.insert(0, str(_workspace_telemetry))
 
 from app.database import Base, get_db, get_session_factory
 from app.main import app

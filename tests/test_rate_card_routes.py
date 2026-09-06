@@ -157,14 +157,40 @@ def test_list_filters_by_provider_and_status(client: TestClient):
     assert by_status["total"] == 2
 
 
-def test_get_endpoints_do_not_require_auth(client: TestClient):
+def test_raw_get_endpoints_require_auth_but_public_projection_does_not(client: TestClient):
+    body = _snapshot()
+    stored = client.post("/api/v1/rate-cards", json=body)
+    assert stored.status_code == 201, stored.text
+
     app.dependency_overrides.pop(require_api_key, None)
     r = client.get("/api/v1/rate-cards")
-    assert r.status_code == 200
+    assert r.status_code == 401
     r2 = client.get(
-        "/api/v1/rate-cards/active", params={"provider": "anthropic", "model": "x"}
+        "/api/v1/rate-cards/active",
+        params={"provider": "anthropic", "model": "claude-sonnet-4-5-20250929"},
     )
-    assert r2.status_code == 404  # reached the handler, not blocked by auth
+    assert r2.status_code == 401
+
+    public = client.get(
+        "/api/v1/rate-cards/public/active",
+        params={"provider": "anthropic", "model": "claude-sonnet-4-5-20250929"},
+    )
+    assert public.status_code == 200, public.text
+    assert set(public.json()) == {
+        "schema_version",
+        "provider",
+        "model",
+        "model_version",
+        "currency",
+        "uncached_input_rate_micros_per_million_tokens",
+        "cached_input_rate_micros_per_million_tokens",
+        "cache_write_rate_micros_per_million_tokens",
+        "reasoning_rate_micros_per_million_tokens",
+        "output_rate_micros_per_million_tokens",
+        "effective_from",
+        "effective_to",
+        "rounding_rule",
+    }
 
 
 def test_post_requires_auth(client: TestClient):
