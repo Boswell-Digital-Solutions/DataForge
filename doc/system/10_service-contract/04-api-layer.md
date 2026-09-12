@@ -24,6 +24,14 @@ entire mounted surface as JSON-only.
 
 There is **no root `/metrics` route mounted by default** in the current app.
 
+`/health` intentionally avoids database, Redis, filesystem, and external dependency access — Render
+health checks only verify the process and event loop are alive. It does carry one static, already-
+loaded config value: `services.neuroforge.url` reports `NEUROFORGE_URL` (Law 2's sole outbound
+route — all embeddings route through NeuroForge). This is a resolved-target declaration, not a
+liveness check: no network call, no `status` field, no claim that NeuroForge itself is reachable.
+Forge_Command's Living Topology Assurance reads it as `FC-LTA-P003` (`authoritative-route-approved-
+target`) evidence (`Boswell-Digital-Solutions/DataForge#57`).
+
 ## Mounted Router Families
 
 | Family | Key prefixes | Representative mounted routes | Notes |
