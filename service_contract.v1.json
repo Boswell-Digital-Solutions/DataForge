@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "contract_version": "1.0",
   "description": "DataForge — Single source of truth for all durable state in the Forge ecosystem",
+  "authority_domain": "durable-truth",
   "dependencies": [],
   "endpoints_exposed": [
     { "path": "/health", "methods": ["GET"], "auth_required": false, "description": "Health check" },

@@ -40,6 +40,9 @@ class TestHealthEndpoints:
         # route) is a static config value, not a live check — no status claim.
         assert data["services"]["neuroforge"]["url"]
         assert "status" not in data["services"]["neuroforge"]
+        # FC-LTA-P006: self-reported authority domain, read once from this
+        # repo's own service_contract.v1.json.
+        assert data["authority_domain"] == "durable-truth"
 
     @pytest.mark.asyncio
     async def test_docs_endpoint_exists(self):
