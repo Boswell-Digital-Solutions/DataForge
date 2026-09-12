@@ -36,6 +36,10 @@ class TestHealthEndpoints:
         assert data["status"] == "ok"
         assert data["service"] == "DataForge"
         assert "database" not in data
+        # FC-LTA-P003: the resolved NeuroForge target (Law 2's sole outbound
+        # route) is a static config value, not a live check — no status claim.
+        assert data["services"]["neuroforge"]["url"]
+        assert "status" not in data["services"]["neuroforge"]
 
     @pytest.mark.asyncio
     async def test_docs_endpoint_exists(self):
