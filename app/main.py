@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
+from app.authority import OWN_AUTHORITY_DOMAIN
 from app.database import engine
 from app.api import search_router, admin_router, auth_router, runs_router, vibeforge_router, learning_router, teams_router
 from app.api.authorforge_boundary_router import router as authorforge_boundary_router
@@ -401,6 +402,8 @@ async def health_check():
     event loop are alive. `services.neuroforge.url` is a static, already-loaded
     config value (Law 2's sole outbound route) — reading it makes no network
     call and asserts no liveness/status claim about NeuroForge itself.
+    `authority_domain` is likewise a static, already-loaded value (read once at
+    import time from this repo's own `service_contract.v1.json`, FC-LTA-P006).
     """
     return {
         "status": "ok",
@@ -409,6 +412,7 @@ async def health_check():
         "services": {
             "neuroforge": {"url": NEUROFORGE_URL},
         },
+        "authority_domain": OWN_AUTHORITY_DOMAIN,
     }
 
 
