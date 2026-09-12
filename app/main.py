@@ -74,6 +74,7 @@ from app.config import (
     COMPRESSION_MIN_SIZE,
     COMPRESSION_POLL_INTERVAL,
     REQUEST_TIMEOUT_SECONDS,
+    NEUROFORGE_URL,
 )
 from app.security_config import configure_security_headers
 from app.logging_config import initialize_logging, get_logger, log_security_event
@@ -397,12 +398,17 @@ async def health_check():
 
     This route intentionally avoids database, Redis, filesystem, and external
     dependency access so Render health checks only verify that the process and
-    event loop are alive.
+    event loop are alive. `services.neuroforge.url` is a static, already-loaded
+    config value (Law 2's sole outbound route) — reading it makes no network
+    call and asserts no liveness/status claim about NeuroForge itself.
     """
     return {
         "status": "ok",
         "service": "DataForge",
         "version": "1.0.0",
+        "services": {
+            "neuroforge": {"url": NEUROFORGE_URL},
+        },
     }
 
 
