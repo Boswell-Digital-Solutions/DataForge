@@ -100,7 +100,64 @@ suffixing can happen to any of them.
 
 ---
 
-_Last updated: 2026-08-28_
+## No Required Branch-Protection or Status Checks on `master`
+
+- **Location**: GitHub repository settings (rulesets), not application code.
+- **Status**: Confirmed 2026-09-13, found while scoping `BDS-DF-RF-001` and
+  independently while closing `BDS-RMCP-FC-GIR-v0.1`'s `A3-GATE-00B` item 2.
+  Verified via `gh api repos/Boswell-Digital-Solutions/DataForge/rulesets`
+  and `gh api .../branches/master/protection`: only the org-wide ruleset
+  `21073023` ("Protect default branches") applies — deletion and
+  non-fast-forward protection only. No required pull request, no required
+  review, no required status check.
+- **Impact**: High. A broken commit can merge directly to `master` with no
+  CI gate stopping it; Render's auto-deploy then picks it up on the next
+  build. `Forge_Command` by contrast has its own additional ruleset
+  (`22391709`) requiring a PR plus eight named status checks — DataForge
+  has no equivalent.
+- **Cause**: Nothing beyond the shared org-wide ruleset was ever configured
+  for this repository specifically.
+
+### Suggested Fix
+
+Add a repository-scoped ruleset requiring a pull request and DataForge's
+own CI job(s) (test suite, security scan, Docker build) as required status
+checks, mirroring the shape of Forge_Command's `22391709`.
+
+---
+
+## `llm-intel/pending-records` Pipeline Is LLM-Intel-Specific, Not Yet a Generic Intake
+
+- **Location**: `app/api/llm_intel_pending_records_router.py`,
+  `app/services/llm_intel_pending_records.py`,
+  `app/services/llm_intel_promotion_application.py`,
+  `llm_intel_pending_records_models.py`.
+- **Status**: Noted 2026-09-13 during `BDS-DF-RF-001` (Receipt-to-Finding
+  Knowledge Spine v0.1) scoping. Not a defect — a design note ahead of
+  planned reuse.
+- **Impact**: Medium, forward-looking. The pipeline already models almost
+  exactly the shape `BDS-DF-RF-001` needs (`receipt → extracted claim →
+  pending candidate → drift report → promotion decision → promoted
+  record`, family-tagged and idempotent at ingest via `record_family`), and
+  `BDS-DF-RF-001`'s ruled implementation basis (OD-03) is to generalize
+  this pipeline rather than build a separate one. But the storage/service/
+  promotion logic itself is currently LLM-intel-specific, not a truly
+  generic intake framework — generalizing it carries real risk of
+  destabilizing the live LLM-intel flow if done carelessly.
+- **Cause**: The pipeline was built for one consumer (LLM pricing-drift
+  intake) and has not yet needed to serve a second one.
+
+### Suggested Fix
+
+When `BDS-DF-RF-001`'s `WP-01` drafts the generalized contract, require an
+explicit regression plan for `llm-intel/pending-records`'s existing tests
+before any shared code (models, service, promotion-application logic) is
+touched. Prefer extending the `record_family` discriminator over
+refactoring the underlying tables/services where possible.
+
+---
+
+_Last updated: 2026-09-13_
 
 ## Model findings pilot intake
 
