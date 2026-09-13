@@ -64,4 +64,14 @@ without adding a commit boundary; rollback remains atomic. Both the expanded
 This implementation has not been deployed and no production key material was
 created. It adds no queue consumer, outbox dispatcher, lease, provider SDK,
 provider call, artifact downloader/storage, ForgeImages network call, or live
-traffic. `PROD-02` remains blocked pending human acceptance of `PROD-01`.
+traffic.
+
+## Gate Decision
+
+On 2026-09-13, the decision owner explicitly instructed
+`push - pr - green - merge`. That instruction records acceptance of the
+`PROD-01` schema/reuse
+decision, migration proof, transaction and concurrency evidence, protected-
+request boundary, and restart behavior for merge. It does not authorize Slice
+02 implementation, deployment, credentials, provider calls, or production
+traffic.
