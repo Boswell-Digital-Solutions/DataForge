@@ -15,6 +15,11 @@ alembic==1.13.1
 # Vector support
 pgvector==0.2.4
 
+# HFX-14F: S3 Object Lock artifact-store adapter (app/services/hfx_s3_object_lock_adapter.py).
+# No real bucket, mount, or caller yet — see hephaestus docs/design/
+# HFX-14F_cloud_dataforge_object_lock_architecture.md.
+boto3==1.35.99
+
 # Canonical telemetry models, including IncidentCandidate.v1, and transport.
 forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@804706640050e76eb8069bd2fb064eaadfc612ee
 forge-contract-core @ git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@4198a9076b32f2693d5dc7550b2817246b94b4be
