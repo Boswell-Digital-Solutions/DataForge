@@ -103,13 +103,19 @@ suffixing can happen to any of them.
 ## No Required Branch-Protection or Status Checks on `master`
 
 - **Location**: GitHub repository settings (rulesets), not application code.
-- **Status**: Confirmed 2026-09-13, found while scoping `BDS-DF-RF-001` and
-  independently while closing `BDS-RMCP-FC-GIR-v0.1`'s `A3-GATE-00B` item 2.
-  Verified via `gh api repos/Boswell-Digital-Solutions/DataForge/rulesets`
-  and `gh api .../branches/master/protection`: only the org-wide ruleset
-  `21073023` ("Protect default branches") applies — deletion and
-  non-fast-forward protection only. No required pull request, no required
-  review, no required status check.
+- **Status**: RESOLVED 2026-09-13. Confirmed the same day, found while
+  scoping `BDS-DF-RF-001` and independently while closing
+  `BDS-RMCP-FC-GIR-v0.1`'s `A3-GATE-00B` item 2. Verified via
+  `gh api repos/Boswell-Digital-Solutions/DataForge/rulesets`: only the
+  org-wide ruleset `21073023` ("Protect default branches") applied —
+  deletion and non-fast-forward protection only, no required pull
+  request, no required review, no required status check. Fixed the same
+  day: ruleset `23156479` ("Require PR and CI checks on master") now
+  requires a pull request (0 approvals, matching Forge_Command's
+  single-operator posture) plus eight required status checks (`build`,
+  `lint`, `test`, `Bandit Security Scan`, `Dependency Vulnerability
+  Check`, `OWASP Dependency Check`, `CodeQL Analysis`, `Secret
+  Detection`) — verified active via `gh api repos/.../DataForge/rulesets`.
 - **Impact**: High. A broken commit can merge directly to `master` with no
   CI gate stopping it; Render's auto-deploy then picks it up on the next
   build. `Forge_Command` by contrast has its own additional ruleset
