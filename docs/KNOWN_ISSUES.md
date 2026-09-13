@@ -114,7 +114,7 @@ suffixing can happen to any of them.
   requires a pull request (0 approvals, matching Forge_Command's
   single-operator posture) plus eight required status checks (`build`,
   `lint`, `test`, `Bandit Security Scan`, `Dependency Vulnerability
-  Check`, `OWASP Dependency Check`, `CodeQL Analysis`, `Secret
+  Check`, `OWASP Dependency Check`, `CodeQL Analysis (python)`, `Secret
   Detection`) — verified active via `gh api repos/.../DataForge/rulesets`.
 - **Impact**: High. A broken commit can merge directly to `master` with no
   CI gate stopping it; Render's auto-deploy then picks it up on the next
