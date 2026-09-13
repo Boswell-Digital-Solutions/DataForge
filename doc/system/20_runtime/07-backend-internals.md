@@ -1,5 +1,28 @@
 # §7 — Backend Internals
 
+## HFX-14F Object-Store Adapter (unmounted)
+
+*Added 2026-09-13.*
+
+`app/services/hfx_objectstore_base.py` and `app/services/hfx_s3_object_lock_adapter.py`
+implement HFX-14F Section 7 item 5: an S3 Object Lock artifact-store adapter, structurally
+mirroring `dataforge-Local`'s `execution_authority/objectstore/` contract (duplicated across
+the repo boundary by design — these are separate deployable systems). `ObjectStoreAdapter` is
+the abstract stage → verify → promote/quarantine interface; `S3ObjectLockAdapter` implements it
+against any client satisfying a narrow `S3ClientProtocol`, with `bucket`, `kms_key_id`,
+`object_lock_mode`, and `object_lock_retain_days` all caller-supplied — the module asserts no
+opinion about real infrastructure.
+
+**Not mounted, no route, no caller, no persistence, no contract-core family emitted.** Proven
+only against a hand-built in-memory fake S3 client (`tests/test_hfx_s3_object_lock_adapter.py`,
+38 tests) — no real bucket, no AWS credential, no network call. Governance record:
+`hephaestus/docs/decisions/HFX-14F-DEC_s3_object_lock_adapter_authorization_and_evidence.md`.
+
+This sits alongside the earlier, similarly unmounted `app/services/
+hfx_model_artifact_evidence_consumer.py` (HFX-14E.3) — a pure validator for the
+`model_artifact_manifest`/`model_artifact_attestation_bundle`/`model_artifact_admission_receipt`
+families, also with no persistence, projection, I/O, or operational decision.
+
 ## AuthorForge Analytics Boundary
 
 `POST /api/v1/events/authorforge-analytics` validates the closed
