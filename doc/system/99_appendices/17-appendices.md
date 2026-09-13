@@ -13,6 +13,7 @@ Appendices, glossary, and cross-references.
 | 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
 | 2.3 | 2026-07-23 | Replaced DataForge search's pre-v1 direct-database emitter with the privacy-bounded canonical async HTTP producer and finite shutdown contract. |
 | 2.5 | 2026-07-25 | Added CP6 evidence-grounded, candidate-only incident analysis with strict provenance, source proof, bounded read exposure, and evidence-preserving rollback. |
+| 2.7 | 2026-09-13 | Added PROD-02 renewable leases, monotonic fencing, durable stage attempts, atomic attempt-transition linkage, and rebuildable token-fenced outbox delivery. |
 
 ## Unmapped legacy chapters
 

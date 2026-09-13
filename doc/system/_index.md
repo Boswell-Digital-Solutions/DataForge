@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.6 (2026-09-13) — HFX-14F S3 Object Lock adapter (unmounted)
+**Document version:** 2.7 (2026-09-13) — cloud-image leased recovery and rebuildable outbox
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit

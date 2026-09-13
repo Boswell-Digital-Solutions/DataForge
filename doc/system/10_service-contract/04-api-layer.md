@@ -47,7 +47,7 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 | Search and document admin | `/api/search`, `/admin/documents`, `/admin/domains`, `/admin/tags` | `POST /api/search`, `POST /api/search/hybrid`, `GET /api/search/stats`, `POST /admin/documents` | Hybrid retrieval plus document/domain/tag CRUD |
 | Auth compatibility and operator key control | `/auth`, `/api/auth`, `/auth/whoami`, `/admin/api-keys`, `/admin/token` | `POST /auth/token`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /admin/api-keys/generate`, `POST /admin/token/rotate` | Live mounted auth is JWT/login compatibility plus admin key/token tooling |
 | NeuroForge and learning | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | `POST /api/neuroforge/inferences`, `POST /api/neuroforge/routing-decisions`, `POST /api/v1/runs`, `GET /api/v1/learning/model-performance` | Inference, routing, run logging, and learning feedback |
-| NeuroForge cloud-image state | `/api/v1/internal/cloud-image-state` | `POST /jobs`, `GET /jobs/{job_id}`, `GET /jobs/{job_id}/retry-source`, `POST /jobs/{job_id}/transitions`, `POST/GET /jobs/{job_id}/events` | Durable create/replay, caller-scoped read, protected retry source, compare-and-set transition, and append-only evidence |
+| NeuroForge cloud-image state | `/api/v1/internal/cloud-image-state` | Job/retry/event routes; lease claim/renew/release/expire; stage-attempt start/complete/list; fenced worker transitions; outbox claim/settle | Durable create/replay, caller-scoped read, protected retry source, leased/fenced worker recovery, compare-and-set transition, and rebuildable at-least-once evidence delivery |
 | VibeForge and team state | `/api/vibeforge`, `/api/teams` | `POST /api/vibeforge/projects`, `POST /api/vibeforge/sessions`, `GET /api/teams/{team_id}`, `GET /api/teams/{team_id}/insights` | Project/session persistence and team insights |
 | AuthorForge boundary | `/api/projects`, `/api/v1/events/authorforge-analytics` | All `/api/projects` methods return `410`; `POST /api/v1/events/authorforge-analytics` accepts only `AuthorForgeAnalyticsEnvelope.v1` | AuthorForge content stays in its embedded DB; only minimized analytics can enter DataForge |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
@@ -61,12 +61,19 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 
 The cloud-image state surface accepts only DataForge API keys bound to
 `service_name=neuroforge`. Reads require `cloud-image:state:read`; creates,
-transitions, and event appends require `cloud-image:state:write`. Admin and
+transitions, lease/attempt operations, outbox operations, and event appends
+require `cloud-image:state:write`. Admin and
 emergency credentials do not satisfy this service binding. Caller-scoped reads
 return the same not-found response for a missing job and a caller mismatch.
 All request and response bodies are strict, versioned contracts. Event detail
 keys are allow-listed and bounded so prompts, credentials, and request bodies
 cannot be added as ungoverned audit content.
+
+Worker mutation routes are separate from ordinary control transitions. They
+require the current `worker_id`, stage, and monotonic fencing token plus the
+durable final attempt ID. Attempt sequence gaps, early retries, overlapping or
+unreconciled attempts, stale fences, stale outbox acknowledgements, and reuse of
+an operation ID with different content return explicit conflict codes.
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
 

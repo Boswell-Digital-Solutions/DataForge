@@ -86,10 +86,12 @@ Cloud-image fulfillment uses the separate internal
 already-authorized domain states and AES-GCM-protected request envelopes;
 DataForge supplies durability, caller/idempotency uniqueness, compare-and-set
 serialization, append-only events, operation receipts, and an outbox in the
-same transaction. Existing rate-card and CSSA quota tables remain their
+same transaction. The PROD-02 extension also supplies renewable worker leases,
+monotonic fencing, durable stage-attempt recovery, and token-fenced outbox
+claims. Existing rate-card and CSSA quota tables remain their
 respective authorities and are not duplicated by the Slice 01 schema. No
-worker, provider SDK, artifact downloader, or ForgeImages transport is part of
-this boundary.
+worker, provider SDK, artifact downloader, broker publisher, or ForgeImages
+transport executes inside this boundary.
 
 ## AuthorForge Analytics and Local Content Authority
 

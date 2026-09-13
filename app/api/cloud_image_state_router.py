@@ -14,18 +14,42 @@ from app.models.cloud_image_state_schemas import (
     CloudImageCreateRequestV1,
     CloudImageEventListResponseV1,
     CloudImageJobStateResponseV1,
+    CloudImageLeaseClaimRequestV1,
+    CloudImageLeaseExpireRequestV1,
+    CloudImageLeaseReleaseRequestV1,
+    CloudImageLeaseRenewRequestV1,
+    CloudImageLeaseResponseV1,
+    CloudImageOutboxClaimRequestV1,
+    CloudImageOutboxClaimResponseV1,
+    CloudImageOutboxItemV1,
+    CloudImageOutboxSettleRequestV1,
     CloudImageRetrySourceResponseV1,
+    CloudImageStageAttemptCompleteRequestV1,
+    CloudImageStageAttemptListV1,
+    CloudImageStageAttemptStartRequestV1,
+    CloudImageStageAttemptV1,
     CloudImageTransitionRequestV1,
+    CloudImageWorkerTransitionRequestV1,
 )
 from app.services.cloud_image_state import (
     CloudImageStateConflict,
     CloudImageStateNotFound,
     append_event,
+    claim_lease,
+    claim_outbox,
+    complete_stage_attempt,
     create_or_replay_job,
+    expire_lease,
     get_job,
     get_retry_source,
     list_events,
+    list_stage_attempts,
+    release_lease,
+    renew_lease,
+    settle_outbox,
+    start_stage_attempt,
     transition_job,
+    transition_job_with_lease,
 )
 
 
@@ -110,6 +134,7 @@ def read_cloud_image_job_state(
     except CloudImageStateNotFound as exc:
         raise _translate_error(exc) from exc
 
+
 @router.get(
     "/jobs/{job_id}/retry-source",
     response_model=CloudImageRetrySourceResponseV1,
@@ -126,6 +151,70 @@ def read_cloud_image_retry_source(
 
 
 @router.post(
+    "/jobs/{job_id}/leases/claim",
+    response_model=CloudImageLeaseResponseV1,
+)
+def claim_cloud_image_job_lease(
+    job_id: str,
+    request: CloudImageLeaseClaimRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageLeaseResponseV1:
+    try:
+        return claim_lease(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/leases/renew",
+    response_model=CloudImageLeaseResponseV1,
+)
+def renew_cloud_image_job_lease(
+    job_id: str,
+    request: CloudImageLeaseRenewRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageLeaseResponseV1:
+    try:
+        return renew_lease(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/leases/release",
+    response_model=CloudImageLeaseResponseV1,
+)
+def release_cloud_image_job_lease(
+    job_id: str,
+    request: CloudImageLeaseReleaseRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageLeaseResponseV1:
+    try:
+        return release_lease(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/leases/expire",
+    response_model=CloudImageLeaseResponseV1,
+)
+def expire_cloud_image_job_lease(
+    job_id: str,
+    request: CloudImageLeaseExpireRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageLeaseResponseV1:
+    try:
+        return expire_lease(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
     "/jobs/{job_id}/transitions",
     response_model=CloudImageJobStateResponseV1,
 )
@@ -138,6 +227,71 @@ def transition_cloud_image_job_state(
     try:
         return transition_job(db, job_id, request)
     except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/worker-transitions",
+    response_model=CloudImageJobStateResponseV1,
+)
+def transition_cloud_image_job_state_with_lease(
+    job_id: str,
+    request: CloudImageWorkerTransitionRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageJobStateResponseV1:
+    try:
+        return transition_job_with_lease(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/attempts",
+    response_model=CloudImageStageAttemptV1,
+    status_code=status.HTTP_201_CREATED,
+)
+def start_cloud_image_stage_attempt(
+    job_id: str,
+    request: CloudImageStageAttemptStartRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageStageAttemptV1:
+    try:
+        return start_stage_attempt(db, job_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/jobs/{job_id}/attempts/{attempt_id}/complete",
+    response_model=CloudImageStageAttemptV1,
+)
+def complete_cloud_image_stage_attempt(
+    job_id: str,
+    attempt_id: str,
+    request: CloudImageStageAttemptCompleteRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageStageAttemptV1:
+    try:
+        return complete_stage_attempt(db, job_id, attempt_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.get(
+    "/jobs/{job_id}/attempts",
+    response_model=CloudImageStageAttemptListV1,
+)
+def read_cloud_image_stage_attempts(
+    job_id: str,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_read)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageStageAttemptListV1:
+    try:
+        return list_stage_attempts(db, job_id)
+    except CloudImageStateNotFound as exc:
         raise _translate_error(exc) from exc
 
 
@@ -169,4 +323,35 @@ def read_cloud_image_job_events(
     try:
         return list_events(db, job_id)
     except CloudImageStateNotFound as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/outbox/claims",
+    response_model=CloudImageOutboxClaimResponseV1,
+)
+def claim_cloud_image_outbox(
+    request: CloudImageOutboxClaimRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageOutboxClaimResponseV1:
+    try:
+        return claim_outbox(db, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
+        raise _translate_error(exc) from exc
+
+
+@router.post(
+    "/outbox/{outbox_id}/settlements",
+    response_model=CloudImageOutboxItemV1,
+)
+def settle_cloud_image_outbox(
+    outbox_id: str,
+    request: CloudImageOutboxSettleRequestV1,
+    _auth: Annotated[AuthContext, Depends(require_cloud_image_write)],
+    db: Annotated[Session, Depends(get_db)],
+) -> CloudImageOutboxItemV1:
+    try:
+        return settle_outbox(db, outbox_id, request)
+    except (CloudImageStateConflict, CloudImageStateNotFound) as exc:
         raise _translate_error(exc) from exc
