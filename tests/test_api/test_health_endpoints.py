@@ -33,6 +33,9 @@ class TestHealthEndpoints:
 
         assert response.status_code == 200
         data = response.json()
+        # FC-LTA-P010: tags this response as the admitted service_health_envelope
+        # shape a Forge_Command evaluator checks it against.
+        assert data["schema_version"] == "forge.service_health_envelope.v1"
         assert data["status"] == "ok"
         assert data["service"] == "DataForge"
         assert "database" not in data

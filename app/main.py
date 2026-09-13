@@ -406,6 +406,11 @@ async def health_check():
     import time from this repo's own `service_contract.v1.json`, FC-LTA-P006).
     """
     return {
+        # forge_contract_core's admitted service_health_envelope.v1
+        # (FC-LTA-P010, RFC-FC-LTA-03) -- the shared shape a Forge_Command
+        # evaluator checks this response against. `status`, `version`, and
+        # `authority_domain` below already matched that schema.
+        "schema_version": "forge.service_health_envelope.v1",
         "status": "ok",
         "service": "DataForge",
         "version": "1.0.0",
