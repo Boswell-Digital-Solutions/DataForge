@@ -409,6 +409,28 @@ The returned version is then inserted into `corpus_versions`, and
 `corpus_version:current` is invalidated in Redis. Retrieval caches naturally age out
 because the version is part of the key.
 
+## Cloud-Image Durable Control State
+
+DataForge owns the relational truth for NeuroForge cloud-image jobs through the
+`cloud_image_*` tables introduced by Alembic revision `20260913_01`. The model
+separates mutable job state, opaque protected requests, caller-scoped
+idempotency bindings, immutable operation receipts, append-only audit events,
+and a transactional outbox. NeuroForge remains the state-machine authority;
+DataForge validates versioned contracts and compare-and-set preconditions but
+does not invent domain transitions.
+
+One create or transition transaction writes every required effect before a
+single commit. Explicit flush boundaries establish foreign-key ordering but do
+not expose partial state: any failure rolls back the job mutation, protected
+request or idempotency binding, event, receipt, and outbox together. PostgreSQL
+row locking and expected `row_version`/status checks give competing transitions
+one winner and a stable `compare_and_set_conflict` for the loser.
+
+Prompt-bearing request JSON never crosses the DataForge API in plaintext.
+NeuroForge supplies an `A256GCM` envelope, key reference, ciphertext digest,
+keyed semantic fingerprint, and bounded retention timestamps. DataForge stores
+and returns the opaque envelope and has no payload key or decryption path.
+
 ## Resilience Architecture
 
 | Layer | Strategy | Recovery Time |
@@ -750,6 +772,7 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 | Search and document admin | `/api/search`, `/admin/documents`, `/admin/domains`, `/admin/tags` | `POST /api/search`, `POST /api/search/hybrid`, `GET /api/search/stats`, `POST /admin/documents` | Hybrid retrieval plus document/domain/tag CRUD |
 | Auth compatibility and operator key control | `/auth`, `/api/auth`, `/auth/whoami`, `/admin/api-keys`, `/admin/token` | `POST /auth/token`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /admin/api-keys/generate`, `POST /admin/token/rotate` | Live mounted auth is JWT/login compatibility plus admin key/token tooling |
 | NeuroForge and learning | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | `POST /api/neuroforge/inferences`, `POST /api/neuroforge/routing-decisions`, `POST /api/v1/runs`, `GET /api/v1/learning/model-performance` | Inference, routing, run logging, and learning feedback |
+| NeuroForge cloud-image state | `/api/v1/internal/cloud-image-state` | `POST /jobs`, `GET /jobs/{job_id}`, `GET /jobs/{job_id}/retry-source`, `POST /jobs/{job_id}/transitions`, `POST/GET /jobs/{job_id}/events` | Durable create/replay, caller-scoped read, protected retry source, compare-and-set transition, and append-only evidence |
 | VibeForge and team state | `/api/vibeforge`, `/api/teams` | `POST /api/vibeforge/projects`, `POST /api/vibeforge/sessions`, `GET /api/teams/{team_id}`, `GET /api/teams/{team_id}/insights` | Project/session persistence and team insights |
 | AuthorForge boundary | `/api/projects`, `/api/v1/events/authorforge-analytics` | All `/api/projects` methods return `410`; `POST /api/v1/events/authorforge-analytics` accepts only `AuthorForgeAnalyticsEnvelope.v1` | AuthorForge content stays in its embedded DB; only minimized analytics can enter DataForge |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
@@ -760,6 +783,15 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 | Proving-slice intake | `/api/v1/proving-slice` | `POST /api/v1/proving-slice/intake`, `GET /api/v1/proving-slice/receipts/by-artifact/{artifact_id}` | Governed artifact intake from DataForge Local: validate via forge-contract-core, persist, emit promotion_receipt. Three intake outcomes: `accepted`, `rejected`, `duplicate_reconciled`. |
 
 ## Authentication Posture
+
+The cloud-image state surface accepts only DataForge API keys bound to
+`service_name=neuroforge`. Reads require `cloud-image:state:read`; creates,
+transitions, and event appends require `cloud-image:state:write`. Admin and
+emergency credentials do not satisfy this service binding. Caller-scoped reads
+return the same not-found response for a missing job and a caller mismatch.
+All request and response bodies are strict, versioned contracts. Event detail
+keys are allow-listed and bounded so prompts, credentials, and request bodies
+cannot be added as ungoverned audit content.
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
 
@@ -2053,7 +2085,7 @@ module present in the repo.
 
 | Service or function | Current mounted prefixes | Primary responsibility in DataForge |
 |---------------------|--------------------------|-------------------------------------|
-| NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | Inference persistence, routing decisions, execution logs, learning feedback |
+| NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning`, `/api/v1/internal/cloud-image-state` | Inference persistence, routing decisions, execution logs, learning feedback, and durable cloud-image control state |
 | VibeForge | `/api/vibeforge`, `/api/teams` | Project/session/outcome persistence plus team insights |
 | AuthorForge | `/api/v1/events/authorforge-analytics`; `/api/projects` tombstone | Strict minimized analytics only; no content persistence, retrieval, or sync |
 | ForgeAgents | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/experience` | Agent registry, run evidence, execution history, experience store |
@@ -2118,6 +2150,16 @@ Representative mounted routes:
 - `POST /api/v1/runs`
 - `GET /api/v1/learning/model-performance`
 - `GET /api/v1/learning/recommendations/*`
+
+Cloud-image fulfillment uses the separate internal
+`/api/v1/internal/cloud-image-state` authority boundary. NeuroForge supplies
+already-authorized domain states and AES-GCM-protected request envelopes;
+DataForge supplies durability, caller/idempotency uniqueness, compare-and-set
+serialization, append-only events, operation receipts, and an outbox in the
+same transaction. Existing rate-card and CSSA quota tables remain their
+respective authorities and are not duplicated by the Slice 01 schema. No
+worker, provider SDK, artifact downloader, or ForgeImages transport is part of
+this boundary.
 
 ## AuthorForge Analytics and Local Content Authority
 
@@ -2479,6 +2521,13 @@ DATAFORGE_TELEMETRY_TIMEOUT=5
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
 
+The cloud-image state API adds no DataForge encryption secret: DataForge stores
+only envelopes encrypted by NeuroForge. Provision a dedicated DataForge API key
+whose metadata is bound to `service_name=neuroforge` and whose scopes contain
+`cloud-image:state:read` and/or `cloud-image:state:write` according to the
+caller's required operations. Do not reuse admin, emergency, telemetry, or
+broad application keys for this surface.
+
 `DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
 
 The ForgeEvent.v1 route is mounted while the writer switch is disabled so
@@ -2748,6 +2797,21 @@ LLM API keys are synced to DataForge from the ForgeCommand vault via the `/secre
 ---
 
 # §15 — Testing
+
+## Cloud-Image Durable State Gate
+
+Run the focused SQLite contract/rollback suite and the PostgreSQL concurrency
+gate separately:
+
+```bash
+PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state.py
+pg_virtualenv bash -c 'export CLOUD_IMAGE_TEST_POSTGRES_URL=postgresql:///postgres DATAFORGE_DATABASE_URL=postgresql:///postgres; PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state_postgres.py'
+```
+
+Migration proof covers a clean `alembic upgrade head`, an upgrade from stamped
+revision `20260906_01`, `alembic current` at `20260913_01`, and a downgrade back
+to `20260906_01`. The PostgreSQL test skips unless its explicit test URL is
+supplied; SQLite cannot prove row-lock concurrency.
 
 *Last updated: 2026-07-25*
 

@@ -51,6 +51,13 @@ DATAFORGE_TELEMETRY_TIMEOUT=5
 
 Never use SQLite in production. The pgvector extension requires PostgreSQL 13+.
 
+The cloud-image state API adds no DataForge encryption secret: DataForge stores
+only envelopes encrypted by NeuroForge. Provision a dedicated DataForge API key
+whose metadata is bound to `service_name=neuroforge` and whose scopes contain
+`cloud-image:state:read` and/or `cloud-image:state:write` according to the
+caller's required operations. Do not reuse admin, emergency, telemetry, or
+broad application keys for this surface.
+
 `DataForge` no longer treats pgvector startup init as a fatal boot dependency. If the database is temporarily unavailable during startup, the service still boots, `/health` stays live, and `/ready` reports the database/pgvector failure until connectivity recovers.
 
 The ForgeEvent.v1 route is mounted while the writer switch is disabled so

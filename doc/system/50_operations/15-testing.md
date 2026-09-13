@@ -1,5 +1,20 @@
 # §15 — Testing
 
+## Cloud-Image Durable State Gate
+
+Run the focused SQLite contract/rollback suite and the PostgreSQL concurrency
+gate separately:
+
+```bash
+PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state.py
+pg_virtualenv bash -c 'export CLOUD_IMAGE_TEST_POSTGRES_URL=postgresql:///postgres DATAFORGE_DATABASE_URL=postgresql:///postgres; PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state_postgres.py'
+```
+
+Migration proof covers a clean `alembic upgrade head`, an upgrade from stamped
+revision `20260906_01`, `alembic current` at `20260913_01`, and a downgrade back
+to `20260906_01`. The PostgreSQL test skips unless its explicit test URL is
+supplied; SQLite cannot prove row-lock concurrency.
+
 *Last updated: 2026-07-25*
 
 ## Current Audited Snapshot

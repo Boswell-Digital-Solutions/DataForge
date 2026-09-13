@@ -255,6 +255,28 @@ The returned version is then inserted into `corpus_versions`, and
 `corpus_version:current` is invalidated in Redis. Retrieval caches naturally age out
 because the version is part of the key.
 
+## Cloud-Image Durable Control State
+
+DataForge owns the relational truth for NeuroForge cloud-image jobs through the
+`cloud_image_*` tables introduced by Alembic revision `20260913_01`. The model
+separates mutable job state, opaque protected requests, caller-scoped
+idempotency bindings, immutable operation receipts, append-only audit events,
+and a transactional outbox. NeuroForge remains the state-machine authority;
+DataForge validates versioned contracts and compare-and-set preconditions but
+does not invent domain transitions.
+
+One create or transition transaction writes every required effect before a
+single commit. Explicit flush boundaries establish foreign-key ordering but do
+not expose partial state: any failure rolls back the job mutation, protected
+request or idempotency binding, event, receipt, and outbox together. PostgreSQL
+row locking and expected `row_version`/status checks give competing transitions
+one winner and a stable `compare_and_set_conflict` for the loser.
+
+Prompt-bearing request JSON never crosses the DataForge API in plaintext.
+NeuroForge supplies an `A256GCM` envelope, key reference, ciphertext digest,
+keyed semantic fingerprint, and bounded retention timestamps. DataForge stores
+and returns the opaque envelope and has no payload key or decryption path.
+
 ## Resilience Architecture
 
 | Layer | Strategy | Recovery Time |

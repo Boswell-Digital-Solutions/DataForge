@@ -42,6 +42,7 @@ from app.models import llm_intel_pending_records_models  # noqa: F401
 from app.models import supabase_log_models  # noqa: F401
 from app.models import authorforge_analytics_models  # noqa: F401
 from app.models import telemetry_models  # noqa: F401
+from app.models import cloud_image_state_models  # noqa: F401
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = _context.config

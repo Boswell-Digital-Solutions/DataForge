@@ -15,7 +15,7 @@ module present in the repo.
 
 | Service or function | Current mounted prefixes | Primary responsibility in DataForge |
 |---------------------|--------------------------|-------------------------------------|
-| NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | Inference persistence, routing decisions, execution logs, learning feedback |
+| NeuroForge | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning`, `/api/v1/internal/cloud-image-state` | Inference persistence, routing decisions, execution logs, learning feedback, and durable cloud-image control state |
 | VibeForge | `/api/vibeforge`, `/api/teams` | Project/session/outcome persistence plus team insights |
 | AuthorForge | `/api/v1/events/authorforge-analytics`; `/api/projects` tombstone | Strict minimized analytics only; no content persistence, retrieval, or sync |
 | ForgeAgents | `/api/v1/agents`, `/api/v1/forge-run`, `/api/v1/experience` | Agent registry, run evidence, execution history, experience store |
@@ -80,6 +80,16 @@ Representative mounted routes:
 - `POST /api/v1/runs`
 - `GET /api/v1/learning/model-performance`
 - `GET /api/v1/learning/recommendations/*`
+
+Cloud-image fulfillment uses the separate internal
+`/api/v1/internal/cloud-image-state` authority boundary. NeuroForge supplies
+already-authorized domain states and AES-GCM-protected request envelopes;
+DataForge supplies durability, caller/idempotency uniqueness, compare-and-set
+serialization, append-only events, operation receipts, and an outbox in the
+same transaction. Existing rate-card and CSSA quota tables remain their
+respective authorities and are not duplicated by the Slice 01 schema. No
+worker, provider SDK, artifact downloader, or ForgeImages transport is part of
+this boundary.
 
 ## AuthorForge Analytics and Local Content Authority
 
