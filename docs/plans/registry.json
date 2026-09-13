@@ -74,14 +74,43 @@
       "lifecycle_status": "verified_complete",
       "plan_path": "docs/plans/DFG_GOV_01/README.md",
       "tracking_issue": null,
-      "implementation": {"completed_slices": 1, "total_slices": 1, "evidence_status": "verified"},
+      "implementation": {
+        "completed_slices": 1,
+        "total_slices": 1,
+        "evidence_status": "verified"
+      },
       "next_action": "Seek separate owner authorization for HFX-14E.3 before proposing any DataForge consumer, persistence, API, or runtime behavior.",
       "blocker": null,
       "doc_system_paths": [],
-      "last_verified": {"commit": "364dcb9443c938ccab28dec250d6768d70e30a7f", "date": "2026-08-23"},
+      "last_verified": {
+        "commit": "364dcb9443c938ccab28dec250d6768d70e30a7f",
+        "date": "2026-08-23"
+      },
       "archive": null,
       "superseded_by": null,
       "closeout_reason": "Owner accepted DFG-GOV-01 after PR #45 merged at 364dcb9443c938ccab28dec250d6768d70e30a7f; Test Suite, Docker Build and Push, and Security Scanning succeeded at reviewed head 1e6d5b62f970a7ba3141ca35fc931fb75c0ec056. The candidate remains unadmitted and creates no runtime authority."
+    },
+    {
+      "plan_id": "BDS-DF-RF-001",
+      "title": "Receipt-to-Finding Knowledge Spine v0.1",
+      "version": "0.1",
+      "owner_repository": "Boswell-Digital-Solutions/DataForge",
+      "scope": "cross_repository",
+      "lifecycle_status": "proposed",
+      "plan_path": "docs/plans/active/BDS_DF_RF_001_v0.1/",
+      "tracking_issue": null,
+      "implementation": {
+        "completed_slices": 0,
+        "total_slices": null,
+        "evidence_status": "missing_closeout"
+      },
+      "next_action": "Board Review 1 rules on OD-01 (canonical owner), OD-02 (finding-candidate boundary vs. bugcheck_finding.v1), OD-03 (generalize llm-intel/pending-records vs. build separately), and OD-04 (correct BDS-RMCP-FC-GIR-v0.1's reference to a nonexistent IssueQualificationReceipt.v1); then authorize documentation-only WP-01 to draft the receipt/evidence-link/finding-candidate/disposition contract candidate.",
+      "blocker": "No Board ruling yet on any of the four open decisions named in the WP-00 packet. BDS-RMCP-FC-GIR-v0.1's A3-GATE-00B item 5 stays open until this plan exists further than WP-00.",
+      "doc_system_paths": [],
+      "last_verified": null,
+      "archive": null,
+      "superseded_by": null,
+      "closeout_reason": null
     }
   ]
 }
