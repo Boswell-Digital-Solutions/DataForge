@@ -143,3 +143,78 @@ class CloudImageOutbox(Base):
     created_at = Column(DateTime(timezone=True), nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True, index=True)
     delivery_attempts = Column(Integer, nullable=False, default=0)
+    next_attempt_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    claim_owner = Column(String(128), nullable=True)
+    claim_token = Column(Integer, nullable=False, default=0)
+    claim_expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    last_error_code = Column(String(128), nullable=True)
+    dead_lettered_at = Column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class CloudImageLease(Base):
+    __tablename__ = "cloud_image_leases"
+
+    job_id = Column(
+        String(96),
+        ForeignKey("cloud_image_jobs.job_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    stage = Column(String(64), nullable=False)
+    worker_id = Column(String(128), nullable=False, index=True)
+    fencing_token = Column(Integer, nullable=False)
+    acquired_at = Column(DateTime(timezone=True), nullable=False)
+    renewed_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    released_at = Column(DateTime(timezone=True), nullable=True)
+    release_reason = Column(String(128), nullable=True)
+
+
+class CloudImageStageAttempt(Base):
+    __tablename__ = "cloud_image_stage_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "job_id",
+            "stage",
+            "attempt_number",
+            name="uq_cloud_image_stage_attempt_number",
+        ),
+    )
+
+    attempt_id = Column(String(128), primary_key=True)
+    operation_id = Column(String(128), nullable=False, unique=True)
+    operation_fingerprint = Column(String(76), nullable=False)
+    job_id = Column(
+        String(96),
+        ForeignKey("cloud_image_jobs.job_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    stage = Column(String(64), nullable=False, index=True)
+    attempt_number = Column(Integer, nullable=False)
+    fencing_token = Column(Integer, nullable=False)
+    status = Column(String(32), nullable=False, index=True)
+    retry_class = Column(String(32), nullable=False)
+    failure_code = Column(String(128), nullable=True)
+    result_digest = Column(String(71), nullable=True)
+    next_attempt_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    started_at = Column(DateTime(timezone=True), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    transitioned_to_status = Column(String(64), nullable=True)
+    transitioned_row_version = Column(Integer, nullable=True)
+    transitioned_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class CloudImageControlReceipt(Base):
+    __tablename__ = "cloud_image_control_receipts"
+
+    operation_id = Column(String(128), primary_key=True)
+    operation_kind = Column(String(48), nullable=False)
+    operation_fingerprint = Column(String(76), nullable=False)
+    job_id = Column(
+        String(96),
+        ForeignKey("cloud_image_jobs.job_id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    response_payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)

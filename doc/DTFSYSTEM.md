@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.6 (2026-09-13) — HFX-14F S3 Object Lock adapter (unmounted)
+**Document version:** 2.7 (2026-09-13) — cloud-image leased recovery and rebuildable outbox
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit
@@ -412,7 +412,8 @@ because the version is part of the key.
 ## Cloud-Image Durable Control State
 
 DataForge owns the relational truth for NeuroForge cloud-image jobs through the
-`cloud_image_*` tables introduced by Alembic revision `20260913_01`. The model
+`cloud_image_*` tables introduced by Alembic revision `20260913_01` and extended
+for recovery by `20260913_02`. The model
 separates mutable job state, opaque protected requests, caller-scoped
 idempotency bindings, immutable operation receipts, append-only audit events,
 and a transactional outbox. NeuroForge remains the state-machine authority;
@@ -425,6 +426,20 @@ not expose partial state: any failure rolls back the job mutation, protected
 request or idempotency binding, event, receipt, and outbox together. PostgreSQL
 row locking and expected `row_version`/status checks give competing transitions
 one winner and a stable `compare_and_set_conflict` for the loser.
+
+PROD-02 adds one renewable lease per job, monotonic fencing tokens, durable
+numbered stage attempts, and exact control-operation receipts. A worker result
+may advance state only while its lease is active and only when the referenced
+latest attempt has a final `succeeded` or `permanent_failure` outcome. The job
+mutation, audit event, outbox row, operation receipt, and attempt-to-transition
+link commit atomically. A takeover may reconcile an older unfinished attempt,
+but the newer fencing token prevents the superseded worker from committing.
+
+The transactional outbox is now claimable with owner, token, expiry, attempt,
+retry, and dead-letter state. PostgreSQL `FOR UPDATE SKIP LOCKED` gives one
+dispatcher each available row. Publish acknowledgement is fenced by the claim
+token; an unacknowledged claim becomes eligible after expiry, and consumers use
+the stable event ID as the at-least-once message identity.
 
 Prompt-bearing request JSON never crosses the DataForge API in plaintext.
 NeuroForge supplies an `A256GCM` envelope, key reference, ciphertext digest,
@@ -772,7 +787,7 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 | Search and document admin | `/api/search`, `/admin/documents`, `/admin/domains`, `/admin/tags` | `POST /api/search`, `POST /api/search/hybrid`, `GET /api/search/stats`, `POST /admin/documents` | Hybrid retrieval plus document/domain/tag CRUD |
 | Auth compatibility and operator key control | `/auth`, `/api/auth`, `/auth/whoami`, `/admin/api-keys`, `/admin/token` | `POST /auth/token`, `POST /api/auth/login`, `GET /api/auth/me`, `POST /admin/api-keys/generate`, `POST /admin/token/rotate` | Live mounted auth is JWT/login compatibility plus admin key/token tooling |
 | NeuroForge and learning | `/api/neuroforge`, `/api/v1/runs`, `/api/v1/learning` | `POST /api/neuroforge/inferences`, `POST /api/neuroforge/routing-decisions`, `POST /api/v1/runs`, `GET /api/v1/learning/model-performance` | Inference, routing, run logging, and learning feedback |
-| NeuroForge cloud-image state | `/api/v1/internal/cloud-image-state` | `POST /jobs`, `GET /jobs/{job_id}`, `GET /jobs/{job_id}/retry-source`, `POST /jobs/{job_id}/transitions`, `POST/GET /jobs/{job_id}/events` | Durable create/replay, caller-scoped read, protected retry source, compare-and-set transition, and append-only evidence |
+| NeuroForge cloud-image state | `/api/v1/internal/cloud-image-state` | Job/retry/event routes; lease claim/renew/release/expire; stage-attempt start/complete/list; fenced worker transitions; outbox claim/settle | Durable create/replay, caller-scoped read, protected retry source, leased/fenced worker recovery, compare-and-set transition, and rebuildable at-least-once evidence delivery |
 | VibeForge and team state | `/api/vibeforge`, `/api/teams` | `POST /api/vibeforge/projects`, `POST /api/vibeforge/sessions`, `GET /api/teams/{team_id}`, `GET /api/teams/{team_id}/insights` | Project/session persistence and team insights |
 | AuthorForge boundary | `/api/projects`, `/api/v1/events/authorforge-analytics` | All `/api/projects` methods return `410`; `POST /api/v1/events/authorforge-analytics` accepts only `AuthorForgeAnalyticsEnvelope.v1` | AuthorForge content stays in its embedded DB; only minimized analytics can enter DataForge |
 | Forge:SMITH | `/api/v1/smithy/planning`, `/api/v1/smithy/portfolio` | `POST /api/v1/smithy/planning/sessions`, `POST /api/v1/smithy/planning/sessions/{session_id}/start`, `POST /api/v1/smithy/portfolio/projects` | Planning session state, deliverables, and portfolio/evaluation records |
@@ -786,12 +801,19 @@ own — Forge_Command's own `service_contract.v1.json` decides whether the claim
 
 The cloud-image state surface accepts only DataForge API keys bound to
 `service_name=neuroforge`. Reads require `cloud-image:state:read`; creates,
-transitions, and event appends require `cloud-image:state:write`. Admin and
+transitions, lease/attempt operations, outbox operations, and event appends
+require `cloud-image:state:write`. Admin and
 emergency credentials do not satisfy this service binding. Caller-scoped reads
 return the same not-found response for a missing job and a caller mismatch.
 All request and response bodies are strict, versioned contracts. Event detail
 keys are allow-listed and bounded so prompts, credentials, and request bodies
 cannot be added as ungoverned audit content.
+
+Worker mutation routes are separate from ordinary control transitions. They
+require the current `worker_id`, stage, and monotonic fencing token plus the
+durable final attempt ID. Attempt sequence gaps, early retries, overlapping or
+unreconciled attempts, stale fences, stale outbox acknowledgements, and reuse of
+an operation ID with different content return explicit conflict codes.
 
 Credential requirements vary by router. The live mounted service currently uses these categories:
 
@@ -2156,10 +2178,12 @@ Cloud-image fulfillment uses the separate internal
 already-authorized domain states and AES-GCM-protected request envelopes;
 DataForge supplies durability, caller/idempotency uniqueness, compare-and-set
 serialization, append-only events, operation receipts, and an outbox in the
-same transaction. Existing rate-card and CSSA quota tables remain their
+same transaction. The PROD-02 extension also supplies renewable worker leases,
+monotonic fencing, durable stage-attempt recovery, and token-fenced outbox
+claims. Existing rate-card and CSSA quota tables remain their
 respective authorities and are not duplicated by the Slice 01 schema. No
-worker, provider SDK, artifact downloader, or ForgeImages transport is part of
-this boundary.
+worker, provider SDK, artifact downloader, broker publisher, or ForgeImages
+transport executes inside this boundary.
 
 ## AuthorForge Analytics and Local Content Authority
 
@@ -2804,14 +2828,20 @@ Run the focused SQLite contract/rollback suite and the PostgreSQL concurrency
 gate separately:
 
 ```bash
-PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state.py
+PYTHONPATH=. ./.venv/bin/python -m pytest -q \
+  tests/test_cloud_image_state.py tests/test_cloud_image_recovery.py
 pg_virtualenv bash -c 'export CLOUD_IMAGE_TEST_POSTGRES_URL=postgresql:///postgres DATAFORGE_DATABASE_URL=postgresql:///postgres; PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state_postgres.py'
 ```
 
 Migration proof covers a clean `alembic upgrade head`, an upgrade from stamped
-revision `20260906_01`, `alembic current` at `20260913_01`, and a downgrade back
-to `20260906_01`. The PostgreSQL test skips unless its explicit test URL is
-supplied; SQLite cannot prove row-lock concurrency.
+revision `20260906_01`, `alembic current` at `20260913_02`, and a downgrade and
+re-upgrade across `20260913_01`. The recovery suite covers lease replay,
+renewal, release, expiration/takeover, stale fencing, attempt reconciliation and
+ordering, atomic attempt/transition linkage, outbox retry/reclaim/ack fencing,
+and injected rollback boundaries. The two PostgreSQL cases prove single-winner
+job transitions, worker leases, and outbox claims. They skip unless the explicit
+test URL is supplied; SQLite cannot prove row-lock concurrency or
+`SKIP LOCKED` behavior.
 
 *Last updated: 2026-07-25*
 
@@ -3328,6 +3358,7 @@ Appendices, glossary, and cross-references.
 | 2.2 | 2026-07-23 | Pinned the admitted ForgeEvent.v1 expected-error profile and documented code-only, value-free canonical ingress validation. |
 | 2.3 | 2026-07-23 | Replaced DataForge search's pre-v1 direct-database emitter with the privacy-bounded canonical async HTTP producer and finite shutdown contract. |
 | 2.5 | 2026-07-25 | Added CP6 evidence-grounded, candidate-only incident analysis with strict provenance, source proof, bounded read exposure, and evidence-preserving rollback. |
+| 2.7 | 2026-09-13 | Added PROD-02 renewable leases, monotonic fencing, durable stage attempts, atomic attempt-transition linkage, and rebuildable token-fenced outbox delivery. |
 
 ## Unmapped legacy chapters
 

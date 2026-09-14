@@ -258,7 +258,8 @@ because the version is part of the key.
 ## Cloud-Image Durable Control State
 
 DataForge owns the relational truth for NeuroForge cloud-image jobs through the
-`cloud_image_*` tables introduced by Alembic revision `20260913_01`. The model
+`cloud_image_*` tables introduced by Alembic revision `20260913_01` and extended
+for recovery by `20260913_02`. The model
 separates mutable job state, opaque protected requests, caller-scoped
 idempotency bindings, immutable operation receipts, append-only audit events,
 and a transactional outbox. NeuroForge remains the state-machine authority;
@@ -271,6 +272,20 @@ not expose partial state: any failure rolls back the job mutation, protected
 request or idempotency binding, event, receipt, and outbox together. PostgreSQL
 row locking and expected `row_version`/status checks give competing transitions
 one winner and a stable `compare_and_set_conflict` for the loser.
+
+PROD-02 adds one renewable lease per job, monotonic fencing tokens, durable
+numbered stage attempts, and exact control-operation receipts. A worker result
+may advance state only while its lease is active and only when the referenced
+latest attempt has a final `succeeded` or `permanent_failure` outcome. The job
+mutation, audit event, outbox row, operation receipt, and attempt-to-transition
+link commit atomically. A takeover may reconcile an older unfinished attempt,
+but the newer fencing token prevents the superseded worker from committing.
+
+The transactional outbox is now claimable with owner, token, expiry, attempt,
+retry, and dead-letter state. PostgreSQL `FOR UPDATE SKIP LOCKED` gives one
+dispatcher each available row. Publish acknowledgement is fenced by the claim
+token; an unacknowledged claim becomes eligible after expiry, and consumers use
+the stable event ID as the at-least-once message identity.
 
 Prompt-bearing request JSON never crosses the DataForge API in plaintext.
 NeuroForge supplies an `A256GCM` envelope, key reference, ciphertext digest,
