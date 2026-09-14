@@ -17,6 +17,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.models.df_rf_schemas import DfRfIngestRequest
+from app.models.memory_models import MemoryConflict
 from app.models.telemetry_models import ForgeCheckRunReceiptV1Record
 from app.services.df_rf_ingest import (
     DF_RF_NAMESPACE,
@@ -110,6 +111,54 @@ def test_verification_status_is_verified_for_a_real_stored_receipt(db: Session) 
     )
     stored = _get_evidence_link(db, body["record_id"])
     assert stored.verification_status == "verified"
+
+
+def test_verification_status_is_verified_against_a_string_primary_key_column(
+    db: Session,
+) -> None:
+    # Regression test for a real bug found and fixed while wiring up
+    # MemoryConflict.v1: _compute_verification_status used to convert
+    # upstream_record_id to a uuid.UUID object before querying, which works
+    # for ForgeCheckRunReceipt.v1's Postgres UUID column but would silently
+    # fail to match MemoryConflict.conflict_id, a plain String(64) column.
+    conflict_id = str(uuid.uuid4())
+    db.add(
+        MemoryConflict(
+            artifact_id=conflict_id,
+            conflict_id=conflict_id,
+            tenant_id="bds",
+            subject_entity_id="repo:forge-memory",
+            predicate="contract_authority",
+            conflict_type="authority_conflict",
+            operator_review_required=True,
+            payload={"schema_version": "forge.memory_conflict.v1"},
+        )
+    )
+    db.commit()
+
+    body = _ingest(
+        db,
+        "df_rf_evidence_link",
+        evidence_link_payload(
+            upstream_family="MemoryConflict.v1", upstream_record_id=conflict_id
+        ),
+    )
+    stored = _get_evidence_link(db, body["record_id"])
+    assert stored.verification_status == "verified"
+
+
+def test_verification_status_is_unverified_for_a_missing_memory_conflict(
+    db: Session,
+) -> None:
+    body = _ingest(
+        db,
+        "df_rf_evidence_link",
+        evidence_link_payload(
+            upstream_family="MemoryConflict.v1", upstream_record_id=str(uuid.uuid4())
+        ),
+    )
+    stored = _get_evidence_link(db, body["record_id"])
+    assert stored.verification_status == "unverified"
 
 
 def test_verification_status_is_unverified_for_a_missing_receipt(db: Session) -> None:
