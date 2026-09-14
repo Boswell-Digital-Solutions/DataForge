@@ -24,6 +24,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from app.models.df_rf_models import (
@@ -37,6 +38,7 @@ from app.models.df_rf_schemas import (
     DfRfIngestRequest,
     DfRfIngestResponse,
 )
+from app.models.memory_models import MemoryConflict
 from app.models.telemetry_models import ForgeCheckRunReceiptV1Record
 from app.services.llm_intel_pending_records import stable_hash
 from forge_contract_core.validators.families import (
@@ -49,15 +51,20 @@ from forge_contract_core.validators.families import (
 # (the RFC deliberately left this to implementation, not schema-drafting).
 DF_RF_NAMESPACE = uuid.UUID("6f2d7e3a-df01-4a1c-9c3e-df01df01df01")
 
-# Implementation-time survey (RFC-DF-RF-01 Sequencing): which upstream_family
-# values DataForge can actually verify against its own storage, and how. Only
-# ForgeCheckRunReceipt.v1 is DataForge-owned, queryable storage today;
+# Implementation-time survey (RFC-DF-RF-01 Sequencing / BDS-FMEM-OPCOURT-001
+# WP-01 §2): which upstream_family values DataForge can actually verify
+# against its own storage, and which column identifies a record within it.
+# ForgeCheckRunReceipt.v1 (forge_check_run_receipts_v1.receipt_id, a Postgres
+# UUID column) and MemoryConflict.v1 (memory_conflicts.conflict_id, a plain
+# String(64) column -- see _compute_verification_status's string-comparison
+# note below) are both DataForge-owned, queryable storage today.
 # TelemetryEmitReceipt.v1 has no durable DataForge-side table (WP-00 Sec 2.4 --
 # the production write path isn't confirmed live end-to-end), and
 # ServiceHealthEnvelope.v1 is polled live, never persisted historically.
 # Extending this map to more families is additive, non-RFC implementation work.
 _VERIFIABLE_UPSTREAM_FAMILIES: dict[str, tuple[type, str]] = {
     "ForgeCheckRunReceipt.v1": (ForgeCheckRunReceiptV1Record, "receipt_id"),
+    "MemoryConflict.v1": (MemoryConflict, "conflict_id"),
 }
 
 
@@ -95,11 +102,24 @@ def _compute_verification_status(
         return "verification_unavailable"
     model, id_column = lookup
     try:
-        record_id = uuid.UUID(upstream_record_id)
+        parsed = uuid.UUID(upstream_record_id)
     except ValueError:
         return "unverified"
+    # The bound value's Python type must match what the column's own type
+    # expects, not the other way around: ForgeCheckRunReceipt.v1.receipt_id is
+    # a Postgres UUID(as_uuid=True) column, whose bind processor calls
+    # `.hex` on the value and raises AttributeError if given a plain string
+    # (confirmed by a real test failure during this work, not assumed);
+    # MemoryConflict.v1.conflict_id is a plain String(64) column, which
+    # rejects a uuid.UUID object the same way in reverse under SQLite (the
+    # test backend). Inspect the column's own type and bind the form it
+    # actually expects, rather than picking one form for every family.
+    column = getattr(model, id_column)
+    query_value: uuid.UUID | str = (
+        upstream_record_id if isinstance(column.type, sa.String) else parsed
+    )
     exists = (
-        db.query(model).filter(getattr(model, id_column) == record_id).first()
+        db.query(model).filter(column == query_value).first()
         is not None
     )
     return "verified" if exists else "unverified"

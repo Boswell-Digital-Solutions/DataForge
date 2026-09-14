@@ -27,6 +27,7 @@ from app.database import get_db
 from app.models import models
 from app.models.memory_models import (
     MemoryClaim,
+    MemoryConflict,
     MemoryDeletion,
     MemoryEpisode,
     MemoryFact,
@@ -260,6 +261,39 @@ def retrieve_facts(
         "count": len(rows),
         "facts": [r.payload for r in rows],
     }
+
+
+# ── Conflicts ─────────────────────────────────────────────────────────────────
+
+
+@router.post("/conflicts", status_code=201, response_model=WriteResponse)
+def write_conflict(
+    art: ArtifactIn,
+    db: Session = Depends(get_db),
+    _user: models.User = Depends(get_current_active_user),
+) -> WriteResponse:
+    """Store one memory_conflict. Never resolves it -- BDS-FMEM-OPCOURT-001
+    routes conflicts with operator_review_required=true through
+    BDS-DF-RF-001's disposition spine for a human to decide."""
+    _require_family(art, "memory_conflict")
+    p = art.payload
+    scope = _scope(p)
+    existed = db.get(MemoryConflict, art.artifact_id) is not None
+    row = MemoryConflict(
+        artifact_id=art.artifact_id,
+        conflict_id=p["conflict_id"],
+        subject_entity_id=p["subject_entity_id"],
+        predicate=p["predicate"],
+        conflict_type=p["conflict_type"],
+        operator_review_required=bool(p["operator_review_required"]),
+        payload=art.model_dump(),
+        **scope,
+    )
+    db.merge(row)
+    db.commit()
+    return WriteResponse(
+        artifact_id=art.artifact_id, family="memory_conflict", status="refreshed" if existed else "stored"
+    )
 
 
 # ── Receipts ──────────────────────────────────────────────────────────────────

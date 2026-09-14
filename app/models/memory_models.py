@@ -121,6 +121,30 @@ class MemoryReceipt(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class MemoryConflict(Base):
+    """Preserved disagreement between two facts about the same subject/
+    predicate/scope over overlapping validity (memory_conflict). Records both
+    truth surfaces and a non-binding resolution_recommendation; never encodes
+    a forced winner -- BDS-FMEM-OPCOURT-001 routes conflicts with
+    operator_review_required=true through BDS-DF-RF-001's disposition spine
+    so a human decides, mirroring this family's own stated doctrine."""
+
+    __tablename__ = "memory_conflicts"
+
+    artifact_id = Column(String(64), primary_key=True)
+    conflict_id = Column(String(64), nullable=False, index=True)
+    tenant_id = Column(String(128), nullable=False, index=True)
+    user_id = Column(String(128), nullable=True)
+    project_id = Column(String(128), nullable=True, index=True)
+    repo_id = Column(String(128), nullable=True, index=True)
+    subject_entity_id = Column(String(256), nullable=False, index=True)
+    predicate = Column(String(256), nullable=False, index=True)
+    conflict_type = Column(String(32), nullable=False, index=True)
+    operator_review_required = Column(Boolean, nullable=False, index=True)
+    payload = Column(JSONB, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class MemoryDeletion(Base):
     """Non-sensitive deletion receipt. Records that a memory row was really
     removed (removing eligibility), unlike the legacy phantom clear()."""

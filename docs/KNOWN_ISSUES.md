@@ -163,22 +163,55 @@ checks, mirroring the shape of Forge_Command's `22391709`.
 
 `verification_status` on `df_rf_evidence_link` records (RFC-DF-RF-01
 Finding 2 -- whether DataForge actually confirmed a claimed upstream
-receipt) is currently real for exactly one `upstream_family`:
-`ForgeCheckRunReceipt.v1`, queryable against DataForge's own
-`forge_check_run_receipts_v1` table. Every other `upstream_family`
-(`TelemetryEmitReceipt.v1`, `ServiceHealthEnvelope.v1`, ...) returns
-`verification_unavailable` honestly rather than a fabricated `verified` --
-per the same `inconclusive`-is-not-`violated` doctrine Living Topology V2
-uses. Extending `_VERIFIABLE_UPSTREAM_FAMILIES` in `df_rf_ingest.py` to
-more families as DataForge gains queryable storage for them is additive,
-non-RFC implementation work, not a defect to fix now.
+receipt) is now real for two `upstream_family` values: `ForgeCheckRunReceipt.v1`
+(`forge_check_run_receipts_v1`) and, as of 2026-09-14, `MemoryConflict.v1`
+(new `memory_conflicts` table, `BDS-FMEM-OPCOURT-001` WP-01). Every other
+`upstream_family` (`TelemetryEmitReceipt.v1`, `ServiceHealthEnvelope.v1`, ...)
+returns `verification_unavailable` honestly rather than a fabricated
+`verified` -- per the same `inconclusive`-is-not-`violated` doctrine Living
+Topology V2 uses. Extending `_VERIFIABLE_UPSTREAM_FAMILIES` in
+`df_rf_ingest.py` to more families as DataForge gains queryable storage for
+them is additive, non-RFC implementation work, not a defect to fix now.
 
 Forge_Command's producer-side emission (the code that actually calls
 `POST /api/v1/df-rf`) is a separate, not-yet-authorized slice -- it has no
 legitimate real caller yet, since `BDS-RMCP-FC-GIR-v0.1`'s Phase 1/
 `A3-WP-01B` (the actual incident-evidence-collection work) remains
-unauthorized. This ingest service is complete and tested on its own, but
-nothing calls it in production yet.
+unauthorized, and neither does `BDS-FMEM-OPCOURT-001`'s `forge-memory`
+reconciliation engine, which is still a documented skeleton (no real
+`memory_conflict` event exists to write yet either). This ingest service and
+`POST /api/v1/memory/conflicts` are complete and tested on their own, but
+nothing calls either in production.
+
+### Two real bugs found and fixed while wiring `MemoryConflict.v1` in (2026-09-14)
+
+- **RLS gap on the three `df_rf_*` tables.** `20260914_01_add_df_rf_tables.py`
+  (this same day, earlier) created `df_rf_evidence_links`,
+  `df_rf_finding_candidates`, `df_rf_dispositions` without enabling row-level
+  security, reproducing the exact drift class `20260711_01`/`20260712_03`
+  exist to close. Not caught by any test, because the local suite runs on
+  SQLite, which has no RLS concept -- this class of gap is invisible to
+  `bash scripts/preflight.sh` by construction. Fixed in
+  `20260914_02_add_memory_conflicts_and_fix_df_rf_rls.py`, which enables RLS
+  (deny-all, `anon`/`authenticated` privileges explicitly revoked) on all
+  three tables and on the new `memory_conflicts` table from its own creation,
+  guarded by `if bind.dialect.name == "postgresql"` so SQLite tests are
+  unaffected either way.
+- **`_compute_verification_status` bound the wrong Python type for a plain
+  string identifier column.** The original implementation parsed
+  `upstream_record_id` into a `uuid.UUID` object before every lookup, which
+  is what `ForgeCheckRunReceipt.v1.receipt_id` (a Postgres `UUID(as_uuid=True)`
+  column) needs -- but `MemoryConflict.v1.conflict_id` is a plain
+  `String(64)` column, and binding a `uuid.UUID` object against it raised
+  `AttributeError` under the SQLite test backend (would very likely have
+  silently mismatched rather than errored under real Postgres, which is
+  worse). Confirmed by a real test failure while adding `MemoryConflict.v1`
+  support, not caught by inspection alone. Fixed by inspecting the target
+  column's actual SQLAlchemy type (`isinstance(column.type, sa.String)`) and
+  binding the string or the parsed `uuid.UUID` accordingly, rather than
+  assuming one form works for every family. A regression test
+  (`test_verification_status_is_verified_against_a_string_primary_key_column`)
+  pins this for both column shapes going forward.
 
 ---
 
