@@ -4,7 +4,7 @@
 **Document role:** Canonical compiled technical reference for the DataForge durable-truth service
 **Source:** `doc/system/`
 **Build command:** `bash doc/system/BUILD.sh`
-**Document version:** 2.7 (2026-09-13) — cloud-image leased recovery and rebuildable outbox
+**Document version:** 2.8 (2026-09-14) — BDS-DF-RF-001 Receipt-to-Finding spine ingest service
 **Protocol:** BDS Documentation Protocol v2.0; BDS Repo Documentation System Canonical Compliance Standard
 
 > **Generated artifact warning:** `doc/DTFSYSTEM.md` is assembled output. Edit

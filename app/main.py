@@ -54,6 +54,7 @@ from app.api.proving_slice_router import router as proving_slice_router  # Provi
 from app.api.llm_intel_source_trust_router import router as llm_intel_source_trust_router  # LLM provider intelligence source trust
 from app.api.llm_intel_pending_records_router import router as llm_intel_pending_records_router  # LLM provider intelligence pending records
 from app.api.llm_intel_promotion_application_router import router as llm_intel_promotion_application_router  # LLM provider intelligence promotion application
+from app.api.df_rf_router import router as df_rf_router  # BDS-DF-RF-001 Receipt-to-Finding Knowledge Spine
 from app.api.cloud_image_state_router import router as cloud_image_state_router  # NeuroForge cloud-image durable state
 from app.middleware.correlation import CorrelationIDMiddleware
 from app.middleware.request_timeout import RequestTimeoutMiddleware
@@ -352,6 +353,7 @@ app.include_router(proving_slice_router)  # Proving-slice artifact intake + rece
 app.include_router(llm_intel_source_trust_router)  # LLM provider intelligence approved source registry
 app.include_router(llm_intel_pending_records_router)  # LLM provider intelligence pending record storage
 app.include_router(llm_intel_promotion_application_router)  # LLM provider intelligence DataForge promotion application
+app.include_router(df_rf_router)  # BDS-DF-RF-001 Receipt-to-Finding Knowledge Spine storage
 app.include_router(cloud_image_state_router)  # Authenticated NeuroForge cloud-image state and evidence
 
 # ============================================

@@ -22,7 +22,7 @@ boto3==1.35.99
 
 # Canonical telemetry models, including IncidentCandidate.v1, and transport.
 forge-telemetry @ git+https://github.com/Boswell-Digital-Solutions/forge-telemetry.git@804706640050e76eb8069bd2fb064eaadfc612ee
-forge-contract-core @ git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@4198a9076b32f2693d5dc7550b2817246b94b4be
+forge-contract-core @ git+https://github.com/Boswell-Digital-Solutions/forge_contract_core.git@d0695539027976ba244c2c5ba54311da03fc97d8
 # forge-compression: local-only (requires ForgeCommand); installed via pip install -e ../ForgeAgents/forge-compression
 zstandard>=0.22.0
 

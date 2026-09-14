@@ -134,36 +134,55 @@ checks, mirroring the shape of Forge_Command's `22391709`.
 
 ## `llm-intel/pending-records` Pipeline Is LLM-Intel-Specific, Not Yet a Generic Intake
 
-- **Location**: `app/api/llm_intel_pending_records_router.py`,
+- **Status**: RESOLVED 2026-09-14. `BDS-DF-RF-001`'s ingest service
+  (`app/api/df_rf_router.py`, `app/services/df_rf_ingest.py`,
+  `app/models/df_rf_models.py`) generalizes the llm-intel pipeline's
+  *pattern* -- `stable_hash()`-based idempotency (imported verbatim, no
+  duplication), the duplicate-vs-conflict shape, referential-integrity
+  lookups before accepting a dependent record -- against three brand-new
+  tables (`df_rf_evidence_links`, `df_rf_finding_candidates`,
+  `df_rf_dispositions`). No llm-intel file was touched: no shared code, no
+  shared tables, so the "explicit regression plan" this entry called for
+  is satisfied by construction rather than needing an active regression
+  test. `bash scripts/preflight.sh` confirms all 546 pre-existing tests
+  (llm-intel's included) still pass unmodified, plus 17 new `df_rf` tests.
+  `llm_intel_promotion_application.py`'s promotion/registry-projection
+  logic was confirmed *not* to generalize at all (a materially harder
+  problem OD-02 rules out for this family: terminal candidates, no
+  promoted-record materialization, no supersession chain).
+- **Location (new)**: `app/api/df_rf_router.py`, `app/services/df_rf_ingest.py`,
+  `app/models/df_rf_models.py`, `app/models/df_rf_schemas.py`,
+  `alembic/versions/20260914_01_add_df_rf_tables.py`,
+  `tests/test_df_rf_ingest.py`.
+- **Original location**: `app/api/llm_intel_pending_records_router.py`,
   `app/services/llm_intel_pending_records.py`,
   `app/services/llm_intel_promotion_application.py`,
-  `llm_intel_pending_records_models.py`.
-- **Status**: Noted 2026-09-13 during `BDS-DF-RF-001` (Receipt-to-Finding
-  Knowledge Spine v0.1) scoping. Not a defect — a design note ahead of
-  planned reuse.
-- **Impact**: Medium, forward-looking. The pipeline already models almost
-  exactly the shape `BDS-DF-RF-001` needs (`receipt → extracted claim →
-  pending candidate → drift report → promotion decision → promoted
-  record`, family-tagged and idempotent at ingest via `record_family`), and
-  `BDS-DF-RF-001`'s ruled implementation basis (OD-03) is to generalize
-  this pipeline rather than build a separate one. But the storage/service/
-  promotion logic itself is currently LLM-intel-specific, not a truly
-  generic intake framework — generalizing it carries real risk of
-  destabilizing the live LLM-intel flow if done carelessly.
-- **Cause**: The pipeline was built for one consumer (LLM pricing-drift
-  intake) and has not yet needed to serve a second one.
+  `llm_intel_pending_records_models.py` -- unchanged by this work.
 
-### Suggested Fix
+### What's still honest, not fully solved
 
-When `BDS-DF-RF-001`'s `WP-01` drafts the generalized contract, require an
-explicit regression plan for `llm-intel/pending-records`'s existing tests
-before any shared code (models, service, promotion-application logic) is
-touched. Prefer extending the `record_family` discriminator over
-refactoring the underlying tables/services where possible.
+`verification_status` on `df_rf_evidence_link` records (RFC-DF-RF-01
+Finding 2 -- whether DataForge actually confirmed a claimed upstream
+receipt) is currently real for exactly one `upstream_family`:
+`ForgeCheckRunReceipt.v1`, queryable against DataForge's own
+`forge_check_run_receipts_v1` table. Every other `upstream_family`
+(`TelemetryEmitReceipt.v1`, `ServiceHealthEnvelope.v1`, ...) returns
+`verification_unavailable` honestly rather than a fabricated `verified` --
+per the same `inconclusive`-is-not-`violated` doctrine Living Topology V2
+uses. Extending `_VERIFIABLE_UPSTREAM_FAMILIES` in `df_rf_ingest.py` to
+more families as DataForge gains queryable storage for them is additive,
+non-RFC implementation work, not a defect to fix now.
+
+Forge_Command's producer-side emission (the code that actually calls
+`POST /api/v1/df-rf`) is a separate, not-yet-authorized slice -- it has no
+legitimate real caller yet, since `BDS-RMCP-FC-GIR-v0.1`'s Phase 1/
+`A3-WP-01B` (the actual incident-evidence-collection work) remains
+unauthorized. This ingest service is complete and tested on its own, but
+nothing calls it in production yet.
 
 ---
 
-_Last updated: 2026-09-13_
+_Last updated: 2026-09-14_
 
 ## Model findings pilot intake
 
