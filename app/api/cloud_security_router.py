@@ -19,9 +19,10 @@ Prefix: /api/v1/cloud-security
 
 import hashlib
 import logging
+from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -153,6 +154,17 @@ def _append_record(
         ) from None
 
 
+def _make_cursor(row: Any, id_field: str) -> str:
+    created = row.created_at
+    created_iso = created.isoformat() if isinstance(created, datetime) else str(created)
+    return f"{created_iso}|{getattr(row, id_field)}"
+
+
+def _parse_cursor(cursor: str) -> tuple[datetime, str]:
+    created_iso, _, record_id = cursor.partition("|")
+    return datetime.fromisoformat(created_iso), record_id
+
+
 def _make_record_routes(family: str) -> None:
     model, id_field, _, _ = _FAMILIES[family]
 
@@ -177,6 +189,50 @@ def _make_record_routes(family: str) -> None:
         if record is None:
             raise HTTPException(status_code=404, detail=f"{id_field} {record_id} not found")
         return {"payload": record.payload, "record_hash": record.record_hash}
+
+    @router.get(f"/{family}")
+    def list_records(  # type: ignore[no-untyped-def]
+        cursor: str | None = Query(None, description="Opaque keyset cursor from a prior page's next_cursor"),
+        attempt_id: str | None = Query(None),
+        correlation_id: str | None = Query(None),
+        terminal: bool | None = Query(
+            None, description="outcomes only: filter to terminal or non-terminal records"
+        ),
+        limit: int = Query(100, ge=1, le=1000),
+        db: Session = Depends(get_db),
+        _token: str = Depends(require_bearer),
+    ):
+        """List/query a record family (keyset-paginated, same shape as
+        /api/v1/model-outcomes) -- closes the gap this ledger has had since
+        launch: write and single-record-GET only, no way to answer "how many
+        recent CSSA events" without knowing every record_id in advance."""
+        from sqlalchemy import and_, or_
+
+        id_col = getattr(model, id_field)
+        q = db.query(model)
+        if attempt_id:
+            q = q.filter(model.attempt_id == attempt_id)
+        if correlation_id:
+            q = q.filter(model.correlation_id == correlation_id)
+        if terminal is not None:
+            if not hasattr(model, "terminal"):
+                raise HTTPException(status_code=422, detail="terminal filter only applies to the outcomes family")
+            q = q.filter(model.terminal == terminal)
+        if cursor:
+            after_created, after_id = _parse_cursor(cursor)
+            q = q.filter(
+                or_(
+                    model.created_at > after_created,
+                    and_(model.created_at == after_created, id_col > after_id),
+                )
+            )
+        rows = q.order_by(model.created_at.asc(), id_col.asc()).limit(limit).all()
+        next_cursor = _make_cursor(rows[-1], id_field) if len(rows) == limit else None
+        return {
+            "items": [{"payload": r.payload, "record_hash": r.record_hash} for r in rows],
+            "count": len(rows),
+            "next_cursor": next_cursor,
+        }
 
 
 for _family in _FAMILIES:
@@ -219,7 +275,7 @@ def advance_counter(
 
 # ── Atomic quota (authority plan §13; OPEN-3) ───────────────────────
 
-from datetime import UTC, datetime  # noqa: E402
+from datetime import UTC  # noqa: E402
 
 from sqlalchemy import func, text as sa_text  # noqa: E402
 
