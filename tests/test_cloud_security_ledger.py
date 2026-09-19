@@ -177,6 +177,70 @@ class TestCardinalityLaw:
         )
 
 
+class TestListAndQuery:
+    def test_list_returns_appended_records_newest_last(self, client: TestClient):
+        client.post("/api/v1/cloud-security/decisions", json={"payload": decision(decision_id="dec-1", attempt_id="att-1")}, headers=AUTH)
+        client.post("/api/v1/cloud-security/decisions", json={"payload": decision(decision_id="dec-2", attempt_id="att-2")}, headers=AUTH)
+        r = client.get("/api/v1/cloud-security/decisions", headers=AUTH)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["count"] == 2
+        assert [item["payload"]["decision_id"] for item in body["items"]] == ["dec-1", "dec-2"]
+        assert body["next_cursor"] is None
+
+    def test_list_requires_bearer(self, client: TestClient):
+        r = client.get("/api/v1/cloud-security/decisions")
+        assert r.status_code == 401
+
+    def test_list_filters_by_attempt_id(self, client: TestClient):
+        client.post("/api/v1/cloud-security/decisions", json={"payload": decision(decision_id="dec-1", attempt_id="att-1")}, headers=AUTH)
+        client.post("/api/v1/cloud-security/decisions", json={"payload": decision(decision_id="dec-2", attempt_id="att-2")}, headers=AUTH)
+        r = client.get("/api/v1/cloud-security/decisions", params={"attempt_id": "att-2"}, headers=AUTH)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["count"] == 1
+        assert body["items"][0]["payload"]["decision_id"] == "dec-2"
+
+    def test_list_paginates_with_keyset_cursor(self, client: TestClient):
+        for i in range(3):
+            client.post(
+                "/api/v1/cloud-security/decisions",
+                json={"payload": decision(decision_id=f"dec-{i}", attempt_id=f"att-{i}")},
+                headers=AUTH,
+            )
+        first_page = client.get("/api/v1/cloud-security/decisions", params={"limit": 2}, headers=AUTH).json()
+        assert [item["payload"]["decision_id"] for item in first_page["items"]] == ["dec-0", "dec-1"]
+        assert first_page["next_cursor"] is not None
+        second_page = client.get(
+            "/api/v1/cloud-security/decisions",
+            params={"limit": 2, "cursor": first_page["next_cursor"]},
+            headers=AUTH,
+        ).json()
+        assert [item["payload"]["decision_id"] for item in second_page["items"]] == ["dec-2"]
+        assert second_page["next_cursor"] is None
+
+    def test_list_outcomes_filters_by_terminal(self, client: TestClient):
+        client.post(
+            "/api/v1/cloud-security/outcomes",
+            json={"payload": outcome(outcome_id="out-started", attempt_id="att-1", execution_state="started")},
+            headers=AUTH,
+        )
+        client.post(
+            "/api/v1/cloud-security/outcomes",
+            json={"payload": outcome(outcome_id="out-done", attempt_id="att-2", execution_state="completed")},
+            headers=AUTH,
+        )
+        r = client.get("/api/v1/cloud-security/outcomes", params={"terminal": "true"}, headers=AUTH)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["count"] == 1
+        assert body["items"][0]["payload"]["outcome_id"] == "out-done"
+
+    def test_terminal_filter_rejected_outside_outcomes(self, client: TestClient):
+        r = client.get("/api/v1/cloud-security/decisions", params={"terminal": "true"}, headers=AUTH)
+        assert r.status_code == 422
+
+
 class TestAntiRollbackCounters:
     def test_unset_counter_reads_none(self, client: TestClient):
         r = client.get("/api/v1/cloud-security/counters/policy_bundle", headers=AUTH)
