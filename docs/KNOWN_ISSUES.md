@@ -249,7 +249,45 @@ that consumer's own separate "bounded activation" decision, not this slice.
 
 ---
 
-_Last updated: 2026-09-14_
+## `FORGE_TELEMETRY_TOKEN` CI Secret Is Invalid -- Blocks All Test-Suite Runs Fleet-Wide
+
+- **Location**: `.github/workflows/test.yml::Configure git auth for private forge-* dependencies`
+  (the `FORGE_TELEMETRY_TOKEN` repository secret, used to `git clone` the private
+  `forge-telemetry`/`forge_contract_core` pip dependencies during CI).
+- **Status**: Open, actively blocking. Found 2026-09-20 while getting an unrelated docs-only
+  PR (`#71`) to a green merge -- its `test` check failed twice in a row (a fresh re-run, not a
+  flake) with `remote: Invalid username or token. Password authentication is not supported for
+  Git operations. / fatal: Authentication failed for
+  'https://github.com/Boswell-Digital-Solutions/forge-telemetry.git/'`. The workflow's own
+  guard step (which would print `::error::FORGE_TELEMETRY_TOKEN secret is not set`) did not
+  fire, so the secret exists but its token value is invalid or expired -- not simply missing.
+  Confirmed unrelated to any code change: `master`'s own `Test Suite` last succeeded on this
+  exact head commit (`89fc959c`) at 2026-09-19T05:52 -- something about the token broke between
+  then and 2026-09-20.
+- **Impact**: High. Every PR's `test` job fails at the dependency-install step before a single
+  test runs, and `test` is one of the eight required status checks
+  (`23156479`, "Require PR and CI checks on master") added 2026-09-13 specifically to stop a
+  broken commit merging silently. Right now that protection itself blocks *every* PR, including
+  ones with zero code risk (like `#71`, a single-markdown-file docs change) -- an admin override
+  would defeat the exact protection this repo added a week ago, so this needs a real fix, not a
+  bypass.
+- **Cause**: `FORGE_TELEMETRY_TOKEN` is a fine-grained GitHub PAT with `Contents:Read` on
+  `Boswell-Digital-Solutions/forge-telemetry` (and `forge_contract_core`). Fine-grained PATs
+  expire on a fixed schedule (unlike the org's GitHub App-based credentials elsewhere) and have
+  no drift/expiry alerting -- the same class of gap as this file's own "No Expiry Alerting for
+  Issued API Keys" entry above, just for a CI secret instead of a DataForge-issued one.
+
+### Suggested Fix
+
+Mint a new fine-grained PAT with `Contents:Read` on both `forge-telemetry` and
+`forge_contract_core`, update the `FORGE_TELEMETRY_TOKEN` repository secret, and re-run the
+blocked PRs' `test` checks. Longer term: prefer a non-expiring mechanism (a GitHub App
+installation token, matching how `docker.yml`/`deploy.yml` already use `secrets.GITHUB_TOKEN`)
+or add an expiry-date reminder for this specific secret, so this doesn't silently recur.
+
+---
+
+_Last updated: 2026-09-20_
 
 ## Model findings pilot intake
 
