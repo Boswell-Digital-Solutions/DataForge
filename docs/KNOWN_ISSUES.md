@@ -215,6 +215,40 @@ nothing calls either in production.
 
 ---
 
+## `require_bearer` on the CSSA Cloud-Security Ledger Does Not Verify the Token
+
+- **Location**: `app/api/cloud_security_router.py::require_bearer`, used by every
+  `/api/v1/cloud-security/{decisions,authorizations,outcomes}` read and write route
+  (append, single-record read, list/query).
+- **Status**: Open. Noted in the function's own docstring as a known deferred step
+  ("verification against the ForgeCommand token authority arrives with that
+  integration") -- not previously tracked here. Surfaced 2026-09-20 while scoping
+  forgesentinel's first live consumer of this ledger (a poller against the list/query
+  endpoint); flagged because a real external consumer is now being designed against
+  this boundary, not because anything newly broke it.
+- **Impact**: Medium today, will become High once any real consumer exists.
+  `require_bearer` only checks that an `Authorization: Bearer <token>` header is
+  present and non-empty -- any string satisfies it. There is no verification the
+  token is valid, unexpired, or scoped to this service. Writes are further
+  constrained by payload hash validation (a forged write still has to produce a
+  self-consistent record), but the list/query and single-record read routes have no
+  such backstop -- any caller who can reach this host can read the full CSSA
+  decision/authorization/outcome ledger today.
+- **Cause**: `require_bearer` was written to match `bugcheck_router`'s existing
+  service-token posture at the time, which itself defers real verification to a
+  ForgeCommand token-authority integration that has not landed.
+
+### Suggested Fix
+
+Wire `require_bearer` to the same ForgeCommand token-authority check other
+DataForge-issued credentials use (see the admin-token / `run_token` / `user_token`
+rows in this repo's `CLAUDE.md`), or, at minimum, a static shared-secret check scoped
+to this router until that lands. Do this before any production consumer (forgesentinel
+included) is granted a live credential against this endpoint -- tracked as part of
+that consumer's own separate "bounded activation" decision, not this slice.
+
+---
+
 _Last updated: 2026-09-14_
 
 ## Model findings pilot intake
