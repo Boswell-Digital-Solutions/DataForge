@@ -254,16 +254,32 @@ that consumer's own separate "bounded activation" decision, not this slice.
 - **Location**: `.github/workflows/test.yml::Configure git auth for private forge-* dependencies`
   (the `FORGE_TELEMETRY_TOKEN` repository secret, used to `git clone` the private
   `forge-telemetry`/`forge_contract_core` pip dependencies during CI).
-- **Status**: Open, actively blocking. Found 2026-09-20 while getting an unrelated docs-only
-  PR (`#71`) to a green merge -- its `test` check failed twice in a row (a fresh re-run, not a
-  flake) with `remote: Invalid username or token. Password authentication is not supported for
-  Git operations. / fatal: Authentication failed for
+- **Status**: RESOLVED 2026-09-20 for the immediate block (a correctly-scoped fine-grained
+  PAT was re-pasted into the `FORGE_TELEMETRY_TOKEN` secret, confirmed by a green `test` run),
+  and the root cause fixed the same day by removing the static PAT from CI entirely --
+  `test.yml`/`docker.yml`/`deploy.yml` now mint a short-lived, repo-scoped installation token
+  from the org's `bds-fleet-operator` GitHub App per run (`actions/create-github-app-token@v2`),
+  mirroring `Forge-Agents/.github/workflows/ci.yml` and this repo's own `render-git-auth.sh`
+  (which already did this for Render builds). Needs `FORGE_PRIVATE_DEPS_APP_CLIENT_ID`
+  (repo variable) and `FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY` (repo secret) added to this repo's
+  Actions config before the new workflow steps can run -- not yet confirmed set as of this
+  write-up. `FORGE_TELEMETRY_TOKEN` itself is left in place, unused by the new steps, until
+  that's confirmed working end to end.
+
+  Original finding, kept for provenance: found while getting an unrelated docs-only PR (`#71`)
+  to a green merge -- its `test` check failed twice in a row (a fresh re-run, not a flake) with
+  `remote: Invalid username or token. Password authentication is not supported for Git
+  operations. / fatal: Authentication failed for
   'https://github.com/Boswell-Digital-Solutions/forge-telemetry.git/'`. The workflow's own
   guard step (which would print `::error::FORGE_TELEMETRY_TOKEN secret is not set`) did not
-  fire, so the secret exists but its token value is invalid or expired -- not simply missing.
-  Confirmed unrelated to any code change: `master`'s own `Test Suite` last succeeded on this
-  exact head commit (`89fc959c`) at 2026-09-19T05:52 -- something about the token broke between
-  then and 2026-09-20.
+  fire, so the secret existed but its token value was invalid -- not simply missing. Confirmed
+  unrelated to any code change: `master`'s own `Test Suite` last succeeded on this exact head
+  commit (`89fc959c`) at 2026-09-19T05:52 -- something about the token broke between then and
+  2026-09-20. Re-pasting the token's value initially still 403'd with "Write access to
+  repository not granted" even though the token's own settings page showed correct
+  repository access and `Contents: Read` -- the actual cause was a stale/mismatched value
+  having been pasted, not a misconfigured token; regenerating and re-pasting that exact
+  token's value fixed it.
 - **Impact**: High. Every PR's `test` job fails at the dependency-install step before a single
   test runs, and `test` is one of the eight required status checks
   (`23156479`, "Require PR and CI checks on master") added 2026-09-13 specifically to stop a
@@ -279,11 +295,13 @@ that consumer's own separate "bounded activation" decision, not this slice.
 
 ### Suggested Fix
 
-Mint a new fine-grained PAT with `Contents:Read` on both `forge-telemetry` and
-`forge_contract_core`, update the `FORGE_TELEMETRY_TOKEN` repository secret, and re-run the
-blocked PRs' `test` checks. Longer term: prefer a non-expiring mechanism (a GitHub App
-installation token, matching how `docker.yml`/`deploy.yml` already use `secrets.GITHUB_TOKEN`)
-or add an expiry-date reminder for this specific secret, so this doesn't silently recur.
+Done. `test.yml`/`docker.yml`/`deploy.yml` mint a `bds-fleet-operator` App installation token
+per run instead of reading a static PAT secret -- the same class of fix already applied for
+Render (`render-git-auth.sh`) and for Forge-Agents' own CI. Remaining step: confirm
+`FORGE_PRIVATE_DEPS_APP_CLIENT_ID`/`FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY` are set on this repo
+(same App credential pair Render already uses) and that a real CI run mints and uses the
+token successfully; once confirmed, `FORGE_TELEMETRY_TOKEN` can be deleted as a repo secret
+-- nothing will reference it any more.
 
 ---
 
