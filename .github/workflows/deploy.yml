@@ -43,6 +43,19 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=raw,value=latest
     
+    # Short-lived, repo-scoped installation token from the org's GitHub App
+    # (bds-fleet-operator) instead of a static PAT sitting in a secret -- see
+    # docs/KNOWN_ISSUES.md's "FORGE_TELEMETRY_TOKEN CI Secret Is Invalid"
+    # entry.
+    - name: Mint an app token for the private forge-* dependency clones
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ vars.FORGE_PRIVATE_DEPS_APP_CLIENT_ID }}
+        private-key: ${{ secrets.FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: forge-telemetry,forge_contract_core
+
     - name: Build and push
       uses: docker/build-push-action@v4
       with:
@@ -51,7 +64,7 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         secrets: |
-          github_token=${{ secrets.FORGE_TELEMETRY_TOKEN }}
+          github_token=${{ steps.app-token.outputs.token }}
 
   # Template for Azure Container Instances deployment
   # Uncomment and configure for your cloud provider

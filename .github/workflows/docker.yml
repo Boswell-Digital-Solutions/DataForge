@@ -49,6 +49,20 @@ jobs:
           type=sha
           type=raw,value=latest,enable={{is_default_branch}}
 
+    # Short-lived, repo-scoped installation token from the org's GitHub App
+    # (bds-fleet-operator) instead of a static PAT sitting in a secret -- see
+    # docs/KNOWN_ISSUES.md's "FORGE_TELEMETRY_TOKEN CI Secret Is Invalid"
+    # entry. The Dockerfile's own git-auth step (line ~36) is credential-
+    # agnostic; only this token's source changes.
+    - name: Mint an app token for the private forge-* dependency clones
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ vars.FORGE_PRIVATE_DEPS_APP_CLIENT_ID }}
+        private-key: ${{ secrets.FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: forge-telemetry,forge_contract_core
+
     - name: Build and push Docker image
       id: docker_build
       uses: docker/build-push-action@v6
@@ -60,7 +74,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         secrets: |
-          github_token=${{ secrets.FORGE_TELEMETRY_TOKEN }}
+          github_token=${{ steps.app-token.outputs.token }}
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}

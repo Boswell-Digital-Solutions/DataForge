@@ -41,21 +41,62 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
     
-    - name: Configure git auth for private forge-* dependencies
+    # The private forge-telemetry/forge_contract_core clones need credentials
+    # GITHUB_TOKEN does not carry: it is scoped to this repository alone. The
+    # org's GitHub App (bds-fleet-operator) mints a short-lived installation
+    # token scoped to just these two repos, replacing the long-lived
+    # FORGE_TELEMETRY_TOKEN PAT that used to sit in a secret here -- see
+    # docs/KNOWN_ISSUES.md's "FORGE_TELEMETRY_TOKEN CI Secret Is Invalid"
+    # entry for what that static PAT cost: it silently went stale and
+    # blocked every PR's `test` check until someone noticed and rotated it
+    # by hand. render-git-auth.sh already mints from this same App for
+    # Render's build; this mirrors it for GitHub Actions.
+    - name: Mint an app token for the private forge-* dependency clones
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ vars.FORGE_PRIVATE_DEPS_APP_CLIENT_ID }}
+        private-key: ${{ secrets.FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: forge-telemetry,forge_contract_core
+
+    # A green `pip install` does NOT prove this credential works -- pip's own
+    # cache can serve a previously-built wheel without ever cloning again, so
+    # a broken credential rides along invisibly until the cache key changes.
+    # This probe is cache-independent and fails loudly. Run it OUTSIDE the
+    # checkout: actions/checkout writes a GITHUB_TOKEN credential header into
+    # the checked-out repo's local git config, which overrides a credential
+    # supplied in a URL -- a probe run inside the workspace would silently
+    # authenticate as GITHUB_TOKEN (which cannot read a private sibling repo)
+    # and misreport a good app token as broken (confirmed directly in
+    # Forge-Agents' own CI: `ls-remote` inside the checkout fails while the
+    # same token from outside it succeeds).
+    - name: Verify the minted token can actually clone
       env:
-        FORGE_TELEMETRY_TOKEN: ${{ secrets.FORGE_TELEMETRY_TOKEN }}
+        FORGE_DEPS_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
-        if [ -z "$FORGE_TELEMETRY_TOKEN" ]; then
-          echo "::error::FORGE_TELEMETRY_TOKEN secret is not set -- pip install of the private forge-telemetry/forge_contract_core dependencies will fail. Add a fine-grained GitHub token with Contents:Read on Boswell-Digital-Solutions/forge-telemetry (and forge_contract_core) as the FORGE_TELEMETRY_TOKEN repository secret."
+        set +e
+        OUT=$(cd "${RUNNER_TEMP:-/tmp}" && git ls-remote \
+          "https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/Boswell-Digital-Solutions/forge-telemetry.git" 2>&1)
+        STATUS=$?
+        set -e
+        if [ "$STATUS" -ne 0 ]; then
+          echo "git exit ${STATUS}:"
+          printf '%s\n' "$OUT"
+          echo "::error::The minted app token cannot read forge-telemetry. Check that bds-fleet-operator still has contents:read on that repository, and that FORGE_PRIVATE_DEPS_APP_CLIENT_ID/FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY are set on this repo."
           exit 1
         fi
-        git config --global url."https://x-access-token:${FORGE_TELEMETRY_TOKEN}@github.com/".insteadOf "https://github.com/"
+        echo "forge-telemetry reachable with the minted app token"
 
     - name: Install dependencies
+      env:
+        FORGE_DEPS_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
         python -m pip install --upgrade pip
+        git config --global "url.https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/.insteadOf" "https://github.com/"
         python -m pip install -r requirements.txt
         python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
+        git config --global --unset "url.https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/.insteadOf" || true
 
     - name: Apply database migrations
       run: python -m alembic upgrade head
