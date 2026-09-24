@@ -70,7 +70,7 @@ k6 run tests/load/k6_test.js --vus 50 --duration 5m
 **Locust web UI:**
 
 ```bash
-locust -f tests/load/locustfile.py --host=http://localhost:8788
+locust -f tests/load/locustfile.py --host=http://localhost:8001
 ```
 
 ### Run All Tests

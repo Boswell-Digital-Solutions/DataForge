@@ -2,6 +2,38 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## DataForge's Own Default Port Was 8788, Not the Registered 8001 (Resolved 2026-09-24)
+
+- **Location**: `app/config.py` (`PORT`), `app/main.py` (`__main__` block),
+  `docs/guides/`, `docs/setup/`
+- **Status**: RESOLVED on 2026-09-24. The forge port check
+  (`scripts/check-port-registry.py`, forge `KI-FORGE-20260924-003`) found it.
+- **Impact**: Low, local only. `python -m app.main` without `PORT` bound 8788,
+  the port DataForge used before the forge `PORT_REGISTRY.md` existed. The
+  registry, this repository's `doc/system` (`14-config-env.md`),
+  `.env.example`, both compose files, and the clients in ForgeAgents and
+  AuthorForge use 8001. A client with the registry default could not reach
+  DataForge started that way. Render sets `PORT` itself, and the compose
+  files and `.env.example` set 8001, so those runs were not affected.
+- **Cause**: The two code defaults are older than the port registry
+  (2026-02-24), and nothing compared them with it. The operational guides
+  in `docs/guides/` and `docs/setup/` repeated 8788.
+
+### Fix
+
+- `app/config.py` and `app/main.py` default `PORT` to 8001.
+- The operational guides in `docs/guides/` and `docs/setup/` use 8001 (69
+  mentions in 10 files). The historical snapshots in `docs/references/`,
+  `docs/archive/`, and `.claude/` stay unchanged as a record.
+- In the same change set, NeuroForge and rake give the local DataForge URL
+  as 8001 instead of 8788.
+
+**Verified:** `bash scripts/preflight.sh` passes: a single Alembic head, the
+poller and AuthorForge boundary tests (72 passed), and the unit tests
+(575 passed, 5 skipped).
+
+---
+
 ## No Expiry Alerting for Issued API Keys
 
 - **Location**: `app/auth/api_keys.py` (`api_keys` table, `create_api_key`, `validate_api_key`)

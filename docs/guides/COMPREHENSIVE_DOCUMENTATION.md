@@ -693,7 +693,7 @@ sudo systemctl start postgresql
 sudo systemctl start redis-server
 
 # Application
-gunicorn app.main:app --workers 4 --bind 0.0.0.0:8788
+gunicorn app.main:app --workers 4 --bind 0.0.0.0:8001
 
 # Celery worker (in separate terminal)
 celery -A app.tasks.celery worker --loglevel=info
@@ -706,10 +706,10 @@ sudo systemctl start nginx
 
 ```bash
 # Health check
-curl http://localhost:8788/health
+curl http://localhost:8001/health
 
 # Authentication test
-curl -X POST http://localhost:8788/auth/login \
+curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "password"}'
 ```
@@ -738,9 +738,9 @@ sudo apt-get install postgresql-13
 
 ```nginx
 upstream app_servers {
-    server app1.example.com:8788;
-    server app2.example.com:8788;
-    server app3.example.com:8788;
+    server app1.example.com:8001;
+    server app2.example.com:8001;
+    server app3.example.com:8001;
 }
 
 server {

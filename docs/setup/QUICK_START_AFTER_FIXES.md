@@ -37,7 +37,7 @@ REDIS_URL=redis://localhost:6379/0
 
 # Server (optional)
 HOST=0.0.0.0
-PORT=8788
+PORT=8001
 LOG_LEVEL=INFO
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
@@ -46,7 +46,7 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 ```bash
 # Option 1: Direct
-uvicorn app.main:app --reload --port 8788
+uvicorn app.main:app --reload --port 8001
 
 # Option 2: Docker
 docker-compose up -d
@@ -70,7 +70,7 @@ If you see errors, check your `.env` file!
 
 ### Test 1: Health Check
 ```bash
-curl http://localhost:8788/health
+curl http://localhost:8001/health
 ```
 
 Should return: `{"status": "healthy", ...}`
@@ -78,12 +78,12 @@ Should return: `{"status": "healthy", ...}`
 ### Test 2: Create a Document
 ```bash
 # First, get an auth token
-TOKEN=$(curl -X POST http://localhost:8788/auth/token \
+TOKEN=$(curl -X POST http://localhost:8001/auth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin&password=your-password" | jq -r .access_token)
 
 # Create a domain
-curl -X POST http://localhost:8788/admin/domains \
+curl -X POST http://localhost:8001/admin/domains \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -93,7 +93,7 @@ curl -X POST http://localhost:8788/admin/domains \
   }'
 
 # Create a document (will auto-chunk and embed)
-curl -X POST http://localhost:8788/admin/documents \
+curl -X POST http://localhost:8001/admin/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -108,7 +108,7 @@ curl -X POST http://localhost:8788/admin/documents \
 
 ### Test 3: Search (No Auth Required!)
 ```bash
-curl -X POST http://localhost:8788/api/search \
+curl -X POST http://localhost:8001/api/search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "How do I write good content?",
@@ -123,7 +123,7 @@ Should return search results with similarity scores!
 ```bash
 # Make 21 rapid requests
 for i in {1..21}; do
-  curl -X POST http://localhost:8788/api/search \
+  curl -X POST http://localhost:8001/api/search \
     -H "Content-Type: application/json" \
     -d '{"query": "test"}' \
     -w "\nRequest $i: %{http_code}\n"
@@ -135,7 +135,7 @@ Request 21 should return `429 Too Many Requests`
 ### Test 5: Input Validation
 ```bash
 # Try to search with empty query (should fail with 422)
-curl -X POST http://localhost:8788/api/search \
+curl -X POST http://localhost:8001/api/search \
   -H "Content-Type: application/json" \
   -d '{"query": ""}'
 ```
@@ -197,8 +197,8 @@ psql "$DATAFORGE_DATABASE_URL" -c "SELECT 1"
 ## API Documentation
 
 Interactive API docs are available at:
-- Swagger UI: http://localhost:8788/docs
-- ReDoc: http://localhost:8788/redoc
+- Swagger UI: http://localhost:8001/docs
+- ReDoc: http://localhost:8001/redoc
 
 ---
 
@@ -237,7 +237,7 @@ See [FIXES.md](FIXES.md) for complete details with code examples.
 - **Detailed fixes**: See [FIXES.md](FIXES.md)
 - **Setup guide**: See [SETUP.md](SETUP.md)
 - **Project overview**: See [README.md](README.md)
-- **API docs**: http://localhost:8788/docs
+- **API docs**: http://localhost:8001/docs
 
 ---
 
