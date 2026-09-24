@@ -239,7 +239,7 @@ MASTER_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 DEBUG=False
 LOG_LEVEL=INFO
 HOST=0.0.0.0
-PORT=8788
+PORT=8001
 
 # OAuth2 (configure with your providers)
 GOOGLE_CLIENT_ID=your_client_id

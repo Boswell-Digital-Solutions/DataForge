@@ -150,7 +150,7 @@ SUPABASE_LOG_POLL_MAX_ROWS = _optional_int_env("SUPABASE_LOG_POLL_MAX_ROWS", 100
 # Server Configuration
 # ============================================
 HOST = os.getenv("HOST", "127.0.0.1")
-PORT = int(os.getenv("PORT", "8788"))  # Default port for DataForge
+PORT = int(os.getenv("PORT", "8001"))  # DataForge port (forge PORT_REGISTRY.md)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:8021,http://127.0.0.1:8022").split(",")
 
 # ============================================

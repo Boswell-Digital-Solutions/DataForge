@@ -56,9 +56,9 @@ Follow the prompts to create your admin user.
 
 ### 5. Access DataForge
 
-- **Admin UI**: http://localhost:8788/admin-ui
-- **API Docs**: http://localhost:8788/docs
-- **Health Check**: http://localhost:8788/health
+- **Admin UI**: http://localhost:8001/admin-ui
+- **API Docs**: http://localhost:8001/docs
+- **Health Check**: http://localhost:8001/health
 
 You're ready to go! 🚀
 
@@ -150,15 +150,15 @@ python scripts/create_admin.py
 
 ```bash
 # Development mode (with auto-reload)
-.venv/bin/uvicorn app.main:app --reload --port 8788
+.venv/bin/uvicorn app.main:app --reload --port 8001
 
 # Production mode
-.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8788 --workers 4
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
 ```
 
 ### 9. Verify Installation
 
-Visit http://localhost:8788/health - you should see:
+Visit http://localhost:8001/health - you should see:
 ```json
 {
   "status": "healthy",
@@ -174,7 +174,7 @@ Visit http://localhost:8788/health - you should see:
 
 ### 1. Login to Admin UI
 
-1. Go to http://localhost:8788/admin-ui
+1. Go to http://localhost:8001/admin-ui
 2. Login with your admin credentials
 3. You'll see the dashboard
 
@@ -195,7 +195,7 @@ Domains organize your knowledge base. Examples:
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:8788/admin/domains \
+curl -X POST http://localhost:8001/admin/domains \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -225,7 +225,7 @@ The document will be automatically:
 
 **Via API:**
 ```bash
-curl -X POST http://localhost:8788/admin/documents \
+curl -X POST http://localhost:8001/admin/documents \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -247,7 +247,7 @@ curl -X POST http://localhost:8788/admin/documents \
 
 **Via API (No Authentication Required):**
 ```bash
-curl -X POST http://localhost:8788/api/search \
+curl -X POST http://localhost:8001/api/search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "How do I write compelling dialogue?",
@@ -272,7 +272,7 @@ import httpx
 async def search_knowledge_base(query: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "http://localhost:8788/api/search",
+            "http://localhost:8001/api/search",
             json={
                 "query": query,
                 "domain_id": "writing_craft",  # optional
@@ -292,7 +292,7 @@ for chunk in results['chunks']:
 
 ```javascript
 async function searchDataForge(query) {
-  const response = await fetch('http://localhost:8788/api/search', {
+  const response = await fetch('http://localhost:8001/api/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -391,7 +391,7 @@ server {
     server_name your-domain.com;
 
     location / {
-        proxy_pass http://localhost:8788;
+        proxy_pass http://localhost:8001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -414,7 +414,7 @@ Type=simple
 User=your-user
 WorkingDirectory=/path/to/DataForge
 Environment="PATH=/path/to/DataForge/venv/bin"
-ExecStart=/path/to/DataForge/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8788 --workers 4
+ExecStart=/path/to/DataForge/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 4
 Restart=always
 
 [Install]
@@ -440,7 +440,7 @@ sudo systemctl status dataforge
 
 ## Getting Help
 
-- **API Documentation**: http://localhost:8788/docs
+- **API Documentation**: http://localhost:8001/docs
 - **GitHub Issues**: Report bugs or request features
 - **README**: See README.md for architecture details
 

@@ -10,7 +10,7 @@
 
 | Service | Port | Status | Health Check |
 |---------|------|--------|--------------|
-| **DataForge** | 8788 | ✅ HEALTHY | `curl http://localhost:8788/health` |
+| **DataForge** | 8001 | ✅ HEALTHY | `curl http://localhost:8001/health` |
 | **NeuroForge** | 8000 | ✅ HEALTHY | `curl http://localhost:8000/health` |
 | **ForgeAgents** | 8010 | ✅ HEALTHY | `curl http://localhost:8010/health` |
 | **Rake** | 8002 | ✅ HEALTHY | `curl http://localhost:8002/health` |
@@ -22,7 +22,7 @@
 ### Health Checks
 ```bash
 # Check all services
-curl http://localhost:8788/health  # DataForge
+curl http://localhost:8001/health  # DataForge
 curl http://localhost:8000/health  # NeuroForge
 curl http://localhost:8010/health  # ForgeAgents
 curl http://localhost:8002/health  # Rake
@@ -114,7 +114,7 @@ curl -X POST http://localhost:8010/api/v1/bds/skills/A3/invoke \
 
 ### Check Running Services
 ```bash
-ps aux | grep uvicorn | grep -E "(8000|8002|8010|8788)"
+ps aux | grep uvicorn | grep -E "(8000|8002|8010|8001)"
 ```
 
 ### Restart Services
@@ -122,8 +122,8 @@ ps aux | grep uvicorn | grep -E "(8000|8002|8010|8788)"
 **DataForge**:
 ```bash
 cd /home/charles/projects/Coding2025/Forge/DataForge
-lsof -ti:8788 | xargs kill -9 2>/dev/null
-venv/bin/python -m uvicorn app.main:app --port 8788 &
+lsof -ti:8001 | xargs kill -9 2>/dev/null
+venv/bin/python -m uvicorn app.main:app --port 8001 &
 ```
 
 **NeuroForge**:
@@ -157,7 +157,7 @@ venv/bin/python -m uvicorn main:app --port 8002 &
 **Rake**: `/home/charles/projects/Coding2025/Forge/rake/.env`
 ```bash
 DATABASE_URL=sqlite+aiosqlite:///./rake_jobs.db
-DATAFORGE_BASE_URL=http://localhost:8788
+DATAFORGE_BASE_URL=http://localhost:8001
 OPENAI_API_KEY=sk-test-placeholder-key
 ```
 
@@ -176,7 +176,7 @@ DATABASE_URL=sqlite:///./neuroforge_telemetry.db
 cd /home/charles/projects/Coding2025/Forge
 
 # Test all health endpoints
-for port in 8788 8000 8010 8002; do
+for port in 8001 8000 8010 8002; do
   curl -s http://localhost:$port/health | jq .
 done
 ```
@@ -248,7 +248,7 @@ echo "Job created: $JOB_ID"
 curl http://localhost:8002/api/v1/jobs/$JOB_ID
 
 # 3. Search in DataForge (requires PostgreSQL+pgvector)
-curl -X POST http://localhost:8788/api/search \
+curl -X POST http://localhost:8001/api/search \
   -H "Content-Type: application/json" \
   -d '{"query":"your search query","limit":5}'
 ```
@@ -288,7 +288,7 @@ ForgeCommand (Frontend)
 ┌───┴────┬─────────┬──────────┐
 │        │         │          │
 DataForge NeuroForge ForgeAgents Rake
-(8788)   (8000)     (8010)     (8002)
+(8001)   (8000)     (8010)     (8002)
 │        │         │          │
 └────┬───┴─────────┴──────────┘
      │

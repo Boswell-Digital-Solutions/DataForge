@@ -49,7 +49,7 @@ This will install:
 ### 4. Start DataForge
 
 ```bash
-uvicorn app.main:app --reload --port 8788
+uvicorn app.main:app --reload --port 8001
 ```
 
 You should see:
@@ -123,12 +123,12 @@ Both are very affordable. Voyage AI is slightly more expensive but offers better
 
 ```bash
 # Get auth token
-TOKEN=$(curl -X POST http://localhost:8788/auth/token \
+TOKEN=$(curl -X POST http://localhost:8001/auth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin&password=your-password" | jq -r .access_token)
 
 # Create a domain
-curl -X POST http://localhost:8788/admin/domains \
+curl -X POST http://localhost:8001/admin/domains \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -138,7 +138,7 @@ curl -X POST http://localhost:8788/admin/domains \
   }'
 
 # Create a document (will use Voyage AI for embeddings)
-curl -X POST http://localhost:8788/admin/documents \
+curl -X POST http://localhost:8001/admin/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -155,7 +155,7 @@ curl -X POST http://localhost:8788/admin/documents \
 
 ```bash
 # Search using semantic similarity (powered by Voyage AI embeddings)
-curl -X POST http://localhost:8788/api/search \
+curl -X POST http://localhost:8001/api/search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "Tell me about Claude and Anthropic",

@@ -38,17 +38,17 @@ sudo journalctl -u dataforge -n 50 --no-pager
 
 ### Root Cause Checklist
 
-#### 1. Port Already in Use (Port 8788)
+#### 1. Port Already in Use (Port 8001)
 
 ```bash
 # Check if port is in use
-sudo lsof -i :8788
+sudo lsof -i :8001
 
 # If port is in use, kill process
 sudo kill -9 <PID>
 
 # Or change port in /etc/systemd/system/dataforge.service
-# ExecStart=...gunicorn --bind 127.0.0.1:8788...
+# ExecStart=...gunicorn --bind 127.0.0.1:8001...
 
 # Reload and restart
 sudo systemctl daemon-reload
