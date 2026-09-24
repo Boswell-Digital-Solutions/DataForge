@@ -77,6 +77,10 @@ class TestInstanceRegistration:
         
         assert len(load_balancer.instances) == 3
     
+    def test_default_port_is_the_dataforge_port(self):
+        """An instance without a port uses 8001, the DataForge port in PORT_REGISTRY.md."""
+        assert APIInstance(name="api-1", host="localhost").port == 8001
+
     def test_unregister_instance(self, load_balancer: LoadBalancer):
         """Test unregistering instance."""
         config = APIInstance(name="api-1", host="localhost")
