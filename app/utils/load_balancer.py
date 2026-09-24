@@ -43,7 +43,7 @@ class APIInstance:
     """Configuration for API instance in load balancer pool."""
     name: str
     host: str
-    port: int = 8000
+    port: int = 8001  # DataForge port (forge PORT_REGISTRY.md); 8000 is NeuroForge
     weight: int = 100  # For weighted strategy (0-1000)
     max_connections: int = 1000
     health_check_path: str = "/health"

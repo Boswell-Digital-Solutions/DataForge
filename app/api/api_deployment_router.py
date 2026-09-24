@@ -32,7 +32,7 @@ class APIInstanceRegisterRequest(BaseModel):
     """Request to register API instance."""
     name: str = Field(..., description="Unique instance name")
     host: str = Field(..., description="Instance host address")
-    port: int = Field(8000, description="Instance port")
+    port: int = Field(8001, description="Instance port (default: the DataForge port)")
     weight: int = Field(100, description="Load balancer weight (0-1000)")
     max_connections: int = Field(1000, description="Max concurrent connections")
 

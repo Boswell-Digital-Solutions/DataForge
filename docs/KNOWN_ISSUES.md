@@ -2,6 +2,53 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## `SessionData` Mixes Naive and Aware Datetimes, So `get_session` Returns None
+
+- **Location**: `app/utils/session_manager.py` (`SessionData.created_at`,
+  `SessionData.last_activity`, `SessionData.is_expired`),
+  `app/tests/test_api_deployment.py`
+- **Status**: Open. Found on 2026-09-24 while fixing the load balancer port
+  default (see the next entry). It also fails on `master` at `6dc0736`.
+- **Impact**: Low today. The session manager serves only
+  `api_deployment_router`, which `app/main.py` does not mount. Five tests fail:
+  `test_get_session`, `test_session_expires`, `test_update_session_data`,
+  `test_set_affinity`, and `test_session_count`. No gate runs them, because
+  `pytest.ini` collects only `tests/`, not `app/tests/`.
+- **Cause**: `created_at` and `last_activity` default to `datetime.utcnow()`,
+  which is naive. `is_expired` and `touch()` use `datetime.now(UTC)`, which is
+  aware. The subtraction raises `TypeError` ("can't subtract offset-naive and
+  offset-aware datetimes"). `get_session` catches the error, logs it, and
+  returns `None`.
+
+### Suggested Fix
+
+Make both defaults aware: `field(default_factory=lambda: datetime.now(UTC))`.
+`InstanceMetrics.timestamp` in `app/utils/load_balancer.py` uses the same naive
+default. Then decide if `app/tests/` must join a gate, so that a break like this
+one fails a check.
+
+---
+
+## The Load Balancer Defaulted an Instance to Port 8000, the NeuroForge Port (Resolved 2026-09-24)
+
+- **Location**: `app/utils/load_balancer.py` (`APIInstance.port`),
+  `app/api/api_deployment_router.py` (`APIInstanceRegisterRequest.port`)
+- **Status**: RESOLVED on 2026-09-24. The forge port check
+  (`scripts/check-port-registry.py`, forge `KI-FORGE-20260924-003`) found the
+  `APIInstance` default.
+- **Impact**: Low. An instance registered without a port pointed at 8000,
+  which the forge `PORT_REGISTRY.md` gives to NeuroForge. A DataForge API
+  instance listens on 8001. `app/main.py` does not mount
+  `api_deployment_router`, so no live route used the default.
+- **Cause**: The default is older than the port registry.
+
+### Fix
+
+Both defaults are 8001. `app/tests/test_api_deployment.py` asserts the
+`APIInstance` default.
+
+---
+
 ## DataForge's Own Default Port Was 8788, Not the Registered 8001 (Resolved 2026-09-24)
 
 - **Location**: `app/config.py` (`PORT`), `app/main.py` (`__main__` block),
