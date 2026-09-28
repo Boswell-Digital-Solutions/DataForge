@@ -2,6 +2,37 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## A Partial Local Virtualenv Is Committed Under `.venv/`
+
+- **Location**: `.venv/` (37 tracked files: `pyvenv.cfg`, `bin/*`, `lib64`, one
+  `include/` header), `.gitignore:9`, `scripts/preflight.sh:33-40`
+- **Status**: Open. Found on 2026-09-28 while running the preflight for
+  DataForge#75. Present on `master` at `a4e8b33`.
+- **Impact**: Low to medium, and it depends on the host. `.gitignore` already
+  lists `.venv/`, but PR #28 (merged 2026-07-15, `145ccf3`) committed 37 files
+  under it. The tracked files are the operator's local environment:
+  - `pyvenv.cfg` names Python 3.12.3 and the path
+    `/home/charlie/Forge/ecosystem/DataForge/.venv`.
+  - Every console script (`pytest`, `alembic`, `uvicorn`, and more) starts with
+    `#!/home/charlie/Forge/ecosystem/DataForge/.venv/bin/python`. On any other
+    host, running one fails with "bad interpreter".
+  - `bin/python` links to `/usr/bin/python3`, so on most hosts it is
+    executable. `scripts/preflight.sh` then finds `.venv/bin/python` and
+    activates this partial virtualenv. `lib/` is not tracked, so it has no
+    installed packages until the preflight's `pip install` step fills it.
+  - Running `python3 -m venv .venv` in a fresh clone rewrites tracked files,
+    so the working tree shows them as modified.
+- **Cause**: The files were added in spite of the `.gitignore` rule, probably
+  with `git add -f` or a broad `git add` on a branch where the rule was absent.
+
+### Suggested Fix
+
+Remove the files from the index and keep the ignore rule:
+`git rm -r --cached .venv && git commit`. The operator's local `.venv` stays
+on disk. No code, test, or workflow reads a tracked `.venv` path.
+
+---
+
 ## `SessionData` Mixes Naive and Aware Datetimes, So `get_session` Returns None
 
 - **Location**: `app/utils/session_manager.py` (`SessionData.created_at`,
