@@ -57,8 +57,8 @@
       "next_action": "Reconcile the accepted Phase 0 authority model and current ledger, quota, router, migration, RLS, and test implementation against all later CSSA phase gates.",
       "blocker": "Phase 0 acceptance and substantial code exist, but no current phase-by-phase closeout proves the DataForge CSSA responsibility complete.",
       "doc_system_paths": [
-        "doc/system/40_governance/12-governance.md",
-        "doc/system/10_service-contract/04-api-layer.md"
+        "doc/system/12-governance.md",
+        "doc/system/04-api-layer.md"
       ],
       "last_verified": null,
       "archive": null,

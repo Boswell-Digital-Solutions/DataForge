@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Assembles the compiled system reference (designation DTF).
-# Fail-closed: missing structure, designation/output mismatch, or snapshot
-# validation failure aborts the build with BUILD_FAILED on stderr.
+# Assembles the DataForge compiled system reference (designation DTF).
+# Fail-closed: missing structure, designation/output mismatch, too few chapters,
+# or snapshot validation failure aborts the build with BUILD_FAILED on stderr.
 
 PARTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$PARTS_DIR/../.." && pwd)"
@@ -29,7 +29,7 @@ while IFS= read -r part; do
   { echo ""; echo "---"; echo ""; cat "$part"; } >> "$TMP_OUTPUT"
   PART_COUNT=$((PART_COUNT + 1))
 done < <(find "$PARTS_DIR" -mindepth 1 -maxdepth 1 -type f -name '[0-9][0-9]-*.md' | sort)
-[ "$PART_COUNT" -ge 1 ] || fail "no numbered chapters found directly under doc/system/"
+[ "$PART_COUNT" -ge 17 ] || fail "expected at least 17 chapters directly under doc/system/, found $PART_COUNT"
 if [ -f "$VALIDATOR" ]; then bash "$VALIDATOR" "$TMP_OUTPUT" || fail "snapshot validation failed"; else fail "missing validator $VALIDATOR"; fi
 cp "$TMP_OUTPUT" "$ROOT_DIR/$OUTPUT"
 chmod 664 "$ROOT_DIR/$OUTPUT"

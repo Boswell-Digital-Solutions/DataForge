@@ -3,7 +3,7 @@
 Forge_Command's Living Topology V2 needs machine-readable evidence of what
 authority domain this service self-reports, to compare against its own
 approved intended governance reference. The claim itself is not new --
-`doc/system/40_governance/11-scope.md` already states DataForge is "the
+`doc/system/11-scope.md` already states DataForge is "the
 durable-truth boundary for the Forge ecosystem" -- only its runtime
 visibility is.
 
