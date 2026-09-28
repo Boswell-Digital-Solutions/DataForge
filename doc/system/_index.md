@@ -27,23 +27,23 @@ designation doctrine. The sibling `../forge-telemetry/` repo is documented separ
 
 | Part | File | Contents |
 | --- | --- | --- |
-| §1 | `00_overview/01-overview-philosophy.md` | Service identity, source-of-truth contract, current role, what it is not |
-| §2 | `00_overview/02-architecture.md` | Architecture, persistence + hybrid retrieval, governance surfaces |
-| §3 | `00_overview/03-project-structure.md` | Repository tree, module layout |
-| §4 | `10_service-contract/04-api-layer.md` | Mounted API families, endpoints, auth |
-| §5 | `10_service-contract/05-proving-slice-schema.md` | Proving-slice schema contract |
-| §6 | `10_service-contract/06-pressforge-automation-schema.md` | PressForge automation schema contract |
-| §7 | `20_runtime/07-backend-internals.md` | CRUD, search, embeddings, lifecycle internals |
-| §8 | `20_runtime/08-error-handling.md` | Error handling, lifecycle & access control |
-| §9 | `30_dependencies/09-tech-stack.md` | Dependencies, versions, runtime requirements |
-| §10 | `30_dependencies/10-ecosystem-integration.md` | Cross-service persistence contracts |
-| §11 | `40_governance/11-scope.md` | Service authority boundary, write-boundary, truth classes |
-| §12 | `40_governance/12-governance.md` | Ownership, designation doctrine, authority hierarchy |
-| §13 | `40_governance/13-change-control.md` | Change classes, evidence, verification commands |
-| §14 | `50_operations/14-config-env.md` | Configuration and environment variables |
-| §15 | `50_operations/15-testing.md` | Test structure, markers, coverage posture |
-| §16 | `50_operations/16-handover.md` | Critical constraints, invariants, migration runbook |
-| §17 | `99_appendices/17-appendices.md` | Glossary, cross-references, revision history |
+| §1 | `01-overview-philosophy.md` | Service identity, source-of-truth contract, current role, what it is not |
+| §2 | `02-architecture.md` | Architecture, persistence + hybrid retrieval, governance surfaces |
+| §3 | `03-project-structure.md` | Repository tree, module layout |
+| §4 | `04-api-layer.md` | Mounted API families, endpoints, auth |
+| §5 | `05-proving-slice-schema.md` | Proving-slice schema contract |
+| §6 | `06-pressforge-automation-schema.md` | PressForge automation schema contract |
+| §7 | `07-backend-internals.md` | CRUD, search, embeddings, lifecycle internals |
+| §8 | `08-error-handling.md` | Error handling, lifecycle & access control |
+| §9 | `09-tech-stack.md` | Dependencies, versions, runtime requirements |
+| §10 | `10-ecosystem-integration.md` | Cross-service persistence contracts |
+| §11 | `11-scope.md` | Service authority boundary, write-boundary, truth classes |
+| §12 | `12-governance.md` | Ownership, designation doctrine, authority hierarchy |
+| §13 | `13-change-control.md` | Change classes, evidence, verification commands |
+| §14 | `14-config-env.md` | Configuration and environment variables |
+| §15 | `15-testing.md` | Test structure, markers, coverage posture |
+| §16 | `16-handover.md` | Critical constraints, invariants, migration runbook |
+| §17 | `17-appendices.md` | Glossary, cross-references, revision history |
 
 ## Quick Assembly
 

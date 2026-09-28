@@ -1,7 +1,7 @@
 """FC-LTA-P006: this service's own self-reported authority_domain.
 
-`load_own_authority_domain()` formalizes what `doc/system/40_governance/
-11-scope.md` already states in prose ("DataForge is the durable-truth boundary
+`load_own_authority_domain()` formalizes what `doc/system/11-scope.md`
+already states in prose ("DataForge is the durable-truth boundary
 for the Forge ecosystem") into a machine-readable self-report, read from this
 repo's own `service_contract.v1.json`.
 """

@@ -34,7 +34,7 @@ target`) evidence (`Boswell-Digital-Solutions/DataForge#57`).
 
 `/health` also carries `authority_domain`, a second static, already-loaded value: `app/authority.py`
 reads `authority_domain` from this repo's own `service_contract.v1.json` once at import time
-(`"durable-truth"`, matching `doc/system/40_governance/11-scope.md`'s "DataForge is the
+(`"durable-truth"`, matching `doc/system/11-scope.md`'s "DataForge is the
 durable-truth boundary for the Forge ecosystem") and reports it verbatim — no network call, no
 authority claim beyond a self-report. Forge_Command's Living Topology Assurance reads it as
 `FC-LTA-P006` (`authority-claim-governed`) evidence; a self-declaration is never sufficient on its
