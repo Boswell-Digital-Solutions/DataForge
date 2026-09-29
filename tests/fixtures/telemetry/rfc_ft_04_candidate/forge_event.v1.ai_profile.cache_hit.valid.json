@@ -17,6 +17,7 @@
   "attributes": {
     "ai.profile": "ForgeAIInferenceSemantics.v1",
     "ai.unavailable_metrics": [
+      "ai.output_tokens",
       "ai.reasoning_tokens"
     ],
     "ai.token_measurement_class": "provider_reported"
@@ -25,7 +26,6 @@
     "ai.uncached_input_tokens": 10,
     "ai.cached_input_tokens": 50000,
     "ai.cache_write_tokens": 0,
-    "ai.output_tokens": 300,
     "ai.model_latency_ms": 1234
   },
   "privacy_class": "internal",

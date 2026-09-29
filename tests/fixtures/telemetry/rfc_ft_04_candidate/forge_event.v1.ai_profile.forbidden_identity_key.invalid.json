@@ -1,16 +1,16 @@
 {
   "schema_version": "ForgeEvent.v1",
-  "event_id": "a1000000-0000-4000-8000-000000000005",
-  "occurred_at": "2026-09-29T12:05:00Z",
+  "event_id": "a1000000-0000-4000-8000-000000000001",
+  "occurred_at": "2026-09-29T12:01:00Z",
   "service_name": "neuroforge",
   "service_instance_id": "neuroforge-staging-1",
   "environment": "staging",
   "tenant_ref": null,
   "event_type": "inference.completed",
-  "severity": "warning",
+  "severity": "info",
   "outcome": "ok",
   "evidence_class": "operational",
-  "correlation_id": "c2000000-0000-4000-8000-000000000005",
+  "correlation_id": "c2000000-0000-4000-8000-000000000001",
   "trace_id": null,
   "span_id": null,
   "parent_span_id": null,
@@ -20,13 +20,16 @@
       "ai.output_tokens",
       "ai.reasoning_tokens"
     ],
-    "ai.token_measurement_class": "provider_reported"
+    "ai.token_measurement_class": "provider_reported",
+    "provider": "synthetic-provider",
+    "model_id": "synthetic-model"
   },
   "metrics": {
-    "ai.uncached_input_tokens": 900,
+    "ai.uncached_input_tokens": 1200,
     "ai.cached_input_tokens": 0,
     "ai.cache_write_tokens": 0,
-    "ai.model_latency_ms": 1980
+    "ai.model_latency_ms": 842.5,
+    "latency_ms": 910
   },
   "privacy_class": "internal",
   "retention_class": "standard",

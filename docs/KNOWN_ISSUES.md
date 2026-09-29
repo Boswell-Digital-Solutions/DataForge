@@ -6,8 +6,9 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 
 - **Location**: `app/api/telemetry_router.py` (`ingest_forge_event_v1`),
   `app/models/telemetry_schemas.py` (`ForgeEventV1Submission`)
-- **Status**: Open, by design at this stage. Recorded 2026-09-29 by the RFC-FT-04
-  candidate proof (`scripts/prove_rfc_ft_04_candidate_postgres.sh`).
+- **Status**: Enforcement implemented on the corrective candidate branch
+  (2026-09-29, later); closes when that change merges. Recorded 2026-09-29 by the
+  RFC-FT-04 candidate proof (`scripts/prove_rfc_ft_04_candidate_postgres.sh`).
 - **Impact**: Low while the profile is a candidate. The ingest boundary validates
   the `ForgeEvent.v1` envelope only. It stores an event that declares
   `ForgeAIInferenceSemantics.v1` and breaks the profile (the proof stores one
@@ -21,6 +22,20 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 Decide at admission whether DataForge enforces the profile at ingest. If it
 does, that is a separate, authorized DataForge change. Until then, a consumer
 must not treat a stored profile event as profile-valid.
+
+### Fix (corrective pass, 2026-09-29)
+
+The operator ruled that DataForge enforces the profile at ingest.
+`app/services/forge_event_profiles.py` rejects undeclared `ai.` keys,
+unadmitted profiles, and profile violations before persistence, and fails
+closed when the pinned validator is unavailable. No profile is admitted, so
+ordinary runtime rejects every candidate event. The validator is
+forge_contract_core's module, vendored byte-for-byte and SHA-256 pinned.
+
+**Still open:** the vendored validator is loaded with `exec` of the hashed
+bytes (bandit B102, suppressed with `nosec`). Once a pinned forge-contract-core
+release carries the validator, replace the vendored copy with a normal import.
+Events stored before this change are not re-validated.
 
 ## A Partial Local Virtualenv Is Committed Under `.venv/`
 

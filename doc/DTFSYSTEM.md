@@ -839,6 +839,16 @@ Credential requirements vary by router. The live mounted service currently uses 
 - A first insert returns `201`; an exact content-bound replay returns `200` with
   the original sink-owned `received_at`; reuse of an `event_id` with different
   canonical content returns `409 event_identity_conflict`.
+- Semantic profiles (RFC-FT-04) are enforced after subject binding and before
+  persistence (`app/services/forge_event_profiles.py`). An `ai.` key in an
+  event that does not declare `ai.profile` returns `422 event_profile_undeclared`.
+  A declared profile that is not admitted returns `422 event_profile_unadmitted`.
+  No profile is admitted today, so every event that declares
+  `ForgeAIInferenceSemantics.v1` is rejected. An admitted profile that breaks
+  its pinned validator returns `422 event_profile_violation` with a value-free
+  `profile_error` code; a missing or drifted validator returns
+  `503 event_profile_validator_unavailable`. No rejected event is stored, and an
+  event is never rewritten to pass. Events without `ai.` keys are unaffected.
 - `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
@@ -2928,12 +2938,20 @@ backup/restore, evidence-retaining downgrade, and re-upgrade.
 The RFC-FT-04 candidate proof is
 `scripts/prove_rfc_ft_04_candidate_postgres.sh` (run through `pg_virtualenv`).
 It is admission-proof evidence only; `ForgeAIInferenceSemantics.v1` is not
-admitted. It ingests the six synthetic candidate profile events vendored from
-forge_contract_core under `tests/fixtures/telemetry/rfc_ft_04_candidate/`. For
-each one it proves `inserted` then `exact_replay`, `event_identity_conflict`
-for same-ID/different-content, the authority's event digest, and exact JSONB
-storage of every profile key and value type. It also proves that ingest does
-not enforce the profile; see `docs/KNOWN_ISSUES.md`.
+admitted. It drives the real HTTP route with a synthetic API key minted in the
+throwaway cluster and a throwaway login role in `dataforge_telemetry_ingest`.
+It proves: authentication and subject binding still run first; ordinary
+runtime rejects every candidate event and stores nothing; with the candidate
+admitted only through a dependency override in the proof process, each invalid
+fixture is rejected with its code and no row, each valid fixture is `inserted`
+then `exact_replay` with the authority's digest and exact JSONB storage, and
+same-ID/different-content is `409 event_identity_conflict`; a missing
+validator returns `503` and stores nothing. The fixtures and the vendored
+validator are byte-for-byte copies from forge_contract_core.
+
+`tests/test_forge_event_profile_enforcement.py` covers the same boundary
+through `TestClient` on the SQLite harness, plus validator pinning, drifted
+bytes, validator faults, malformed measurement classes, and value-free errors.
 
 ### Unit / Security / Load
 

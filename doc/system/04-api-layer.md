@@ -99,6 +99,16 @@ Credential requirements vary by router. The live mounted service currently uses 
 - A first insert returns `201`; an exact content-bound replay returns `200` with
   the original sink-owned `received_at`; reuse of an `event_id` with different
   canonical content returns `409 event_identity_conflict`.
+- Semantic profiles (RFC-FT-04) are enforced after subject binding and before
+  persistence (`app/services/forge_event_profiles.py`). An `ai.` key in an
+  event that does not declare `ai.profile` returns `422 event_profile_undeclared`.
+  A declared profile that is not admitted returns `422 event_profile_unadmitted`.
+  No profile is admitted today, so every event that declares
+  `ForgeAIInferenceSemantics.v1` is rejected. An admitted profile that breaks
+  its pinned validator returns `422 event_profile_violation` with a value-free
+  `profile_error` code; a missing or drifted validator returns
+  `503 event_profile_validator_unavailable`. No rejected event is stored, and an
+  event is never rewritten to pass. Events without `ai.` keys are unaffected.
 - `DATAFORGE_FORGE_EVENT_V1_WRITE_ENABLED` defaults to `false`. Disabled writes
   return `503 telemetry_disabled`. No pre-v1 API alias, fallback, or dual-write is
   mounted.
