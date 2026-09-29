@@ -2,6 +2,26 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## ForgeEvent.v1 Ingest Does Not Enforce the RFC-FT-04 AI Profile
+
+- **Location**: `app/api/telemetry_router.py` (`ingest_forge_event_v1`),
+  `app/models/telemetry_schemas.py` (`ForgeEventV1Submission`)
+- **Status**: Open, by design at this stage. Recorded 2026-09-29 by the RFC-FT-04
+  candidate proof (`scripts/prove_rfc_ft_04_candidate_postgres.sh`).
+- **Impact**: Low while the profile is a candidate. The ingest boundary validates
+  the `ForgeEvent.v1` envelope only. It stores an event that declares
+  `ForgeAIInferenceSemantics.v1` and breaks the profile (the proof stores one
+  with an unknown `ai.execution_lane` key). Storage success is therefore not
+  profile validation. Producers must validate the profile before emission.
+- **Cause**: The profile is not admitted, and RFC-FT-04 §5 lists no DataForge
+  change.
+
+### Suggested Fix
+
+Decide at admission whether DataForge enforces the profile at ingest. If it
+does, that is a separate, authorized DataForge change. Until then, a consumer
+must not treat a stored profile event as profile-valid.
+
 ## A Partial Local Virtualenv Is Committed Under `.venv/`
 
 - **Location**: `.venv/` (37 tracked files: `pyvenv.cfg`, `bin/*`, `lib64`, one

@@ -101,6 +101,16 @@ The CP6 PostgreSQL proof is
 `20260725_03`, least-privilege grants/RLS, hard false action constraints,
 backup/restore, evidence-retaining downgrade, and re-upgrade.
 
+The RFC-FT-04 candidate proof is
+`scripts/prove_rfc_ft_04_candidate_postgres.sh` (run through `pg_virtualenv`).
+It is admission-proof evidence only; `ForgeAIInferenceSemantics.v1` is not
+admitted. It ingests the six synthetic candidate profile events vendored from
+forge_contract_core under `tests/fixtures/telemetry/rfc_ft_04_candidate/`. For
+each one it proves `inserted` then `exact_replay`, `event_identity_conflict`
+for same-ID/different-content, the authority's event digest, and exact JSONB
+storage of every profile key and value type. It also proves that ingest does
+not enforce the profile; see `docs/KNOWN_ISSUES.md`.
+
 ### Unit / Security / Load
 
 - `tests/test_security/test_vulnerability_scanning.py`

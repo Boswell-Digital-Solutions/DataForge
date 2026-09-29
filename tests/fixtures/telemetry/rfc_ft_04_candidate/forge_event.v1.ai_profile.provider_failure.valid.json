@@ -1,0 +1,35 @@
+{
+  "schema_version": "ForgeEvent.v1",
+  "event_id": "a1000000-0000-4000-8000-000000000006",
+  "occurred_at": "2026-09-29T12:06:00Z",
+  "service_name": "neuroforge",
+  "service_instance_id": "neuroforge-staging-1",
+  "environment": "staging",
+  "tenant_ref": null,
+  "event_type": "inference.failed",
+  "severity": "error",
+  "outcome": "fail",
+  "evidence_class": "operational",
+  "correlation_id": "c2000000-0000-4000-8000-000000000006",
+  "trace_id": null,
+  "span_id": null,
+  "parent_span_id": null,
+  "attributes": {
+    "ai.profile": "ForgeAIInferenceSemantics.v1",
+    "ai.unavailable_metrics": [
+      "ai.cache_write_tokens",
+      "ai.cached_input_tokens",
+      "ai.output_tokens",
+      "ai.reasoning_tokens",
+      "ai.uncached_input_tokens"
+    ]
+  },
+  "metrics": {
+    "ai.model_latency_ms": 5003
+  },
+  "privacy_class": "internal",
+  "retention_class": "standard",
+  "sampled": true,
+  "sample_rate": null,
+  "sampling_reason": "always_on"
+}

@@ -1,0 +1,324 @@
+{
+  "schema_version": "forge.telemetry.contract_registry.v1",
+  "status": "admitted",
+  "introduced": "2026-07-23",
+  "rfc": "RFC-FT-03",
+  "contracts": {
+    "ForgeEvent.v1": {
+      "path": "contracts/telemetry/ForgeEvent.v1.schema.json",
+      "sha256": "6050b55c8633cc66f3a63b71b56a636cf93df39680557c41a5967ee9cf40c100",
+      "producer_projection_omits": [
+        "received_at"
+      ],
+      "stored_projection_requires": [
+        "received_at"
+      ]
+    },
+    "ForgeTelemetrySinkCapability.v1": {
+      "path": "contracts/telemetry/ForgeTelemetrySinkCapability.v1.schema.json",
+      "sha256": "a7cfd1983b8e18e8882873e32480e87d8524e37362b211d86c4f2ab26e9912b7"
+    },
+    "forge.telemetry.event_digest_profile.v1": {
+      "path": "contracts/telemetry/event_digest_profile.v1.json",
+      "sha256": "a2efa964ab0b908ca2cbdf97fec06355aad3169414c0dcb2f3f992900b656637"
+    },
+    "forge.telemetry.expected_errors.v1": {
+      "path": "contracts/telemetry/forge_event_expected_errors.v1.json",
+      "sha256": "4dd477babf8c5c83bc02daf2c1951778d01294f307bb50a551f7160129669dbd"
+    },
+    "ForgeSpan.v1": {
+      "path": "contracts/telemetry/ForgeSpan.v1.schema.json",
+      "sha256": "cc3d01269123227ec39a36b5db0b0acaff01a96d0f16d4e3b27dd528a19ddd80",
+      "status": "proposed_cp3"
+    },
+    "forge.telemetry.trace_context_profile.v1": {
+      "path": "contracts/telemetry/trace_context_profile.v1.json",
+      "sha256": "a23284592cd0bd707b50b1d3475fa03acfb3a79878a98ac212041f622d88ee43",
+      "status": "proposed_cp3"
+    },
+    "ForgeCheck.v1": {
+      "path": "contracts/telemetry/ForgeCheck.v1.schema.json",
+      "sha256": "621bd33d3dbb305cee472eecb3166cad920cddcc07e98c6a668fb76f1b34510d",
+      "rfc": "RFC-CP4-01"
+    },
+    "ForgeCheckResult.v1": {
+      "path": "contracts/telemetry/ForgeCheckResult.v1.schema.json",
+      "sha256": "ba64ef466d1a973d509094058d6a7ad614544c887998e50be9d045243548832d",
+      "rfc": "RFC-CP4-01"
+    },
+    "ForgeCheckRunReceipt.v1": {
+      "path": "contracts/telemetry/ForgeCheckRunReceipt.v1.schema.json",
+      "sha256": "ec076c78e8b8c59c3d462811ef56ad2fba513f1ceabe7d856923f28186675db8",
+      "rfc": "RFC-CP4-01"
+    },
+    "TelemetryDerivationReceipt.v1": {
+      "path": "contracts/telemetry/TelemetryDerivationReceipt.v1.schema.json",
+      "sha256": "8bf279d0925a2789a6de5c87f9e7a9ea55aed658bd1a0cb57fa276df6b75e048",
+      "status": "proposed_cp5"
+    },
+    "IncidentCandidate.v1": {
+      "path": "contracts/telemetry/IncidentCandidate.v1.schema.json",
+      "sha256": "254ce86fd1b4b5bd0b05f60a0cae4c9a9323101c7657ff2630012e0f3d6a8bb2",
+      "status": "proposed_cp6"
+    },
+    "ForgeAIInferenceSemantics.v1": {
+      "path": "contracts/telemetry/ForgeAIInferenceSemantics.v1.schema.json",
+      "sha256": "2a7092975e79c55db0426d9832ce6c06cc6edd0fa735de261bd8b6c44e6b7de1",
+      "status": "candidate_rfc_ft_04",
+      "rfc": "RFC-FT-04",
+      "profile_of": "ForgeEvent.v1",
+      "semantic_validator": "forge_contract_core.validators.ai_inference_profile"
+    }
+  },
+  "fixtures": {
+    "producer_submission": {
+      "path": "fixtures/telemetry/forge_event_v1/valid/forge_event.v1.submission.valid.json",
+      "sha256": "16028e8b9456baee12dcc209baf73b266a907d34b92e1f571320e89702affbb5"
+    },
+    "stored_event": {
+      "path": "fixtures/telemetry/forge_event_v1/valid/forge_event.v1.valid.json",
+      "sha256": "0d671d1c6bc5c2d7e5a13d304730f604ca58d06c1cb8c883d56a63d6fbd1bd6f"
+    },
+    "active_sink_capability": {
+      "path": "fixtures/telemetry/forge_event_v1/valid/forge_telemetry_sink_capability.v1.valid.json",
+      "sha256": "0584c14eb06bf094d9703b19fced8b0fdbd2065461104ab3c1befaba28d2d286"
+    },
+    "cp3_span_root": {
+      "path": "fixtures/telemetry/forge_span_v1/valid/forge_span.v1.root.valid.json",
+      "sha256": "ac0fe1a7c0135ce9a18f992d27857c770b44d743afde019d34f300489aaf0fe0"
+    },
+    "cp3_span_child": {
+      "path": "fixtures/telemetry/forge_span_v1/valid/forge_span.v1.child.valid.json",
+      "sha256": "54e537d1cefe61dcd3df3e35b92f987fac1ce74c69d320fd4a13a385190e6065"
+    },
+    "cp3_parent_context": {
+      "path": "fixtures/telemetry/trace_context_v1/valid/trace_context.v1.parent.valid.json",
+      "sha256": "7146537e3d8f15185690acc50c2eb3bf54313d2568fbddabecbcfc603ae4bf18"
+    },
+    "cp3_invalid_scope_binding": {
+      "path": "fixtures/telemetry/forge_span_v1/invalid/forge_span.v1.scope_mismatch.invalid.json",
+      "sha256": "436bd9544f8e131f258c4aa27958f8bffc53593a00e0a98028bd11f17a9527cf",
+      "expected_error_code": "correlation_scope_conflict"
+    },
+    "cp3_invalid_context": [
+      {
+        "path": "fixtures/telemetry/trace_context_v1/invalid/trace_context.v1.tracestate_without_parent.invalid.json",
+        "sha256": "2fcb03c81cc7ef58e9ef55972ae507d2db3c01247774123549892eeb1803d6d7",
+        "expected_error_code": "trace_context_invalid"
+      },
+      {
+        "path": "fixtures/telemetry/trace_context_v1/invalid/trace_context.v1.uppercase.invalid.json",
+        "sha256": "a92a7b95e40f32a5fc36cdaacda08192c64184e88518028e37ad65c07493bedf",
+        "expected_error_code": "trace_context_invalid"
+      }
+    ],
+    "cp4_check_dataforge_readiness_debug": {
+      "path": "fixtures/telemetry/forge_check_v1/valid/forge_check.v1.dataforge_readiness_debug.valid.json",
+      "sha256": "adad82bdc2fdc0c1b61e98dc0ae9c271ee77486fb5ed4728cfd267f9169f84f0"
+    },
+    "cp4_check_authorforge_browser_debug": {
+      "path": "fixtures/telemetry/forge_check_v1/valid/forge_check.v1.authorforge_browser_debug.valid.json",
+      "sha256": "c86950c978d66a5d0da2a33914f9e5ab0f3a0d3843d215a96ee0eaf367cfef71"
+    },
+    "cp4_result_debug_passed": {
+      "path": "fixtures/telemetry/forge_check_result_v1/valid/forge_check_result.v1.debug_passed.valid.json",
+      "sha256": "64580a62071e1762a9ca247a65873832255054efe55c52bfaba584d204e6c68d"
+    },
+    "cp4_run_receipt_debug_passed": {
+      "path": "fixtures/telemetry/forge_check_run_receipt_v1/valid/forge_check_run_receipt.v1.debug_passed.valid.json",
+      "sha256": "f5485e0bf42b4adf370675ebb98cc895cf7e49a80c5e0b63504e51e76c83e295"
+    },
+    "cp4_invalid_checks": [
+      {
+        "path": "fixtures/telemetry/forge_check_v1/invalid/forge_check.v1.debug_slo_included.invalid.json",
+        "sha256": "0c4166923fcd9e2d4c6ee508c86e8db21449364ae456f89d15914be5e9f6d131",
+        "expected_error_code": "FORGE_CHECK_DEBUG_SLO_INCLUDED"
+      },
+      {
+        "path": "fixtures/telemetry/forge_check_v1/invalid/forge_check.v1.paid_unbounded.invalid.json",
+        "sha256": "a07f39cc5f82c0e7d143823552d306320421ec0e897b650c318c4c6d89fd7ef4",
+        "expected_error_code": "FORGE_CHECK_PAID_COST_UNBOUNDED"
+      },
+      {
+        "path": "fixtures/telemetry/forge_check_v1/invalid/forge_check.v1.browser_not_isolated.invalid.json",
+        "sha256": "7bb8f4a805ff22b2dce89e18e21c4e54862bccaf2fdb840aef5f09b086507056",
+        "expected_error_code": "FORGE_CHECK_BROWSER_FIXTURE_NOT_ISOLATED"
+      }
+    ],
+    "cp4_invalid_result": {
+      "path": "fixtures/telemetry/forge_check_result_v1/invalid/forge_check_result.v1.false_pass.invalid.json",
+      "sha256": "5552ce4f63f6072dd1e52106546126eef0f77fc67327cc646d5d1c2312492970",
+      "expected_error_code": "FORGE_CHECK_RESULT_FALSE_PASS"
+    },
+    "cp4_invalid_run_receipt": {
+      "path": "fixtures/telemetry/forge_check_run_receipt_v1/invalid/forge_check_run_receipt.v1.cost_exceeded.invalid.json",
+      "sha256": "2f50b950becef7de17996978ff519c4fa33d8c469a56e21291f56adf9bfb9c95",
+      "expected_error_code": "FORGE_CHECK_COST_EXCEEDED"
+    },
+    "cp5_derivation_routine_success_shadow": {
+      "path": "fixtures/telemetry/telemetry_derivation_receipt_v1/valid/telemetry_derivation_receipt.v1.routine_success_shadow.valid.json",
+      "sha256": "365692845402c41cc05d923089925e3b326288badaf4a9ab341344c61c6309a4"
+    },
+    "cp5_invalid_derivations": [
+      {
+        "path": "fixtures/telemetry/telemetry_derivation_receipt_v1/invalid/telemetry_derivation_receipt.v1.output_overwrites_source.invalid.json",
+        "sha256": "9dabaa1321ce1e898bbc526b60c8b08a82fd6638e2ddb1ffd7673e2f6671781a",
+        "expected_error_code": "TELEMETRY_DERIVATION_OUTPUT_OVERWRITES_SOURCE"
+      },
+      {
+        "path": "fixtures/telemetry/telemetry_derivation_receipt_v1/invalid/telemetry_derivation_receipt.v1.shadow_applied.invalid.json",
+        "sha256": "859c0ce57906ea9cacef75620037e9a73e88d78c3891f0566948a393b143cac9",
+        "expected_error_code": "TELEMETRY_DERIVATION_SHADOW_APPLIED"
+      }
+    ],
+    "cp6_incident_candidate_correlated_failure": {
+      "path": "fixtures/telemetry/incident_candidate_v1/valid/incident_candidate.v1.correlated_failure.valid.json",
+      "sha256": "c0f243f2394579784c1a27073bccaf31095c95daf66e6cd97cda228c0963179c"
+    },
+    "cp6_invalid_incident_candidates": [
+      {
+        "path": "fixtures/telemetry/incident_candidate_v1/invalid/incident_candidate.v1.fingerprint_mismatch.invalid.json",
+        "sha256": "cdd0d3de0edf95b9259f1d36b13705adca9a088f341234860cda2fda87ef57b8",
+        "expected_error_code": "INCIDENT_CANDIDATE_FINGERPRINT_MISMATCH"
+      },
+      {
+        "path": "fixtures/telemetry/incident_candidate_v1/invalid/incident_candidate.v1.neuroforge_provenance_missing.invalid.json",
+        "sha256": "fae102d59ea2cb482e233c3ef970e5e3c73a424c9d1ce133c12bc94e61b202ab",
+        "expected_error_code": "INCIDENT_CANDIDATE_PROVENANCE_INVALID"
+      }
+    ],
+    "invalid_producer_submissions": [
+      {
+        "path": "fixtures/telemetry/forge_event_v1/invalid/forge_event.v1.pre_v1_shape.invalid.json",
+        "sha256": "6ba4724a1fa619c4881cfc59b0b0106b5b7f0f1be3b7980bb1e1b365f3e224f4",
+        "expected_error_code": "unsupported_sink_schema"
+      },
+      {
+        "path": "fixtures/telemetry/forge_event_v1/invalid/forge_event.v1.sampling_inconsistent.submission.invalid.json",
+        "sha256": "457f2edc523c6985cf7b43f0ac0f81af7861204cfae74b9e6f340e46d99642bf",
+        "expected_error_code": "event_schema_violation"
+      },
+      {
+        "path": "fixtures/telemetry/forge_event_v1/invalid/forge_event.v1.unknown_class.submission.invalid.json",
+        "sha256": "b6b349a0a4943ef6c59947231ddda7f700d513f02db1e8e0b42bc60241ebafe4",
+        "expected_error_code": "event_schema_violation"
+      }
+    ],
+    "rfc_ft_04_ai_profile_valid": [
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cache_hit.valid.json",
+        "sha256": "402ce9058bc33fd1851fa64a7ad6fe417ad888c9afbb40d5bbbb7dc52d0c5c06",
+        "expected_event_digest": "b9c9dd7783b5747b206465131b2044492f9e0169e173b05c572736930e7ce7c7"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cache_miss.valid.json",
+        "sha256": "73fd80998ac612cd818ca12def27ef15073fd15a62ae0c4a4f5dd0325a82ce09",
+        "expected_event_digest": "b451a79757dacc91b05d4ea2db65997ac893f0f11687e6cd7a0463a4e94ef394"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cloud_success.valid.json",
+        "sha256": "5c3d2b20e60399ee1d8734fcaed01ba9720bc0e218f716a18b14cb7fada0bb79",
+        "expected_event_digest": "77ae31c02059e8a2d40957ab278fa9239b936a85dfd83668a9f338d64a2fdff2"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.local_success.valid.json",
+        "sha256": "793c6fee45ecdd20340205d9489a293c35976609db54a9d87632ef54a583e6b3",
+        "expected_event_digest": "9896f48ec27b34eed66b2519aeb6dfd188af61f23f74ac221881966726732868"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.provider_failure.valid.json",
+        "sha256": "854441a9740434487f9438b21498f539c69607c3005b8029aa96f7cd35cf47bc",
+        "expected_event_digest": "1c632a96b70b2d5ce9470645ae97171e728454286a0701d5a573a1d83e70aaa0"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.provider_fallback.valid.json",
+        "sha256": "7f9317a9a36186b0b2752e0b6753710faa9e0abb7fe1b1dad9868ce8747aee44",
+        "expected_event_digest": "8ae410e4cb806f5da409dec1e071b5d1401a1adc64217a839fdbf9379e99c88f"
+      }
+    ],
+    "rfc_ft_04_ai_profile_invalid": [
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.forbidden_identity_key.invalid.json",
+        "sha256": "eaf7076d0d92d1bc015798933fa4dec9728a23413ad448a19c4f82730091fbed",
+        "expected_error_code": "AI_PROFILE_FORBIDDEN_KEY"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.fractional_token_count.invalid.json",
+        "sha256": "bef09a075fb69737a08c20462df7b7868b8403429b19f3608b9b7c3a32173e03",
+        "expected_error_code": "AI_PROFILE_TOKEN_COUNT_INVALID"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.measurement_class_missing.invalid.json",
+        "sha256": "26afa6c459ecc903f7db53043b42d3b87d5236533d3d550cfcfdef5449c879dc",
+        "expected_error_code": "AI_PROFILE_MEASUREMENT_CLASS_INVALID"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.metric_unaccounted.invalid.json",
+        "sha256": "2a3a52a346c0479d95432b9fa9bfcd307ba446107a796056cd7b2e669e34c0dc",
+        "expected_error_code": "AI_PROFILE_METRIC_UNACCOUNTED"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.negative_token_count.invalid.json",
+        "sha256": "24c81748e02e16b6b33cf78a5cce7424748cf5b978bbe5cebd9c36a23f441035",
+        "expected_error_code": "AI_PROFILE_TOKEN_COUNT_INVALID"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.retired_token_metric.invalid.json",
+        "sha256": "1520892d8ee7b28c7c479a286f90861ed4ae198a84347c0b09e98ed2b2e2e454",
+        "expected_error_code": "AI_PROFILE_RETIRED_METRIC"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.unavailable_unsorted.invalid.json",
+        "sha256": "586388d1441a77495d850453af33468a7f11c1849598d0ba8d69cf086e04b548",
+        "expected_error_code": "AI_PROFILE_UNAVAILABLE_NOT_CANONICAL"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.undeclared_ai_key.invalid.json",
+        "sha256": "6990a0d99565ad9b129c9100a3bdf8a37dbffc9d9c92a07e76d2170eea16fdbb",
+        "expected_error_code": "AI_PROFILE_UNDECLARED"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.unknown_ai_key.invalid.json",
+        "sha256": "c46c81f6e10c3db1d3e10390cc9c9115ed2360df2f98ef3f5e5b55179b522314",
+        "expected_error_code": "AI_PROFILE_UNKNOWN_KEY"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.zero_filled_unknown.invalid.json",
+        "sha256": "623320cf152c9b5272c02258f67c8c8a48cb06fb09a963214ccdd0a2a7ee3ce4",
+        "expected_error_code": "AI_PROFILE_METRIC_PRESENT_AND_UNAVAILABLE"
+      }
+    ],
+    "rfc_ft_04_ai_profile_normalization_vectors": {
+      "path": "fixtures/telemetry/ai_inference_semantics_v1/vectors/ai_inference_semantics.v1.normalization.vectors.json",
+      "sha256": "858f7cce1aa7f00c047ca2aaf06378945ba616bf8f6f2d16ced760fb7214da41"
+    }
+  },
+  "resource_bounds": {
+    "path": "contracts/telemetry/telemetry_resource_bounds.v1.json",
+    "sha256": "6729e46ea46544095c1e7dd8bcdb9df9eec84df1889b9e4439db6b3f998eb919",
+    "max_producer_submission_bytes": 65536
+  },
+  "retention": {
+    "classification_clock": "received_at",
+    "automated_deletion": "shadow_cp5_policy_only",
+    "enforced_deletion": false,
+    "historical_value_fabrication": false
+  },
+  "incident_candidates": {
+    "classification": "derived_candidate",
+    "candidate_only": true,
+    "requires_human_decision": true,
+    "automated_repair": false,
+    "automated_rollback": false,
+    "automated_notification": false,
+    "automated_promotion": false,
+    "source_overwrite": false
+  },
+  "legacy_modes": {
+    "field_aliases": false,
+    "defaults": false,
+    "compatibility_adapter": false,
+    "pre_v1_fallback": false,
+    "dual_write": false
+  }
+}
