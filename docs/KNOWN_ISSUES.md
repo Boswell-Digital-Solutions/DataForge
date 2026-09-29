@@ -2,6 +2,28 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## Hosted CI Fails Before Any Job Step Runs
+
+- **Location**: `.github/workflows/test.yml`, `docker.yml`, `security.yml` (every hosted job)
+- **Status**: Open. Recorded 2026-09-29. **A deep audit is deferred by operator decision**
+  (2026-09-29): work continues on local verification until the audit.
+- **Impact**: High. No hosted check verifies any change. Observed on `master` at `5b2219f` and on
+  PR heads `18f5d3e` (#77) and `a56f375` (#78): every job concludes `failure` about 2–5 seconds
+  after it starts. Check-run output is empty, job-log downloads return HTTP 404, and one re-run on
+  each PR failed the same way. #77 and #78 merged on local evidence only.
+- **Cause**: Unknown. The check runs report annotations that were not readable through the API.
+  An account, billing, or runner setting is a hypothesis, not a finding.
+
+### Audit scope (deferred)
+
+1. Read the job annotations and the Actions settings (billing, spending limit, runner
+   availability, workflow permissions) in the GitHub UI.
+2. Restore hosted runs, then re-run CI on `master` and confirm each workflow passes.
+3. Re-verify every change merged on local evidence while CI was down, starting with #77 and #78,
+   against hosted results.
+4. Reconcile the 9 local test failures that also fail on `master` (auth and profile tests on the
+   SQLite harness, `no such table: users`).
+
 ## ForgeEvent.v1 Ingest Does Not Enforce the RFC-FT-04 AI Profile
 
 - **Location**: `app/api/telemetry_router.py` (`ingest_forge_event_v1`),
