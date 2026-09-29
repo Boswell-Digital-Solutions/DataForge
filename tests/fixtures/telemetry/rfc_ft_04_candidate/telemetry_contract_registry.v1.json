@@ -207,23 +207,28 @@
     "rfc_ft_04_ai_profile_valid": [
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cache_hit.valid.json",
-        "sha256": "402ce9058bc33fd1851fa64a7ad6fe417ad888c9afbb40d5bbbb7dc52d0c5c06",
-        "expected_event_digest": "b9c9dd7783b5747b206465131b2044492f9e0169e173b05c572736930e7ce7c7"
+        "sha256": "a26897556412a8fac1193a03f2085a5e364453f345543cc944941e3d70bc9883",
+        "expected_event_digest": "e0927bc2d40bfba404f6e5a13850630df08385b445b68184ba856721fb57f3fb"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cache_miss.valid.json",
-        "sha256": "73fd80998ac612cd818ca12def27ef15073fd15a62ae0c4a4f5dd0325a82ce09",
-        "expected_event_digest": "b451a79757dacc91b05d4ea2db65997ac893f0f11687e6cd7a0463a4e94ef394"
+        "sha256": "5e672fe2a352104269de75c823418ae423f16b98a5a1aa99a77607de3dd21bdb",
+        "expected_event_digest": "72805ac83884230b18659074fb5ec9e9bc34d2ea6ff86ad91b3ce03ece9b53b9"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.cloud_success.valid.json",
-        "sha256": "5c3d2b20e60399ee1d8734fcaed01ba9720bc0e218f716a18b14cb7fada0bb79",
-        "expected_event_digest": "77ae31c02059e8a2d40957ab278fa9239b936a85dfd83668a9f338d64a2fdff2"
+        "sha256": "ce920426927570fd03ac75ceb6d8e992dab985aac5bbe6400422bdbda88b67c9",
+        "expected_event_digest": "5c34589b5c6638e28f024cf73ad4d71fd6a8597fbf774e61b1d66728f07df84f"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.fully_reported.valid.json",
+        "sha256": "6f4bda7952e0cfe4e2340cd528dda9a59898c11fc7489fc6875e351c6b2890ab",
+        "expected_event_digest": "a509e6ca4b12d88fbad9d5fd22f86bd61b556fa144b924ca907fbaafcb4874f5"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.local_success.valid.json",
-        "sha256": "793c6fee45ecdd20340205d9489a293c35976609db54a9d87632ef54a583e6b3",
-        "expected_event_digest": "9896f48ec27b34eed66b2519aeb6dfd188af61f23f74ac221881966726732868"
+        "sha256": "80430d06f3041555cc4f9e6301c200a55387102ab119e5a4f1723e6039db91c2",
+        "expected_event_digest": "9094ece739a51abf5efae71495325c0e306c218d2d5fbd263b22112b85320ba8"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.provider_failure.valid.json",
@@ -232,65 +237,85 @@
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/valid/forge_event.v1.ai_profile.provider_fallback.valid.json",
-        "sha256": "7f9317a9a36186b0b2752e0b6753710faa9e0abb7fe1b1dad9868ce8747aee44",
-        "expected_event_digest": "8ae410e4cb806f5da409dec1e071b5d1401a1adc64217a839fdbf9379e99c88f"
+        "sha256": "7219d1fd397ba78c642aecc977d548ddd6fdbec1b3e0fbe747ce9179433c71ac",
+        "expected_event_digest": "c0e3b6d12a8d4e69ec920a5300987892d5d6e70656b3231c84f4f1a4ad0a6182"
       }
     ],
     "rfc_ft_04_ai_profile_invalid": [
       {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.declaration_unknown_profile.invalid.json",
+        "sha256": "001a6fbc1b6193bf4351516c03e81841071ddd975f2f8cad4f7cefce724111ad",
+        "expected_error_code": "AI_PROFILE_DECLARATION_INVALID"
+      },
+      {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.forbidden_identity_key.invalid.json",
-        "sha256": "eaf7076d0d92d1bc015798933fa4dec9728a23413ad448a19c4f82730091fbed",
+        "sha256": "0038ed84363b720b17b3eb694abb96074dd2e029cda8002e86e13124e827d0b9",
         "expected_error_code": "AI_PROFILE_FORBIDDEN_KEY"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.fractional_token_count.invalid.json",
-        "sha256": "bef09a075fb69737a08c20462df7b7868b8403429b19f3608b9b7c3a32173e03",
+        "sha256": "beba964aef49779892c25419a4368ec2c61742085d074b5a0cef591b0e84908b",
         "expected_error_code": "AI_PROFILE_TOKEN_COUNT_INVALID"
       },
       {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.measurement_class_list.invalid.json",
+        "sha256": "54525fe640a226f50b6d744a886b10d085212e97d1a0a5258d46a693fd599658",
+        "expected_error_code": "AI_PROFILE_MEASUREMENT_CLASS_INVALID"
+      },
+      {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.measurement_class_missing.invalid.json",
-        "sha256": "26afa6c459ecc903f7db53043b42d3b87d5236533d3d550cfcfdef5449c879dc",
+        "sha256": "7aee60b4b79e55086f958159fccf230335bdfe4ab0c72620b64e1523261c3e16",
+        "expected_error_code": "AI_PROFILE_MEASUREMENT_CLASS_INVALID"
+      },
+      {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.measurement_class_object.invalid.json",
+        "sha256": "49b6225d7f0abe705ab51dc0db5a41cba5543d3d28ab41ab779cdcc7f1d96b3b",
         "expected_error_code": "AI_PROFILE_MEASUREMENT_CLASS_INVALID"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.metric_unaccounted.invalid.json",
-        "sha256": "2a3a52a346c0479d95432b9fa9bfcd307ba446107a796056cd7b2e669e34c0dc",
+        "sha256": "189abfb15aea25a6cca5bc2e5d398177f3df33c8b05a54bdb26a41c55edf7f5b",
         "expected_error_code": "AI_PROFILE_METRIC_UNACCOUNTED"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.negative_token_count.invalid.json",
-        "sha256": "24c81748e02e16b6b33cf78a5cce7424748cf5b978bbe5cebd9c36a23f441035",
+        "sha256": "653136bed91a5f7076f84c1a59e9c1ef4c8977be65a7053d65c7e7d8766bc94b",
         "expected_error_code": "AI_PROFILE_TOKEN_COUNT_INVALID"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.retired_token_metric.invalid.json",
-        "sha256": "1520892d8ee7b28c7c479a286f90861ed4ae198a84347c0b09e98ed2b2e2e454",
+        "sha256": "d2c6463bdd839fa80afeb603d2806f25da1f14f1e85346c6851911eb605918e0",
         "expected_error_code": "AI_PROFILE_RETIRED_METRIC"
       },
       {
+        "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.unavailable_not_list.invalid.json",
+        "sha256": "9cd7375d9f0634bc6a4294f063f89f016c53dc941d32ee2e4c0ac7a38a76ddb8",
+        "expected_error_code": "AI_PROFILE_UNAVAILABLE_NOT_CANONICAL"
+      },
+      {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.unavailable_unsorted.invalid.json",
-        "sha256": "586388d1441a77495d850453af33468a7f11c1849598d0ba8d69cf086e04b548",
+        "sha256": "ba95f876a20ce16e275cf6b090201e0bc0490c474c2f62e324156eeb66697fe3",
         "expected_error_code": "AI_PROFILE_UNAVAILABLE_NOT_CANONICAL"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.undeclared_ai_key.invalid.json",
-        "sha256": "6990a0d99565ad9b129c9100a3bdf8a37dbffc9d9c92a07e76d2170eea16fdbb",
+        "sha256": "6db4275005421d367338184628c966d7b3c17ff1e870aac6977aac69c1a1978b",
         "expected_error_code": "AI_PROFILE_UNDECLARED"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.unknown_ai_key.invalid.json",
-        "sha256": "c46c81f6e10c3db1d3e10390cc9c9115ed2360df2f98ef3f5e5b55179b522314",
+        "sha256": "9f28a3b04f28824a05b83ea6f8801f5f35d3c2cb6aa0f81a36683973dd385d30",
         "expected_error_code": "AI_PROFILE_UNKNOWN_KEY"
       },
       {
         "path": "fixtures/telemetry/ai_inference_semantics_v1/invalid/forge_event.v1.ai_profile.zero_filled_unknown.invalid.json",
-        "sha256": "623320cf152c9b5272c02258f67c8c8a48cb06fb09a963214ccdd0a2a7ee3ce4",
+        "sha256": "e8cb2cd7681564efd4cbb627ace7e5cd6689053db0078d4b978f4ece53719e67",
         "expected_error_code": "AI_PROFILE_METRIC_PRESENT_AND_UNAVAILABLE"
       }
     ],
     "rfc_ft_04_ai_profile_normalization_vectors": {
       "path": "fixtures/telemetry/ai_inference_semantics_v1/vectors/ai_inference_semantics.v1.normalization.vectors.json",
-      "sha256": "858f7cce1aa7f00c047ca2aaf06378945ba616bf8f6f2d16ced760fb7214da41"
+      "sha256": "20995db602ac73f5fa1a42c5f829eb9bab0b52fba50dd18ca4b12a18a5b4ac62"
     }
   },
   "resource_bounds": {

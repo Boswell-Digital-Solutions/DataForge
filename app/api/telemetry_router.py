@@ -62,6 +62,10 @@ from app.telemetry_retention import (
     RETENTION_POLICY_SHA256,
     RETENTION_POLICY_VERSION,
 )
+from app.services.forge_event_profiles import (
+    admitted_event_profiles,
+    enforce_event_profile,
+)
 from app.telemetry_database import (
     get_telemetry_db,
     require_telemetry_rate_budget,
@@ -1546,8 +1550,13 @@ def ingest_forge_event_v1(
     response: Response,
     db: Session | None = Depends(get_telemetry_db),
     auth: AuthContext = Depends(require_api_key),
+    admitted_profiles: frozenset[str] = Depends(admitted_event_profiles),
 ) -> ForgeEventV1IngestResponse:
     """Persist one canonical event without aliases, fallback, or dual-write."""
+
+    if not isinstance(admitted_profiles, frozenset):
+        # Direct (non-HTTP) calls get ordinary runtime policy, never a bypass.
+        admitted_profiles = admitted_event_profiles()
 
     if not forge_event_v1_write_enabled():
         raise HTTPException(
@@ -1560,6 +1569,7 @@ def ingest_forge_event_v1(
             detail={"code": "telemetry_database_configuration_invalid"},
         )
     _authorize_event(auth, event)
+    enforce_event_profile(event.model_dump(mode="json"), admitted_profiles)
     digest = event_digest(event)
 
     try:

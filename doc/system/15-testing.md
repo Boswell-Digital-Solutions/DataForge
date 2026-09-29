@@ -104,12 +104,20 @@ backup/restore, evidence-retaining downgrade, and re-upgrade.
 The RFC-FT-04 candidate proof is
 `scripts/prove_rfc_ft_04_candidate_postgres.sh` (run through `pg_virtualenv`).
 It is admission-proof evidence only; `ForgeAIInferenceSemantics.v1` is not
-admitted. It ingests the six synthetic candidate profile events vendored from
-forge_contract_core under `tests/fixtures/telemetry/rfc_ft_04_candidate/`. For
-each one it proves `inserted` then `exact_replay`, `event_identity_conflict`
-for same-ID/different-content, the authority's event digest, and exact JSONB
-storage of every profile key and value type. It also proves that ingest does
-not enforce the profile; see `docs/KNOWN_ISSUES.md`.
+admitted. It drives the real HTTP route with a synthetic API key minted in the
+throwaway cluster and a throwaway login role in `dataforge_telemetry_ingest`.
+It proves: authentication and subject binding still run first; ordinary
+runtime rejects every candidate event and stores nothing; with the candidate
+admitted only through a dependency override in the proof process, each invalid
+fixture is rejected with its code and no row, each valid fixture is `inserted`
+then `exact_replay` with the authority's digest and exact JSONB storage, and
+same-ID/different-content is `409 event_identity_conflict`; a missing
+validator returns `503` and stores nothing. The fixtures and the vendored
+validator are byte-for-byte copies from forge_contract_core.
+
+`tests/test_forge_event_profile_enforcement.py` covers the same boundary
+through `TestClient` on the SQLite harness, plus validator pinning, drifted
+bytes, validator faults, malformed measurement classes, and value-free errors.
 
 ### Unit / Security / Load
 
