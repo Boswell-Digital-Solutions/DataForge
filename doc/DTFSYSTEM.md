@@ -970,6 +970,26 @@ live app surface:
 - `AuthorForgeAnalyticsEnvelope.v1` is strict and closed: no arbitrary metadata, user content,
   raw logs, paths, identity, prompts/responses, attachments, or embeddings.
 
+## Finalized BDS sessions (2026-09-30)
+
+`/api/v1/bds/sessions` is a typed DataForge-owned persistence surface for
+ForgeAgents planning, execution, evaluation, and workflow sessions. It stores
+only terminal `COMPLETED`, `FAILED`, or `CANCELLED` snapshots. `POST` creates a
+record (201), repeats of the same snapshot are idempotent (200), and a different
+snapshot for the same `(session_kind, session_id)` conflicts (409). `GET
+/{session_kind}/{session_id}` returns one record; `GET /{session_kind}?limit=…`
+returns at most 200, ordered by completion. There is no generic table-name or
+filter expression API. The `bds_sessions` table is created by Alembic and has
+PostgreSQL RLS enabled. DataForge retains the durable record; ForgeAgents owns
+the active session and caller authorization.
+
+Every route requires a DataForge Bearer API key with metadata
+`service_name=forge-agents` and `scopes` containing `bds:sessions:write` or
+`bds:sessions:read` as appropriate. Missing/invalid keys return 401;
+incorrect service or scope returns 403. Admin and emergency headers do not
+bypass this service credential check. Session IDs and final status must match
+the body. Raw service keys are not returned in responses or written to logs.
+
 ---
 
 # §5 — Proving-Slice Schema
