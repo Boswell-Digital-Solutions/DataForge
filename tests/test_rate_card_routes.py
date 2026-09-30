@@ -231,3 +231,33 @@ def test_accepts_a_real_forge_contract_core_fixture_with_its_original_digest(cli
     r = client.post("/api/v1/rate-cards", json=fixture)
     assert r.status_code == 201, r.text
     assert r.json()["digest"] == fixture["digest"]
+
+
+def test_revoked_card_is_not_selectable_but_stays_readable(client: TestClient):
+    """Operator dispositions F3/F6/F8/F10 (2026-09-30): a revoked card is never
+    selected again, and its record, rates, and reason stay readable."""
+    sid = str(uuid.uuid4())
+    active = _snapshot(snapshot_id=sid, provider="xai", model="grok-4-1-fast-reasoning")
+    assert client.post("/api/v1/rate-cards", json=active).status_code == 201
+
+    revoked = _snapshot(
+        snapshot_id=sid,
+        provider="xai",
+        model="grok-4-1-fast-reasoning",
+        status="REVOKED",
+        effective_to="2026-09-30T03:00:00Z",
+        revoked_reason="Provider retired this model before this card took effect.",
+    )
+    assert revoked["digest"] == active["digest"]  # lifecycle change only
+    assert client.post("/api/v1/rate-cards", json=revoked).status_code == 201
+
+    params = {"provider": "xai", "model": "grok-4-1-fast-reasoning"}
+    assert client.get("/api/v1/rate-cards/active", params=params).status_code == 404
+    assert client.get("/api/v1/rate-cards/public/active", params=params).status_code == 404
+
+    listing = client.get("/api/v1/rate-cards", params={"provider": "xai", "status": "REVOKED"}).json()
+    assert listing["total"] == 1
+    item = listing["items"][0]
+    assert item["id"] == sid and item["model"] == "grok-4-1-fast-reasoning"
+    assert item["revoked_reason"].startswith("Provider retired")
+    assert item["uncached_input_rate_micros_per_million_tokens"] == 3_000_000
