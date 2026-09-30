@@ -33,6 +33,7 @@ from app.models import bugcheck_models  # noqa: F401
 from app.models import buildguard_models  # noqa: F401
 from app.models import smithy_portfolio_models  # noqa: F401
 from app.models import smithy_planning_models  # noqa: F401
+from app.models import bds_session_models  # noqa: F401
 from app.models import neuroforge_models  # noqa: F401
 from app.models import tarcie_models  # noqa: F401
 from app.models import agentic_reasoning_models  # noqa: F401
