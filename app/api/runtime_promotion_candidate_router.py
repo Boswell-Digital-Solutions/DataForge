@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.auth import validate_api_key
 from app.database import get_db
 from app.models.runtime_promotion_candidate_models import (
     RuntimePromotionCandidate,
@@ -40,8 +44,48 @@ router = APIRouter(
 
 FIRST_LOCAL_RUNTIME_ACTION = "process_local_failure_pattern"
 
+bearer = HTTPBearer(auto_error=False)
+CANDIDATE_SERVICE = "forgecommand"
+READ_SCOPE_NAME = "runtime-promotion:candidates:read"
+DECIDE_SCOPE_NAME = "runtime-promotion:candidates:decide"
 
-@router.get("", response_model=list[RuntimePromotionCandidateSummary])
+
+def _require_scope(scope: str):
+    """Fail closed: a service key bound to Forge Command with the named scope."""
+
+    def check(
+        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+    ) -> str:
+        if credentials is None or credentials.scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Service key required")
+        key = validate_api_key(credentials.credentials)
+        if key is None:
+            raise HTTPException(status_code=401, detail="Service key required")
+        metadata = key.metadata or {}
+        scopes = metadata.get("scopes")
+        if (
+            metadata.get("service_name") != CANDIDATE_SERVICE
+            or not isinstance(scopes, list)
+            or scope not in scopes
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail={"code": "runtime_promotion_scope_required", "scope": scope},
+            )
+        return CANDIDATE_SERVICE
+
+    return check
+
+
+read_scope = _require_scope(READ_SCOPE_NAME)
+decide_scope = _require_scope(DECIDE_SCOPE_NAME)
+
+
+@router.get(
+    "",
+    response_model=list[RuntimePromotionCandidateSummary],
+    dependencies=[Depends(read_scope)],
+)
 def list_runtime_promotion_candidates(
     db: Session = Depends(get_db),
 ) -> list[RuntimePromotionCandidate]:
@@ -52,7 +96,11 @@ def list_runtime_promotion_candidates(
     )
 
 
-@router.get("/{candidate_id}", response_model=RuntimePromotionCandidateDetail)
+@router.get(
+    "/{candidate_id}",
+    response_model=RuntimePromotionCandidateDetail,
+    dependencies=[Depends(read_scope)],
+)
 def get_runtime_promotion_candidate(
     candidate_id: str,
     db: Session = Depends(get_db),
@@ -103,30 +151,40 @@ def get_runtime_promotion_candidate(
     return detail
 
 
-@router.post("/{candidate_id}/approve", response_model=RuntimePromotionCandidateActionResponse)
+@router.post(
+    "/{candidate_id}/approve",
+    response_model=RuntimePromotionCandidateActionResponse,
+)
 def approve_runtime_promotion_candidate(
     candidate_id: str,
     body: RuntimePromotionCandidateActionRequest,
+    actor: Annotated[str, Depends(decide_scope)],
     db: Session = Depends(get_db),
 ) -> RuntimePromotionCandidateActionResponse:
     return _apply_candidate_decision(
         candidate_id=candidate_id,
         new_status="approved",
         body=body,
+        actor=actor,
         db=db,
     )
 
 
-@router.post("/{candidate_id}/reject", response_model=RuntimePromotionCandidateActionResponse)
+@router.post(
+    "/{candidate_id}/reject",
+    response_model=RuntimePromotionCandidateActionResponse,
+)
 def reject_runtime_promotion_candidate(
     candidate_id: str,
     body: RuntimePromotionCandidateActionRequest,
+    actor: Annotated[str, Depends(decide_scope)],
     db: Session = Depends(get_db),
 ) -> RuntimePromotionCandidateActionResponse:
     return _apply_candidate_decision(
         candidate_id=candidate_id,
         new_status="rejected",
         body=body,
+        actor=actor,
         db=db,
     )
 
@@ -135,6 +193,7 @@ def _apply_candidate_decision(
     candidate_id: str,
     new_status: str,
     body: RuntimePromotionCandidateActionRequest,
+    actor: str,
     db: Session,
 ) -> RuntimePromotionCandidateActionResponse:
     row = (
@@ -153,7 +212,8 @@ def _apply_candidate_decision(
         prior_status=prior_status,
         new_status=new_status,
         operator_note=(body.reason or "").strip() or None,
-        operator_identity=(body.operator_identity or "").strip() or "forgecommand",
+        # The identity comes from the authenticated key. The request body is not trusted.
+        operator_identity=actor,
     )
 
     db.add(decision)

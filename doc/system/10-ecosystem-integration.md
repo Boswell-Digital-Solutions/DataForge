@@ -126,6 +126,12 @@ control surfaces, including:
 DataForge persists governance evidence and operator decisions; it does not replace the
 external orchestration/control surface that decides when those endpoints are called.
 
+The runtime-promotion candidate routes need a service key. The key must belong to the service
+`forgecommand`. A read (`GET`) needs the scope `runtime-promotion:candidates:read`. An approve or
+reject needs the scope `runtime-promotion:candidates:decide`. A request with no key gets 401.
+A key with the wrong service or scope gets 403. DataForge records the service name from the key
+as the operator identity. It does not trust the identity in the request body.
+
 ## Sentinel Contract
 
 Sentinel currently uses DataForge as a persistence boundary for sweeps and healing-event

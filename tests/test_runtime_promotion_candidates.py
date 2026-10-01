@@ -3,8 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
+
+pytestmark = pytest.mark.usefixtures("forge_command_candidate_key")
 
 def _build_local_failure_pattern_request() -> dict:
     unique_suffix = uuid.uuid4().hex
@@ -452,3 +455,68 @@ def test_runtime_promotion_candidate_detail_shows_verification_separate_from_exe
         latest_execution_summary["latest_execution_state"]
         != latest_verification_summary["observed_outcome"]
     )
+
+# --- Authentication: FC-RT-20260930-012 -------------------------------------------------
+
+
+@pytest.fixture
+def anonymous(client: TestClient) -> TestClient:
+    client.headers.pop("Authorization", None)
+    return client
+
+
+CANDIDATES = "/api/v1/runtime-promotion/candidates"
+
+
+def test_candidate_routes_refuse_a_request_with_no_credential(anonymous: TestClient) -> None:
+    assert anonymous.get(CANDIDATES).status_code == 401
+    assert anonymous.get(f"{CANDIDATES}/rpc_x").status_code == 401
+    body = {"reason": "no key"}
+    assert anonymous.post(f"{CANDIDATES}/rpc_x/approve", json=body).status_code == 401
+    assert anonymous.post(f"{CANDIDATES}/rpc_x/reject", json=body).status_code == 401
+
+
+def test_candidate_routes_refuse_an_unknown_key(client: TestClient) -> None:
+    client.headers["Authorization"] = "Bearer not-a-key"
+    assert client.get(CANDIDATES).status_code == 401
+    assert client.post(f"{CANDIDATES}/rpc_x/approve", json={}).status_code == 401
+
+
+def test_a_read_only_key_cannot_decide(
+    client: TestClient, forge_command_candidate_key: dict
+) -> None:
+    forge_command_candidate_key["scopes"] = ["runtime-promotion:candidates:read"]
+    assert client.get(CANDIDATES).status_code == 200
+    denied = client.post(f"{CANDIDATES}/rpc_x/approve", json={"reason": "x"})
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["scope"] == "runtime-promotion:candidates:decide"
+
+
+def test_a_key_for_another_service_is_refused(
+    client: TestClient, forge_command_candidate_key: dict
+) -> None:
+    forge_command_candidate_key["service_name"] = "forge-agents"
+    assert client.get(CANDIDATES).status_code == 403
+    assert client.post(f"{CANDIDATES}/rpc_x/reject", json={}).status_code == 403
+
+
+def test_a_refused_decision_changes_nothing(
+    client: TestClient, forge_command_candidate_key: dict
+) -> None:
+    _, candidate_id = _ingest_and_get_candidate(client)
+    forge_command_candidate_key["scopes"] = ["runtime-promotion:candidates:read"]
+    assert client.post(f"{CANDIDATES}/{candidate_id}/approve", json={}).status_code == 403
+    detail = _get_candidate_detail(client, candidate_id)
+    assert detail["status"] != "approved"
+    assert detail["decision_history"] == []
+
+
+def test_the_recorded_identity_comes_from_the_key_not_the_body(client: TestClient) -> None:
+    _, candidate_id = _ingest_and_get_candidate(client)
+    response = client.post(
+        f"{CANDIDATES}/{candidate_id}/reject",
+        json={"reason": "spoof check", "operator_identity": "someone-else"},
+    )
+    assert response.status_code == 200, response.text
+    history = _get_candidate_detail(client, candidate_id)["decision_history"]
+    assert history[0]["operator_identity"] == "forgecommand"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -28,6 +29,8 @@ from app.runtime_promotion.execution_handoff.worker import (
     run_one_local_runtime_action,
 )
 
+
+pytestmark = pytest.mark.usefixtures("forge_command_candidate_key")
 
 def _build_local_failure_pattern_request() -> dict:
     unique_suffix = uuid.uuid4().hex
