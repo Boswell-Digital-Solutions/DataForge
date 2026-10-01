@@ -259,3 +259,26 @@ def reset_in_memory_rate_limiter():
     yield
     simple_rate_limiter.reset()
     reset_telemetry_database_state_for_tests()
+
+
+@pytest.fixture
+def forge_command_candidate_key(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> dict:
+    """Give the test client a Forge Command service key. The candidate routes fail closed."""
+    from types import SimpleNamespace
+
+    from app.api import runtime_promotion_candidate_router as candidate_router
+
+    metadata = {
+        "service_name": "forgecommand",
+        "scopes": [
+            "runtime-promotion:candidates:read",
+            "runtime-promotion:candidates:decide",
+        ],
+    }
+    monkeypatch.setattr(
+        candidate_router,
+        "validate_api_key",
+        lambda token: SimpleNamespace(metadata=metadata) if token == "fc-key" else None,
+    )
+    client.headers["Authorization"] = "Bearer fc-key"
+    return metadata

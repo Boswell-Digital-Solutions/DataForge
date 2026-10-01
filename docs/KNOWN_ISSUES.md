@@ -2,6 +2,30 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## Runtime-Promotion Candidate Routes Took No Credential (FC-RT-20260930-012)
+
+- **Location**: `app/api/runtime_promotion_candidate_router.py` (all four routes: list, detail, `approve`, `reject`)
+- **Status**: Fixed in code 2026-10-01, pending merge. **Not live until Forge Command sends a key.**
+- **Impact**: High before the fix. Any caller could read candidate evidence and write an
+  approve or reject decision. An approve could also create an execution handoff request.
+  Found by Forge Command (finding FC-RT-20260930-012): the deployed list route answered 500, not
+  401, with no credential.
+- **Cause**: The router had no authentication dependency. Other routers (BDS sessions, cloud image
+  state) already use a scoped service key.
+- **Fix**: Every route now needs a service key bound to `forgecommand`. Read needs
+  `runtime-promotion:candidates:read`. Approve and reject need
+  `runtime-promotion:candidates:decide`. No key gives 401. A wrong service or scope gives 403.
+  The recorded operator identity comes from the key, not from the request body.
+- **Tests**: 6 new tests (no key, unknown key, read-only key, other service, refused decision
+  changes nothing, spoofed identity). The 26 candidate and worker tests pass. Five identity and
+  login tests fail with and without this change.
+- **Rollout order**: Forge Command must send the key first. Then mint the key in Forge Command
+  Settings with both scopes and service `forgecommand`. Then merge this change. If this merges
+  first, Forge Command recommendations fail closed with an upstream 401.
+- **Still open**: The receipt-ingest route `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`
+  still takes no credential. The tests call it with no key and it answers 201. It creates
+  candidates. The other routes in `runtime_promotion_router.py` were not read in this change.
+
 ## Hosted CI Fails Before Any Job Step Runs
 
 - **Location**: `.github/workflows/test.yml`, `docker.yml`, `security.yml` (every hosted job)
