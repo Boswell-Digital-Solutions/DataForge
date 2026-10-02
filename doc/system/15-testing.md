@@ -238,5 +238,8 @@ An empty list, a failed scope job and the weekly schedule all run the scans.
 `scripts/ci-change-scope.sh` keeps the same re-include list as the `paths` filter.
 `tests/test_ci_change_scope.py` tests the script.
 
+Render builds follow the same rule. `buildFilter.ignoredPaths` in `render.yaml` skips a build for a documentation-only push.
+Render ignores a path over any include rule, so the two re-included paths above are not in that list.
+
 Do not add a required check on a path-filtered workflow. The check stays pending, and the merge blocks.
 Do not rename a job to a name that a rule requires. Add a re-include for each new documentation path that code reads.

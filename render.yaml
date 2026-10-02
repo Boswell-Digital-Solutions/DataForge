@@ -17,6 +17,28 @@ services:
     repo: https://github.com/Boswell-Digital-Solutions/DataForge.git
     branch: master
     rootDir: .
+    # A documentation-only push must not build or deploy. Render ignores a
+    # path over any include rule, so the paths that tests read are not listed:
+    # docs/plans/DFG_GOV_01/** (fixtures) and docs/archive/TELEMETRY_INTEGRATION_STATUS.md
+    # (a test asserts it does not exist). Unknown new paths still build.
+    # See doc/system/15-testing.md "Which CI runs for which change".
+    buildFilter:
+      ignoredPaths:
+        - "*.md"
+        - "doc/**"
+        - "docs/*.md"
+        - "docs/architecture/**"
+        - "docs/cloud-security/**"
+        - "docs/guides/**"
+        - "docs/migrations/**"
+        - "docs/model-findings/**"
+        - "docs/references/**"
+        - "docs/security/**"
+        - "docs/setup/**"
+        - "docs/plans/*.md"
+        - "docs/plans/registry.json"
+        - "docs/archive/[^T]*"
+        - "docs/archive/TES*"
     plan: free
     # Single token so a dashboard Build Command override (which flattens
     # newlines and breaks multi-line shell) can mirror this exactly:
@@ -89,6 +111,28 @@ services:
     repo: https://github.com/Boswell-Digital-Solutions/DataForge.git
     branch: master
     rootDir: .
+    # A documentation-only push must not build or deploy. Render ignores a
+    # path over any include rule, so the paths that tests read are not listed:
+    # docs/plans/DFG_GOV_01/** (fixtures) and docs/archive/TELEMETRY_INTEGRATION_STATUS.md
+    # (a test asserts it does not exist). Unknown new paths still build.
+    # See doc/system/15-testing.md "Which CI runs for which change".
+    buildFilter:
+      ignoredPaths:
+        - "*.md"
+        - "doc/**"
+        - "docs/*.md"
+        - "docs/architecture/**"
+        - "docs/cloud-security/**"
+        - "docs/guides/**"
+        - "docs/migrations/**"
+        - "docs/model-findings/**"
+        - "docs/references/**"
+        - "docs/security/**"
+        - "docs/setup/**"
+        - "docs/plans/*.md"
+        - "docs/plans/registry.json"
+        - "docs/archive/[^T]*"
+        - "docs/archive/TES*"
     schedule: "*/10 * * * *"  # every 10 min; lookback/overlap make windows safe to re-pull
     # The web build is the sole migration runner. This build verifies the
     # migration graph; the poller runtime separately verifies its table exists.
