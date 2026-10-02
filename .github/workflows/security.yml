@@ -9,7 +9,44 @@ on:
     - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM UTC
 
 jobs:
+  # Standing rule (2026-10-01): a documentation-only change runs no code scan.
+  # The secret scan (`secrets`) has no condition and runs on every change, because a
+  # documentation file can hold a leaked secret. A workflow-level `paths` filter would stop it,
+  # so this job decides the scope instead. The scan jobs are fail-closed: each runs unless this
+  # job says `code=false`. A failed scope job leaves the output empty, so the scans run.
+  # Do not test `== 'true'`. `tests/test_ci_change_scope.py` covers the script.
+  scope:
+    runs-on: ubuntu-latest
+    name: Detect change scope
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - id: scope
+      env:
+        EVENT: ${{ github.event_name }}
+        BASE_REF: ${{ github.base_ref }}
+        BEFORE: ${{ github.event.before }}
+        SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        files=""
+        if [ "$EVENT" = "pull_request" ]; then
+          files="$(git diff --name-only "origin/${BASE_REF}...HEAD")"
+        elif [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+          files="$(git diff --name-only "$BEFORE" "$SHA")"
+        fi
+        # An unknown scope (an empty list, or the weekly schedule) runs the scans.
+        printf '%s\n' "$files" | bash scripts/ci-change-scope.sh | tee -a "$GITHUB_OUTPUT"
+
   bandit:
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     name: Bandit Security Scan
     
@@ -38,6 +75,8 @@ jobs:
         path: bandit-report.json
 
   safety:
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     name: Dependency Vulnerability Check
     
@@ -68,6 +107,8 @@ jobs:
         path: safety-report.json
 
   dependency-check:
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     name: OWASP Dependency Check
     
@@ -94,6 +135,8 @@ jobs:
         if-no-files-found: ignore
 
   codeql:
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.code != 'false' }}
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     

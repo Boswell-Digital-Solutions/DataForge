@@ -6,9 +6,25 @@ on:
       - 'v*'
     branches:
       - master
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!doc/**'
+      - '!**/*.md'
+      # Documentation that a test reads is code (see doc/system/15-testing.md).
+      - 'docs/plans/DFG_GOV_01/**'
+      - 'docs/archive/TELEMETRY_INTEGRATION_STATUS.md'
   pull_request:
     branches:
       - master
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!doc/**'
+      - '!**/*.md'
+      # Documentation that a test reads is code (see doc/system/15-testing.md).
+      - 'docs/plans/DFG_GOV_01/**'
+      - 'docs/archive/TELEMETRY_INTEGRATION_STATUS.md'
 
 env:
   REGISTRY: ghcr.io
