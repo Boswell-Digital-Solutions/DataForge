@@ -2,6 +2,24 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## A Documentation-Only Push Still Redeploys on Render, and Security Scans Are Advisory (2026-10-02)
+
+- **Location**: `render.yaml` (both services, `branch: master`, no `autoDeploy` or `buildFilter` key);
+  `.github/workflows/security.yml`
+- **Status**: Open. Found while applying the 2026-10-01 rule that a documentation-only change runs
+  no code CI. Not fixed in that change.
+- **Impact**: GitHub Actions no longer runs the code CI for a documentation-only change. Render
+  still builds and deploys on every push to `master`, because `render.yaml` sets no `buildFilter`.
+  The Bandit, Safety, OWASP and TruffleHog jobs all set `continue-on-error: true`. A finding never
+  fails a run, so a leaked secret does not block a merge.
+- **Cause**: Render deploy settings live in `render.yaml` and the Render dashboard, not in a
+  workflow. The scan jobs were set to advisory in earlier changes.
+- **Fix**: Not done. Add a `buildFilter` with `paths`/`ignoredPaths` to each service in `render.yaml`
+  after the owner confirms that Render does not read `docs/` or `doc/`. Decide separately whether
+  the TruffleHog job must fail the run.
+- **Also noted**: `security.yml` keeps its existing weekly `schedule`. `deploy.yml` uses old action
+  versions (`docker/*@v2`, `v4`). `test.yml` uses `codecov/codecov-action@v3`.
+
 ## Runtime-Promotion Candidate Routes Took No Credential (FC-RT-20260930-012)
 
 - **Location**: `app/api/runtime_promotion_candidate_router.py` (all four routes: list, detail, `approve`, `reject`)

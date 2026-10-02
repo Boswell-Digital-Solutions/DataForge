@@ -3048,6 +3048,59 @@ The repo root `pytest.ini` is the canonical test configuration surface. It enabl
 When documenting test totals, prefer the audited collect-only command above over historical
 phase summaries.
 
+## Which CI runs for which change
+
+A change that touches only documentation runs the Documentation CI and no code CI.
+A change that touches any other file runs the code CI.
+A change that touches both runs both.
+No scheduled run is added for the code CI.
+When the scope is unknown, the code CI runs.
+
+Documentation means `docs/**`, `doc/**` and any `*.md` file.
+A change to `.github/workflows/**` is code.
+
+| Workflow | Class | Documentation-only change |
+|---|---|---|
+| `documentation.yml` | Documentation CI | Runs. It builds `doc/system` and fails on a difference in `doc/`. |
+| `test.yml` | Code CI | Does not start. A `paths` filter on `push` and `pull_request` excludes documentation. |
+| `docker.yml` | Code CI | Does not start for a branch push or a pull request. A tag push (`v*`) always runs. |
+| `security.yml` | Security scan | The `secrets` job runs. Bandit, Safety, OWASP and CodeQL skip. |
+| `deploy.yml` | Release | No change. It starts only for a `release-*` tag or by hand. |
+
+The filter in `test.yml` and `docker.yml` is:
+
+```yaml
+paths:
+  - '**'
+  - '!docs/**'
+  - '!doc/**'
+  - '!**/*.md'
+  - 'docs/plans/DFG_GOV_01/**'
+  - 'docs/archive/TELEMETRY_INTEGRATION_STATUS.md'
+```
+
+The last matching pattern wins, so the re-includes come last.
+Documentation that a test reads is code. Two paths are re-included:
+
+- `docs/plans/DFG_GOV_01/**`. `tests/test_dfg_gov_01.py` loads the JSON fixtures in this directory.
+- `docs/archive/TELEMETRY_INTEGRATION_STATUS.md`. `tests/test_dataforge_telemetry_caller.py`
+  asserts that this file does not exist.
+
+The `.dockerignore` file already excludes `docs/` and the root `*.md` files from the image.
+No run-time code reads `doc/` or any `*.md` file.
+The service reads `service_contract.v1.json`. That file is not documentation and always runs the code CI.
+
+Security scans run on every change. A documentation file can hold a leaked secret.
+A `paths` filter cannot keep one job of a workflow running, so `security.yml` has no filter.
+The `scope` job runs `scripts/ci-change-scope.sh`. The script prints `code=false` only when
+every changed file is documentation. The scan jobs run unless the output is `code=false`.
+An empty list, a failed scope job and the weekly schedule all run the scans.
+`scripts/ci-change-scope.sh` keeps the same re-include list as the `paths` filter.
+`tests/test_ci_change_scope.py` tests the script.
+
+Do not add a required check on a path-filtered workflow. The check stays pending, and the merge blocks.
+Do not rename a job to a name that a rule requires. Add a re-include for each new documentation path that code reads.
+
 ---
 
 # §16 — Handover, Critical Constraints & Migration Runbook
