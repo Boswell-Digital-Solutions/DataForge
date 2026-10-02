@@ -6,17 +6,22 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 
 - **Location**: `render.yaml` (both services, `branch: master`, no `autoDeploy` or `buildFilter` key);
   `.github/workflows/security.yml`
-- **Status**: Open. Found while applying the 2026-10-01 rule that a documentation-only change runs
-  no code CI. Not fixed in that change.
+- **Status**: Render part mitigated in `render.yaml` (2026-10-02), not yet observed. Open until a
+  real documentation-only push is seen to skip the build. The Render dashboard setting is unchecked.
+  The security-scan part is still open. Found while applying the 2026-10-01 rule that a
+  documentation-only change runs no code CI.
 - **Impact**: GitHub Actions no longer runs the code CI for a documentation-only change. Render
   still builds and deploys on every push to `master`, because `render.yaml` sets no `buildFilter`.
   The Bandit, Safety, OWASP and TruffleHog jobs all set `continue-on-error: true`. A finding never
   fails a run, so a leaked secret does not block a merge.
 - **Cause**: Render deploy settings live in `render.yaml` and the Render dashboard, not in a
   workflow. The scan jobs were set to advisory in earlier changes.
-- **Fix**: Not done. Add a `buildFilter` with `paths`/`ignoredPaths` to each service in `render.yaml`
-  after the owner confirms that Render does not read `docs/` or `doc/`. Decide separately whether
-  the TruffleHog job must fail the run.
+- **Fix**: Done for Render, before go-live. Each service in `render.yaml` has a `buildFilter` with
+  `ignoredPaths`. The paths cover root `*.md`, `doc/**` and the `docs/` directories that no test
+  reads. Render ignores a path over any include rule, so `docs/plans/DFG_GOV_01/**` and
+  `docs/archive/TELEMETRY_INTEGRATION_STATUS.md` stay out of the list and still build. A service
+  that someone made by hand in the Render dashboard ignores `render.yaml`. Check that the Blueprint
+  manages both services. Decide separately whether the TruffleHog job must fail the run.
 - **Also noted**: `security.yml` keeps its existing weekly `schedule`. `deploy.yml` uses old action
   versions (`docker/*@v2`, `v4`). `test.yml` uses `codecov/codecov-action@v3`.
 
