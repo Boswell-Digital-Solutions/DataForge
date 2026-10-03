@@ -2,6 +2,75 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
+
+- **Location**: `app/api/llm_intel_promotion_application_router.py`, routes
+  `POST /api/v1/llm-intel/promotion-application/decisions/apply`,
+  `GET .../promoted-records` and `GET .../promoted-records/{promoted_record_id}`.
+  The router is mounted without a dependency at `app/main.py` (`include_router`).
+- **Status**: Open. Confirmed in source and in an in-process run. Not fixed. This entry
+  authorizes no code change. Found while tracing how DataForge validates a Forge Command decision
+  receipt for plan `BDS-FC-PRC-OPT-v0.2`.
+- **Confirmed**:
+  - The apply route has one dependency, `get_db`. It has no authentication dependency.
+    The app adds no authentication middleware (`main.py` adds timeout, correlation ID,
+    compression, CORS and security headers only).
+  - An in-process run of DataForge at `a0fd1665dedecfedad82dcaf646dd8a5d2a58659`, with an in-memory
+    database, answered the apply route with no credential. An empty payload gave HTTP 422 from
+    payload validation. No authentication step ran first. The read route gave HTTP 200 with no
+    credential. The sibling `bds/sessions` route gave HTTP 401 in the same run, so the test
+    harness does enforce authentication where the code asks for it.
+  - On the deployed host (`dataforge-pzmo.onrender.com`), `GET .../promoted-records?limit=1` with no
+    credential gave HTTP 200 and a 2-byte body. The `bds/sessions` control gave HTTP 401.
+  - No gateway authenticates the path. `render.yaml` runs the app directly. `nginx.conf` is the
+    docker-compose proxy and has no authentication step.
+- **Inferred, not directly exercised**: the deployed `decisions/apply` route is also open. The
+  deployed app uses the same route code, and no upstream layer authenticates. No `POST` was sent to
+  the deployed host. A `POST` would risk a write, and the evidence above is enough for this entry.
+  Do not send a production `POST` to turn the inference into direct proof.
+- **Impact**: High unless a network control that this entry did not see blocks the path. Any caller
+  that can reach the host could submit a promotion decision. The service stores `operator_id` and
+  `authority_ring` as the caller wrote them and verifies no signature. An `approve` decision
+  promotes a candidate and can project a pricing value onto `model_catalog`
+  (`_project_promoted_pricing_to_catalog`). The deployed read route returned an empty body of
+  2 bytes. Whether the host holds real data was not checked.
+- **Cause**: The router never had an authentication dependency. Other routers (BDS sessions, cloud
+  image state, and since 2026-10-01 the runtime-promotion candidate routes) use a scoped service
+  key. See the entry on runtime-promotion candidate routes (FC-RT-20260930-012).
+- **Fix**: Not done. The same shape as FC-RT-20260930-012 would apply: a service key bound to
+  `forgecommand`, a read scope for the two `GET` routes and a decide scope for `apply`, with no key
+  giving 401 and a wrong service or scope giving 403. The caller, the operator identity and the
+  maximum authority ring should come from the credential and not from the payload. Decide before
+  go-live.
+- **Related**: `RFC-FC-PRC-01` in forge_contract_core (Proposed, not approved) makes these rules
+  normative for a new apply path. The existing route is not that path and is not changed by it.
+
+## A Non-Approve Decision May Overwrite the State of a Promoted Candidate (2026-10-03)
+
+- **Location**: `app/services/llm_intel_promotion_application.py`. The non-approve branch of
+  `_apply_promotion_decision` (about lines 195 to 213), the terminal-state check (about line 215),
+  and `_mark_candidate_and_drift_reports` (about line 447).
+- **Status**: Open. **NEEDS_RUNTIME_OR_TEST_CONFIRMATION.** This is a source-read finding. It was not
+  run and it is not confirmed.
+- **What the source shows**: `TERMINAL_CANDIDATE_STATES` includes `promoted`. The check against it
+  runs only after the non-approve branch has returned. A decision other than `approve` (`reject`,
+  `defer`, `request_more_evidence` or `rollback_request`) with a new `decision_id` therefore reaches
+  `_mark_candidate_and_drift_reports`. That function assigns `promotion_state` on the candidate and
+  on every drift report with no check of the current state. The same-`decision_id` replay is caught
+  earlier. A different `decision_id` is not.
+- **What the source does not show**: whether a database constraint, an earlier check or a test
+  prevents it. Whether the promoted record itself changes. In the code read, the promoted record
+  is not touched, so the candidate state could disagree with an existing promoted record.
+- **Impact**: Unconfirmed. If real, a candidate that was promoted could read `rejected`,
+  `deferred`, `more_evidence_required` or `rollback_requested`. The route takes no credential
+  (see the entry above), so any caller could trigger it.
+- **Fix**: None. Confirm first with a test on a scratch database: promote a candidate, then apply a
+  `reject` with a new `decision_id`, and read the candidate state. If it is confirmed, the
+  non-approve branch needs the same terminal-state check as the approve branch.
+- **Related**: `RFC-FC-PRC-01` (Proposed) requires that a new apply path never alter the stored state
+  of a candidate that has an applied terminal decision, and it asks for a fixture for the sequence
+  accept, reject, defer, accept.
+
 ## A Documentation-Only Push Still Redeploys on Render, and Security Scans Are Advisory (2026-10-02)
 
 - **Location**: `render.yaml` (both services, `branch: master`, no `autoDeploy` or `buildFilter` key);
