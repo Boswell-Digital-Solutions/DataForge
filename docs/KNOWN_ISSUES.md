@@ -45,31 +45,47 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Related**: `RFC-FC-PRC-01` in forge_contract_core (Proposed, not approved) makes these rules
   normative for a new apply path. The existing route is not that path and is not changed by it.
 
-## A Non-Approve Decision May Overwrite the State of a Promoted Candidate (2026-10-03)
+## A Non-Approve Decision Overwrites the State of a Promoted Candidate (2026-10-03)
 
 - **Location**: `app/services/llm_intel_promotion_application.py`. The non-approve branch of
   `_apply_promotion_decision` (about lines 195 to 213), the terminal-state check (about line 215),
   and `_mark_candidate_and_drift_reports` (about line 447).
-- **Status**: Open. **NEEDS_RUNTIME_OR_TEST_CONFIRMATION.** This is a source-read finding. It was not
-  run and it is not confirmed.
+- **Status**: Open. **Confirmed by a scratch-database test on 2026-10-03.** Not fixed. No code
+  change is authorized by this entry. A fix proposal is separate.
 - **What the source shows**: `TERMINAL_CANDIDATE_STATES` includes `promoted`. The check against it
-  runs only after the non-approve branch has returned. A decision other than `approve` (`reject`,
-  `defer`, `request_more_evidence` or `rollback_request`) with a new `decision_id` therefore reaches
-  `_mark_candidate_and_drift_reports`. That function assigns `promotion_state` on the candidate and
-  on every drift report with no check of the current state. The same-`decision_id` replay is caught
-  earlier. A different `decision_id` is not.
-- **What the source does not show**: whether a database constraint, an earlier check or a test
-  prevents it. Whether the promoted record itself changes. In the code read, the promoted record
-  is not touched, so the candidate state could disagree with an existing promoted record.
-- **Impact**: Unconfirmed. If real, a candidate that was promoted could read `rejected`,
-  `deferred`, `more_evidence_required` or `rollback_requested`. The route takes no credential
-  (see the entry above), so any caller could trigger it.
-- **Fix**: None. Confirm first with a test on a scratch database: promote a candidate, then apply a
-  `reject` with a new `decision_id`, and read the candidate state. If it is confirmed, the
-  non-approve branch needs the same terminal-state check as the approve branch.
-- **Related**: `RFC-FC-PRC-01` (Proposed) requires that a new apply path never alter the stored state
-  of a candidate that has an applied terminal decision, and it asks for a fixture for the sequence
-  accept, reject, defer, accept.
+  runs only after the non-approve branch has returned. A decision other than `approve` with a new
+  `decision_id` reaches `_mark_candidate_and_drift_reports`. That function assigns
+  `promotion_state` on the candidate and on every drift report with no check of the current state.
+- **Test evidence**: A read-only test ran against DataForge `a0fd1665dedecfedad82dcaf646dd8a5d2a58659`
+  with an in-memory SQLite database, no network and no credential. The database was rebuilt for each
+  case. Each case first promoted the candidate, then took a snapshot of four tables (candidates,
+  drift reports, promoted records and decisions), applied one more decision, and took a second
+  snapshot.
+  - Control, `approve` again with a new `decision_id`: refused with
+    `PromotionApplicationConflictError` ("already in terminal state 'promoted'"). No row changed.
+  - Control, `approve` replayed with the same `decision_id`: returned `duplicate`. No row changed.
+  - `reject` with a new `decision_id`: returned `recorded_no_promotion`. The candidate
+    `promotion_state` changed from `promoted` to `rejected`. The drift report `promotion_state`
+    and its `payload` changed the same way. One decision row was added.
+  - `defer` with a new `decision_id`: the same result, with the state `deferred`.
+  - Also seen, outside the two requested cases: `request_more_evidence` gave
+    `more_evidence_required`, and `rollback_request` gave `rollback_requested`, on the same
+    candidate and drift report fields.
+  - In all four cases the promoted-record row did not change. The test did not snapshot the
+    supersession chain table or `model_catalog`.
+- **Impact**: A promoted candidate can be shown as `rejected`, `deferred`, `more_evidence_required`
+  or `rollback_requested` while its promoted record stays in place. The state of the candidate and
+  its drift report then disagree with the promoted record. The route takes no credential (see the
+  entry above), so any caller could trigger it.
+- **Open question**: whether `rollback_request` on a promoted candidate is meant to move the
+  candidate to `rollback_requested`. The code allows it, and no test or schema in the code read says
+  that it is a defect. The owner decides. `reject`, `defer` and `request_more_evidence` on a
+  promoted candidate have no such reading.
+- **Fix**: None. The smallest guard is a proposal, not a change: refuse `reject`, `defer` and
+  `request_more_evidence` for a candidate in a terminal state, as the approve branch already does.
+  Leave the `rollback_request` meaning to the owner.
+- **Related**: `RFC-FC-PRC-01` in forge_contract_core (Proposed) requires that a new apply path never
+  alter the stored state of a candidate that has an applied terminal decision.
 
 ## A Documentation-Only Push Still Redeploys on Render, and Security Scans Are Advisory (2026-10-02)
 
