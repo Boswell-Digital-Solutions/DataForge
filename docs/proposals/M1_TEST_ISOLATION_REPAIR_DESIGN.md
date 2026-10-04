@@ -4,6 +4,12 @@ Date: 2026-10-04. Status: **proposal only.** This file authorizes no code, no te
 change. It contacts no hosted service. **Finding M1 stays open** (`docs/KNOWN_ISSUES.md`, the entry of 2026-10-04) until a separately
 authorized repair is proven. The decision owner accepts or refuses the design. A review of it is a prerequisite.
 
+**Revision 2 (2026-10-04).** Revised after the review of pull request 90, which tested the mechanism with live local probes and broke three claims of
+revision 1. (1) A filesystem Unix-domain socket crosses a network namespace, so Layer 1 is now a network namespace **plus a mount namespace**. (2) A test
+process must not run as real root, and `sudo` drops the environment. (3) The loopback interface is **down** in a new namespace. The revision also
+completes the list of audited events, removes the `--collect-only` exemption, specifies the declared-absent mechanism and its limits, and
+adds the missing allowlist rules and canaries. The first version stays in the git history. This is still a proposal.
+
 Pins: DataForge `origin/master` `ca7ce99625bdecbf465022b6005a97e749f3ee88`. Line numbers are for that commit and can drift.
 Nothing here was measured by running the DataForge suite. The only thing that was run is a local capability probe (section 4.1).
 
@@ -32,6 +38,8 @@ and not ordinary skips; return the exact files, the mechanism, the allowlist, th
 | `httpx` and `requests` read `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` from the environment. No code sets `trust_env`. `requests` follows redirects by default. The opt-in load test uses `requests`. | Source survey |
 | No `pytest-socket`, `respx` or `pytest-httpx` is installed. Pytest is 7.4.3, `pytest-asyncio` 0.21.1 in auto mode. `--strict-markers` is on. `addopts` already holds `--cov`. | `requirements.txt:56-59`, `pytest.ini` |
 | The suite needs these local services only: in-memory SQLite (no socket), an optional PostgreSQL (three tests), an optional Redis (the infrastructure tests), and `TestClient` and `ASGITransport` (in-process). | Source survey |
+| Loopback defaults exist that point at services which the suite does not start: `http://127.0.0.1:8001` (`app/neuroforge/config.py:17`) and `http://127.0.0.1:8003` (`app/config.py:182`, compression). `DATABASE_URL` is read as a fallback (`app/config.py:59-61`). | Reviewer-verified |
+| Redis is probed **outside the tests** too (`app/main.py:459` and `:525`, `app/utils/embeddings.py:53`, `app/utils/corpus_versioning.py:34`). `tests/test_ci_change_scope.py` runs `bash` as a child. `tests/load/test_k6_load.py` imports `requests`. | Reviewer-verified |
 | CI needs network egress for non-test steps (pip, `git ls-remote`, the app token, Codecov). The guard must scope to the pytest step. | `.github/workflows/test.yml:90-131` |
 
 ## 3. What the runner must stop
@@ -44,6 +52,7 @@ and not ordinary skips; return the exact files, the mechanism, the allowlist, th
 6. A **proxy** that carries traffic out of an allowed local address.
 7. An ambient variable or a `.env` file that changes a target (`NEUROFORGE_URL`, `REDIS_URL`, `SUPABASE_*`, a database URL).
 8. A swallowed error: a blocked attempt that ends as a skip, a disabled cache, or a passing test.
+9. A connection through a **filesystem Unix-domain socket** to a service that is not disposable: the system PostgreSQL socket, the Docker socket, an SSH agent, D-Bus.
 
 The runner must **permit**: the in-process ASGI app, in-memory SQLite, and the explicitly identified disposable services of section 5.
 
@@ -51,48 +60,75 @@ The runner must **permit**: the in-process ASGI app, in-memory SQLite, and the e
 
 No single layer is enough. Layer 1 is the enforcement. Layers 2 to 4 give defense in depth, diagnostics and visibility.
 
-### 4.1 Layer 1: an operating-system network namespace with loopback only
+### 4.1 Layer 1: a network namespace plus a mount namespace
 
-The runner starts the test process in a new **network namespace** that has only a loopback interface. The kernel then refuses every route to
-the outside, for every process in the namespace, including children, `libpq` and non-Python programs. A hosted name can neither be
-resolved nor reached.
+The runner starts the test process in a new **user namespace** with a new **network namespace** and a new **mount namespace**.
 
-**Local capability probe (run for this design, no network used).** On this machine `unshare -rn` works without privilege. Inside it the
-only interface is `lo`, and a connection to `192.0.2.1` (the RFC 5737 TEST-NET range, which is never routed) fails at once with
-`Network is unreachable` (errno 101). `bwrap` and `slirp4netns` are also installed. The system kernel setting
-`kernel.apparmor_restrict_unprivileged_userns` is `1` here, so restrictions exist on this class of host, and the runner must **probe at start**
-and not assume.
+- **The network namespace** has only a loopback interface. It refuses every TCP, UDP and DNS route to the outside for every process inside it,
+  including children, `libpq` and non-Python programs. **The loopback interface is down when the namespace is created.** The runner must bring it up
+  (`ip link set lo up`, which needs iproute2 as a precondition) and must prove loopback with a self-connect before it starts a service.
+- **The network namespace does not isolate filesystem Unix-domain sockets.** A socket that is a path on the filesystem is reachable from inside the
+  namespace. The mount namespace closes that gap.
+- **The mount namespace** hides `/var/run`, `/run`, `/run/user`, `/var/run/postgresql` and the Docker socket. It binds in only the run directory (for the
+  disposable sockets), the repository and the virtual environment (read only where possible), and the system libraries. `bwrap` is installed on this machine. The
+  runner unsets `PGHOST`, `DOCKER_HOST`, `SSH_AUTH_SOCK` and `DBUS_SESSION_BUS_ADDRESS`, and it sets `PGHOST` to the manifest socket directory. The guard
+  (section 4.2) also **denies any `AF_UNIX` path that is not in the manifest**, after `os.path.realpath` (which resolves `..` and symbolic links), and it treats an
+  **empty host as the default socket and denies it**.
+- **Abstract Unix sockets** do not cross a network namespace (a probe of the reviewer). The disposable services therefore use **filesystem** sockets that sit in the
+  run directory, which the mount namespace binds in.
+
+**Local capability probes (no network used, nothing contacted).**
+
+| Probe | Result |
+|---|---|
+| `unshare -rn` as a normal user | Works. The only interface is `lo`, and it is **down**. |
+| A connection to `192.0.2.1` (RFC 5737 TEST-NET, never routed) inside the namespace | Fails at once with `Network is unreachable` (errno 101). |
+| A listener on a **filesystem** Unix socket outside the namespace, a client inside | **The client reached it.** The namespace does not isolate this. (Reproduced here.) |
+| `ip link set lo up`, then IPv4 and IPv6 loopback connects | Both worked here. The reviewer's host reported that `::1` gave "Address family not supported", so the guard must not depend on IPv6. |
+| An unprivileged process inside the namespace tries `nsenter --net=/proc/1/ns/net` and `setns` | **Refused** (permission denied). (Reproduced here.) |
+| A hostless `psycopg2.connect` inside the namespace (the reviewer's probe) | It reached this machine's system PostgreSQL over `/var/run/postgresql/.s.PGSQL.5432`, and the server answered (peer authentication failed). A connect to `/var/run/docker.sock` also succeeded. The SSH agent and D-Bus sockets are filesystem sockets as well. |
+
+`kernel.apparmor_restrict_unprivileged_userns` is `1` here, so restrictions exist on this class of host. The runner must **probe at start** and not assume.
 
 **Properties.**
 
-- A service that is reachable from the host loopback is **not** reachable from inside the namespace. This is intended. This machine runs a
-  system PostgreSQL on `127.0.0.1:5432`. It is not disposable, and the namespace makes it unreachable by construction.
-- Disposable services therefore enter the namespace by **explicit means** (section 5): a Unix-domain socket in the run directory, or a
-  loopback process that the runner starts inside the namespace.
-- If the namespace cannot be created, the runner **refuses to run**. It never falls back to an unguarded run (section 6).
+- The system PostgreSQL on `127.0.0.1:5432` is unreachable **by TCP**. Its **Unix socket** is reachable unless the mount namespace hides it. That is why Layer 1 needs both namespaces.
+- Disposable services enter the namespace by **explicit means** (section 5): a Unix-domain socket in the run directory, or a loopback process that the runner starts
+  inside the namespace.
+- If the namespaces cannot be created, or `ip`, `bwrap` or the loopback proof is missing, the runner **refuses to run**. It never falls back to an unguarded
+  run (section 6). The runner also refuses to run tests with an effective user of root.
 
-**Provider for CI (a decision).** Option A: the same runner under `sudo unshare -n` on the hosted runner. The Ubuntu runner image has
-passwordless `sudo`, but that is **inferred and not verified here**. The runner must probe it in a first step. Option B: a Docker
-network created with `--internal` (no gateway), with the disposable Postgres container and a test container attached to it.
-Option B works where user namespaces are restricted, and it is heavier. The recommendation is A with a probe, and B as the documented fallback.
+**Provider for CI (a decision).**
+Option A: the runner creates the namespaces **unprivileged** with a user namespace (as above) on the hosted runner, where the kernel allows it. If the
+runner needs `sudo` to create them, the test process **drops to the unprivileged user and drops its capabilities** (`setpriv`) before it starts. Real root has
+`CAP_SYS_ADMIN` and could `setns` into the host network namespace, which an unprivileged process cannot. `sudo` also resets the environment and drops
+`PYTHONPATH`, so the runner passes the sanitized environment explicitly. Whether the hosted runner allows either route is **inferred and not verified**. The
+runner probes it in a first step.
+Option B: a Docker network created with `--internal` (no gateway), with the disposable Postgres container and a test container attached to it. It works where user
+namespaces are restricted, and it is heavier. The recommendation is A with a probe, and B as the documented fallback.
 
-### 4.2 Layer 2: an in-process guard that installs before anything imports
+### 4.2 Layer 2: an in-process guard that installs at interpreter start
 
 A small module, `netguard`, installs at interpreter start through a `sitecustomize.py` in a directory that the runner puts first on
-`PYTHONPATH`. This reaches **every Python child** that inherits the environment (the `alembic` subprocess, for example). It does not
-use `python -I`.
+`PYTHONPATH`. It installs **before any application, HTTP, Redis, database or pytest module is imported**. Two ordering facts apply. `.pth` files run before
+`sitecustomize` (the coverage `.pth` imports `coverage` and `socket` first when `COVERAGE_PROCESS_START` is set). Audit hooks do not depend on import
+order, so that early import does not weaken the guard, and the early check of section 4.5 lists the modules that matter. The guard reaches **every Python child** that inherits the
+environment (the `alembic` subprocess, for example). It does not use `python -I`, which skips `PYTHONPATH`.
 
 It installs:
 
-- a `sys.addaudithook` that sees the events `socket.connect`, `socket.getaddrinfo`, `socket.sendto`, `subprocess.Popen`, `os.system`,
-  `os.exec` and `os.posix_spawn`;
-- wrappers around `psycopg2.connect` that check the host (a loopback address or an allowlisted Unix-socket path) **before** `libpq` is called,
-  because the audit hook cannot see `libpq`;
+- a `sys.addaudithook` for the events `socket.connect` (which `connect_ex` also fires), `socket.getaddrinfo`, `socket.gethostbyname`, `socket.gethostbyaddr`,
+  `socket.getnameinfo`, `socket.sendto`, `socket.bind` (a bind to a non-loopback address is a violation), `subprocess.Popen`, `os.system`, `os.exec` and
+  `os.posix_spawn`. The reviewer probed that the asyncio calls `create_connection`, `sock_connect` and `loop.getaddrinfo` fire `connect` and `getaddrinfo`.
+  Raw C calls through `ctypes` fire **no** event, which is the same limit as `libpq`;
+- wrappers around `psycopg2.connect` and, if it is imported, `psycopg.connect`, that check the target **before** `libpq` is called: a loopback address **and port** that
+  are in the manifest, or a Unix-socket path that is in the manifest after `realpath`. An empty host is the default socket and is denied;
 - a check at start that no proxy variable is set. If any is set, the guard stops the process.
 
-Every check compares the target with the **allowlist manifest** (section 5). Anything else is a **violation**.
+Every check compares the target with the **allowlist manifest** (section 5). Anything else is a **violation**. `localhost` resolves (through `/etc/hosts` in the
+namespace) to `127.0.0.1` and is allowed only on a manifest port. `::1` is treated like `127.0.0.1`, and nothing depends on IPv6 being present.
 
-**A violation is visible, never a skip (section 4.4).**
+**A violation is visible, never a skip (section 4.4).** If `violations.jsonl` cannot be written, the guard treats that as fatal and stops the process.
 
 ### 4.3 Layer 3: a sanitized, explicit environment
 
@@ -115,10 +151,12 @@ single statement of what is allowed.
   **failed** with the violation text, even if its outcome was a skip or a pass.
 - **Declared-absent services.** A service that the suite probes but that the runner does not provide (for example Redis) is declared in the
   manifest as `declared_absent` with a reason, with an address that cannot answer (a Unix-socket path that does not exist). A probe of it is allowed,
-  is logged as `declared-absent probe` and is listed in the report. The tests that need the service are skipped **before any connection**
-  by a collection hook, with the reason `declared absent`, and the skips are enumerated in the report. A skip with no declared reason is a defect of the runner.
+  is logged as `declared-absent probe` and is listed in the report. Tests that use the Redis helper of the suite (`_get_redis_or_skip`) are marked at
+  collection and skipped **before any connection**, with the reason `declared absent`, and the skips are enumerated in the report. **Other code also probes Redis**
+  (`app/main.py`, `app/utils/embeddings.py`, `app/utils/corpus_versioning.py`). Those probes still happen. They are allowed on the declared-absent path, they are logged,
+  and they are listed in the report, so "skipped before any connection" covers only the tests that use the helper. A skip with no declared reason is a defect of the runner.
 - **Direct `pytest` is refused.** `tests/conftest.py` calls a gate before it imports `app`. The gate stops the run with exit code 87 unless the
-  runner set `NETGUARD_RUN_ID` and the guard is installed. There is no override. `--collect-only` is allowed.
+  runner set `NETGUARD_RUN_ID` and the guard is installed. There is no override and **no exemption for `--collect-only`**, because collection imports `app` and every test module.
 
 ### 4.5 Order of events (isolation before imports and collection)
 
@@ -148,6 +186,9 @@ The manifest names **explicit endpoints**, each tied to a process that the runne
 **Not verified here:** a container started with `--network none` that serves PostgreSQL over a bind-mounted Unix-socket directory, and the
 file ownership of that socket for the container user and for the test user. The design depends on it, so the first proof step of the implementation is a
 canary for exactly this. The image `pgvector/pgvector:pg16` is present in the local image store (it was not started for this design).
+
+**Identity rules.** A TCP loopback endpoint is allowed only on a manifest port. A Unix socket is allowed only at a manifest path, after `realpath`. `localhost` is allowed
+only on a manifest port. An empty host is the default socket and is denied. A DSN from an ambient variable is ignored.
 
 Everything else is denied: any other loopback port (including this machine's system PostgreSQL), any non-loopback address, every hosted name, and any
 Unix socket that is not in the manifest. A DSN that a developer supplies in an ambient variable is **ignored**. The runner uses only its own.
@@ -206,6 +247,11 @@ A separate canary suite exercises the **runner itself**. It does not import `app
 | Direct `pytest` | Starting `pytest` without the runner exits 87. |
 | Namespace failure | A forced failure of namespace creation gives exit 86 and no tests ran. |
 | Identity of a service | A manifest entry that points at an external DSN is refused. |
+| Filesystem sockets | A listener that the canary starts on a socket path **outside** the run directory is refused by the guard and is absent from the mount namespace. A hostless `psycopg2.connect` is refused. `/var/run/docker.sock`, `SSH_AUTH_SOCK` and the D-Bus socket are not reachable. `PGHOST`, `DOCKER_HOST`, `SSH_AUTH_SOCK` and `DBUS_SESSION_BUS_ADDRESS` are unset in the test process. |
+| Loopback | The runner brings `lo` up and proves it with a self-connect. If `ip` is missing or the proof fails, the runner exits 86. |
+| Privilege | A test process cannot `setns` or `nsenter` into the host network namespace. The runner exits 86 if its effective user is root. |
+| Unwritable record | If `violations.jsonl` cannot be written, the process stops. |
+| Collect only | `pytest --collect-only` without the runner exits 87. |
 | Teardown | After the run no container, socket or process of the run remains. |
 | Declared absent | A probe of the declared-absent Redis is logged, and the dependent tests are skipped with the declared reason and listed. |
 
@@ -233,6 +279,8 @@ planted violation in a copy of the suite fails the run; and an independent revie
 5. **The application's hosted defaults.** Authorize a later change to remove or unify them, or leave them as they are?
 6. **Postgres image.** The local host has no pgvector extension. Is a pinned container image acceptable as the provider, and which tag?
 7. **Where the runner is required.** Every run, or release evidence only? The design says every run of the suite, because ordinary runs caused M1.
+8. **The mount-namespace tool.** `bwrap` (installed here) or `unshare -m` with explicit bind mounts? And what is the policy for a host where neither is available (the runner refuses)?
+9. **Root.** Is "the runner refuses to run tests as root, and drops capabilities if it needs `sudo`" the right rule for CI?
 
 ## 11. Dependencies, review and stop conditions
 
