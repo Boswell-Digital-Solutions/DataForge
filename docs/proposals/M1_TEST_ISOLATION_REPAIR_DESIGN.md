@@ -17,8 +17,14 @@ inside the final sandbox and the spec names which layer brings loopback up. (2) 
 with explicit binds), a short run-directory path for the 108-byte socket limit, `--unshare-pid`, the audit events `socket.sendmsg` and the `os.spawn*` pair, explicit DSN hosts, and
 which file the exit 87 check reads. The earlier versions stay in the git history. This is still a proposal.
 
+**Revision 4 (2026-10-04).** Revised after the third review, which found the design sound and eight gaps in the sandbox that it describes. This revision (1) adds a **synthetic `/etc`** (`hosts`,
+`nsswitch.conf`, `passwd`) to the allow-list, because an empty root has none, and the DSNs name a **`user=`** explicitly; (2) binds the **base interpreter** wherever it lives, with a preflight run inside the sandbox;
+(3) specifies the **mount allow-list procedure of the plain `unshare` route** (mounts are built before the capability drop; it needs a pid namespace to mount `/proc`); (4) makes the capability proof
+**discriminating** (it must be able to fail); (5) makes section 6 and decision 9 agree with the route-specific privilege and loopback rules, and (6) states that the refusal of `nsenter` comes from the user-namespace boundary.
+The new claims were checked with local probes only (section 4.1). The earlier versions stay in the git history. This is still a proposal.
+
 Pins: DataForge `origin/master` `ca7ce99625bdecbf465022b6005a97e749f3ee88`. Line numbers are for that commit and can drift.
-Nothing here was measured by running the DataForge suite. The only thing that was run is a local capability probe (section 4.1).
+Nothing here was measured by running the DataForge suite. The only things that were run are local capability probes (section 4.1), which used no network and imported no DataForge code.
 
 ## 1. The requirement
 
@@ -79,11 +85,18 @@ The runner starts the test process in a new **user namespace** with a new **netw
 - **The network namespace does not isolate filesystem Unix-domain sockets.** A socket that is a path on the filesystem is reachable from inside the
   namespace. The mount namespace closes that gap.
 - **The mount namespace is an allow-list.** It starts from an **empty root** (`--tmpfs /`) and binds in only: the run directory (for the disposable sockets), the repository and the virtual
-  environment (read only where possible), the system libraries and the programs that the tests need, `/dev`, `/proc` and a private `/tmp`. `bwrap` is installed on this machine. A deny-list is
+  environment (read only where possible), the system libraries and the programs that the tests need, the **base interpreter** (below), a **synthetic `/etc`**, `/dev`, `/proc` and a private `/tmp`. `bwrap` is installed on this machine. A deny-list is
   **not** enough: with `--ro-bind / /` and a tmpfs over `/run`, a filesystem socket elsewhere (a test socket outside the run directory was reachable in a probe of the reviewer) stays reachable,
   and so does a socket that a non-Python child such as `psql` or `curl --unix-socket` could use. `/var/run`, `/run`, `/run/user`, `/var/run/postgresql` and the Docker socket are simply absent.
   The sandbox also uses `--unshare-pid`, so that the process cannot reach `/proc/<pid>/root` or `/proc/<pid>/ns/net` of a process outside. The host's permissions deny that today, but they do not
   guarantee it.
+- **A synthetic `/etc`.** An empty root has no `/etc`, and three things need one. The runner writes three small files into the run directory and binds each **read only**:
+  `hosts` (`127.0.0.1 localhost` and `::1 localhost`, so that `localhost` resolves with no DNS), `nsswitch.conf` (`hosts: files`, so that no resolver runs), and `passwd` (one line for the invoking uid, so that
+  `getpwuid` works). There is **no `resolv.conf`**: no name can resolve through DNS inside the sandbox, and a lookup of any other name is a violation of the guard anyway. Without the `passwd` line,
+  `pwd.getpwuid` raises `KeyError` for the uid (probed), and `libpq` would have no user name to send. The **DSNs also name `user=` explicitly**, so that they do not depend on the lookup.
+- **The base interpreter.** A virtual environment's `python` is a symbolic link to a base interpreter, and the base interpreter and its standard library can sit **outside `/usr`** (a `pyenv` tree, `/opt`, the
+  `setup-python` tool cache on a hosted runner). The runner resolves `os.path.realpath(sys.executable)`, `sys.base_prefix` and `sys.prefix`, and binds each tree read only at the same path. Before any service
+  starts, a **preflight runs `python -c "import ssl, sqlite3, json"` inside the final sandbox**. If it fails, the runner exits 86 and no test starts. On this machine the base interpreter is `/usr/bin/python3.12`, which the `/usr` bind already covers (probed).
 - **The environment and the guard.** The runner unsets `PGHOST`, `DOCKER_HOST`, `SSH_AUTH_SOCK` and `DBUS_SESSION_BUS_ADDRESS`. The DSNs that the runner writes **name the host explicitly** (the
   manifest socket directory), so that the empty-host rule can stay strict. The guard (section 4.2) also **denies any `AF_UNIX` path that is not in the manifest**, after `os.path.realpath`
   (which resolves `..` and symbolic links), and it treats an **empty host as the default socket and denies it**.
@@ -99,7 +112,9 @@ The runner starts the test process in a new **user namespace** with a new **netw
 | A connection to `192.0.2.1` (RFC 5737 TEST-NET, never routed) inside the namespace | Fails at once with `Network is unreachable` (errno 101). |
 | A listener on a **filesystem** Unix socket outside the namespace, a client inside | **The client reached it.** The namespace does not isolate this. (Reproduced here.) |
 | Plain `unshare -rn`: `ip link set lo up`, then IPv4 and IPv6 loopback connects | Both worked here. The reviewer's host reported that `::1` gave "Address family not supported", so the guard must not depend on IPv6. |
-| An unprivileged process inside the namespace tries `nsenter --net=/proc/1/ns/net` and `setns` | **Refused** (permission denied). (Reproduced here.) |
+| An unprivileged process inside the namespace tries `nsenter --net=/proc/1/ns/net` and `setns` | **Refused** (permission denied). (Reproduced here.) The refusal comes from the **user-namespace boundary**: the process holds capabilities only over its own user namespace, and the host network namespace belongs to another one. It does not depend on the uid, and it does not depend on `NoNewPrivs`. |
+| A minimal allow-list sandbox under `bwrap` (`--tmpfs /`, read-only `/usr`, symbolic links for `/bin` and `/lib*`, a synthetic `/etc`, the virtual environment, `--proc`, `--dev`, `--unshare-pid`) | Python starts. `getpwuid` returns the synthetic user. `localhost` resolves. The root holds only the bound entries. `CapEff` is zero and `NoNewPrivs` is 1. **Without** the synthetic `passwd`, `getpwuid` raises `KeyError`. (Probed here.) |
+| The same allow-list built by hand in the plain route: `unshare -rnmpf --propagation private`, `mount --rbind` into a tmpfs, `pivot_root`, then `setpriv --no-new-privs --bounding-set=-all --inh-caps=-all` | Python starts. `CapEff` and `CapBnd` are zero and `NoNewPrivs` is 1. The uid stays 0 in the user namespace. **Mounting `/proc` fails (`permission denied`) without `--pid --fork`**, because `/proc` must belong to a pid namespace that the user namespace owns. (Probed here.) |
 | A hostless `psycopg2.connect` inside the namespace (the reviewer's probe) | It reached this machine's system PostgreSQL over `/var/run/postgresql/.s.PGSQL.5432`, and the server answered (peer authentication failed). A connect to `/var/run/docker.sock` also succeeded. The SSH agent and D-Bus sockets are filesystem sockets as well. |
 
 `kernel.apparmor_restrict_unprivileged_userns` is `1` here, so restrictions exist on this class of host. The runner must **probe at start** and not assume.
@@ -109,7 +124,7 @@ The runner starts the test process in a new **user namespace** with a new **netw
 - The system PostgreSQL on `127.0.0.1:5432` is unreachable **by TCP**. Its **Unix socket** is reachable unless the mount namespace hides it. That is why Layer 1 needs both namespaces.
 - Disposable services enter the namespace by **explicit means** (section 5): a Unix-domain socket in the run directory, or a loopback process that the runner starts
   inside the namespace.
-- If the namespaces cannot be created, or `ip`, `bwrap` or the loopback proof is missing, the runner **refuses to run**. It never falls back to an unguarded
+- If the namespaces cannot be created, or the tool of the chosen route is missing (`bwrap`, or `ip` for the plain route only), or the loopback proof fails, the runner **refuses to run**. It never falls back to an unguarded
   run (section 6). The runner also refuses to run tests with **privilege** (the rule is in the next paragraph).
 
 **The privilege rule, by route.** The test process must have **no capabilities** (`CapEff` is zero), **`NoNewPrivs=1`**, and it must not be real root on the host. The route decides how that is met:
@@ -117,8 +132,17 @@ The runner starts the test process in a new **user namespace** with a new **netw
 | Route | uid in the test process | How the rule is met |
 |---|---|---|
 | `bwrap --unshare-user --unshare-net` | The invoking user's uid (verified: `1000`, `CapEff` zero, `NoNewPrivs=1`) | Met by the sandbox. The check reads `/proc/self/status` and the uid. |
-| Plain `unshare -rn` | **0 inside the user namespace**, which is not real root. The uid is unmapped, so `setpriv --reuid` **fails** (`Invalid argument`). | Drop the capabilities and set no-new-privs: `setpriv --no-new-privs --bounding-set=-all`. The check is the capability sets and `NoNewPrivs`, not the uid. (Reproduced: an unprivileged process cannot `nsenter` or `setns` into the host namespace.) |
+| Plain `unshare -rn` | **0 inside the user namespace**, which is not real root. The uid is unmapped, so `setpriv --reuid` **fails** (`Invalid argument`). | Drop the capabilities and set no-new-privs: `setpriv --no-new-privs --bounding-set=-all --inh-caps=-all`, **after** every mount and the loopback step (they need the capabilities). The check is the capability sets and `NoNewPrivs`, not the uid. (Reproduced: an unprivileged process cannot `nsenter` or `setns` into the host namespace.) |
 | `sudo` (only if the kernel needs it) | Real root until the process drops | Create the namespaces under `sudo`, then **switch to the invoking user's uid** and drop the capabilities before the test process starts. The check includes the uid. |
+
+**The plain route, step by step.** The runner starts `unshare -rnmpf --propagation private` (user, network, mount and pid namespaces; `--propagation private` keeps every mount inside). Inside, **while it still has
+its capabilities**, a helper (1) brings loopback up (`ip link set lo up`), (2) mounts a tmpfs for the new root, (3) `mount --rbind`s each allow-list entry into it (read-only where the list says so, remounted read-only after the bind), (4) mounts `/proc` for the
+new pid namespace and binds `/dev`, (5) runs `pivot_root` and unmounts the old root, and **only then** (6) drops the capabilities and sets no-new-privs, and starts the test process. The loopback proof and the capability proof run
+after step 6, in the final process. This order is required: steps 1 to 5 need `CAP_NET_ADMIN` and `CAP_SYS_ADMIN`. The `bwrap` route does steps 2 to 6 itself.
+
+**The capability proof must be able to fail.** A check that only reads a value that is always zero proves nothing. The runner therefore runs the check **twice**: (a) in a **control** process **before** the drop (plain route), where the
+check must report non-zero `CapEff` (here `000001ffffffffff` in the plain route, probed), which shows that the check can detect privilege, and (b) in the final test process, where it must report `CapEff` and `CapBnd` zero and `NoNewPrivs` 1. If (a) shows no privilege, the
+check itself is broken, and the runner exits 86.
 
 **Provider for CI (a decision).**
 Option A: the runner creates the namespaces **unprivileged** with a user namespace (as above) on the hosted runner, where the kernel allows it. If the
@@ -223,7 +247,7 @@ check in that test that the host is in the manifest (a second line, section 8).
 
 | Condition | Result | Exit code | What stays on disk |
 |---|---|---|---|
-| A precondition fails (no namespace, `.env` present, proxy variable set, a service does not start, an identity check fails) | The runner stops before any test. It prints the reason. | 86 | The run directory with the logs |
+| A precondition fails: no namespace or mount namespace; for the plain route, `ip` missing; the loopback self-connect proof fails; the privilege proof fails (the rule of section 4.1 for the route in use, including a control check that cannot fail); the preflight of the base interpreter fails; `.env` present; a proxy variable set; a service does not start; an identity check fails | The runner stops before any test. It prints the reason. | 86 | The run directory with the logs |
 | `pytest` is started without the runner | `conftest` stops the run | 87 | none |
 | The guard is not installed before the first import | The plugin stops the run | 87 | The snapshot |
 | A violation (any layer). The exit-87 check reads `violations.jsonl` **only**. The log of declared-absent probes is a separate file. It is listed in the report and is not a failure. | The test fails. The run continues so that all violations show. The outer runner fails the run at the end. | 87 | `violations.jsonl` |
@@ -271,7 +295,8 @@ A separate canary suite exercises the **runner itself**. It does not import `app
 | Identity of a service | A manifest entry that points at an external DSN is refused. |
 | Filesystem sockets | A listener that the canary starts on a socket path **outside** the run directory is refused by the guard and is absent from the mount namespace. A hostless `psycopg2.connect` is refused. `/var/run/docker.sock`, `SSH_AUTH_SOCK` and the D-Bus socket are not reachable. `PGHOST`, `DOCKER_HOST`, `SSH_AUTH_SOCK` and `DBUS_SESSION_BUS_ADDRESS` are unset in the test process. |
 | Loopback | The proof is a self-connect on `127.0.0.1` inside the final sandbox. In the plain `unshare` route the runner brings `lo` up first (and exits 86 if `ip` is missing). In the `bwrap` route it must **not** run `ip link set lo up`, which fails there. If the proof fails, the runner exits 86. |
-| Privilege | A test process cannot `setns` or `nsenter` into the host network namespace. The runner checks the privilege rule of section 4.1 (no capabilities, `NoNewPrivs=1`, and the uid where the route preserves it) and exits 86 if it is not met. |
+| Privilege | A test process cannot `setns` or `nsenter` into the host network namespace. The runner checks the privilege rule of section 4.1 (no capabilities in `CapEff` and `CapBnd`, `NoNewPrivs=1`, and the uid where the route preserves it) and exits 86 if it is not met. A **control** process before the drop must show non-zero `CapEff`, or the runner exits 86. |
+| Synthetic `/etc` and interpreter | Inside the sandbox `getpwuid` returns the synthetic user, `localhost` resolves, there is no `resolv.conf`, and the preflight imports `ssl`, `sqlite3` and `json` from the bound interpreter. A deliberately unbound interpreter tree gives exit 86. |
 | Unwritable record | If `violations.jsonl` cannot be written, the process stops. |
 | Collect only | `pytest --collect-only` without the runner exits 87. |
 | Teardown | After the run no container, socket or process of the run remains. |
@@ -302,7 +327,7 @@ planted violation in a copy of the suite fails the run; and an independent revie
 6. **Postgres image.** The local host has no pgvector extension. Is a pinned container image acceptable as the provider, and which tag?
 7. **Where the runner is required.** Every run, or release evidence only? The design says every run of the suite, because ordinary runs caused M1.
 8. **The mount-namespace tool.** `bwrap` (installed here) or `unshare -m` with explicit bind mounts? And what is the policy for a host where neither is available (the runner refuses)?
-9. **Root.** Is "the runner refuses to run tests as root, and drops capabilities if it needs `sudo`" the right rule for CI?
+9. **Privilege.** Is the rule of section 4.1 the right rule for CI: the test process has **no capabilities, `NoNewPrivs=1` and is never real root**, with the uid of the invoking user where the route keeps it (`bwrap`, `sudo` after a switch) and uid 0 only inside an unprivileged user namespace (the plain route)? The runner never runs tests as real root, and it needs `sudo` only if the kernel refuses unprivileged namespaces.
 
 ## 11. Dependencies, review and stop conditions
 
