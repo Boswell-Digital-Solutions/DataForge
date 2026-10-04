@@ -2,6 +2,61 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## The Test Suite Reaches Hosted NeuroForge When `NEUROFORGE_URL` Is Unset (2026-10-04)
+
+- **Location**: `app/config.py:107` (the default of `NEUROFORGE_URL`), `app/utils/embeddings.py:26` and `:126`
+  (the endpoint and the unauthenticated `httpx` POST), and `tests/test_integration/test_infrastructure_health.py`
+  (`test_embedding_generation` and `test_embedding_batch_generation`). Line numbers are for `dac5e835ec8b9b7f15e383b8621645f44a0c4d8c`.
+- **Status**: **Open. Not repaired. Documenting the finding does not repair it.** This entry authorizes no code change. It was
+  found as finding M1 of the security review of pull request 88 (the WP-DF-00 pin bump), and the working session verified it
+  against the saved outputs and the source before it was reported.
+- **What is wrong**: `NEUROFORGE_URL` defaults to the hosted service `https://neuroforge-9lxc.onrender.com`. `tests/conftest.py` sets
+  defaults for the database URL, the startup flag, the secret key and an OpenAI key, and none for `NEUROFORGE_URL`. A run of the suite
+  with the variable unset therefore sends real HTTP requests to the hosted service. The suite gives no warning.
+- **Root cause**:
+  - The client has no offline mode and no allowlist of hosts.
+  - The two tests call the real client. Each wraps the call in `except Exception` and calls `pytest.skip(...)`, so a failed or
+    refused call shows as a skip. The call and its failure are easy to miss.
+  - In a run where other tests failed, other paths that reach the embedding call (a search path, an identity flow) also produced
+    502 embed errors. The reach of the suite is therefore wider than the two named tests.
+- **Confirmed**:
+  - In each of eight suite runs (four sequential runs of WP-DF-00, four earlier concurrent runs that were discarded), the saved
+    output shows the error text `NeuroForge embed error (HTTP 401)` twice. The skip messages are `Embedding service not available:
+    502: NeuroForge embed error (HTTP 401): {"schema_version":"operational_error.v1","code":"UNAUTHENTICATED","safe_message":"API
+    key required",...}`.
+  - One further discarded run (a PostgreSQL run whose migration collided with another run in one cluster) shows the error text 26
+    times: 16 with HTTP 401, 7 with HTTP 403 and 3 source lines in tracebacks. In that run at least one test
+    (`test_identity_flow_reaches_authenticated_profile`) failed with a 502 embed error instead of skipping. Its `httpx` log lines
+    show `POST https://neuroforge-9lxc.onrender.com/api/v1/embed` with 403 and 401 answers.
+  - No request line to any other host appears in any saved output. Documentation links to other hosts appear in the test output,
+    and nothing requested them.
+- **Payload and credentials**: the payloads were synthetic test strings (`"test text"` and `["text1", "text2", "text3"]`). The embed call
+  adds no header, so the requests were **unauthenticated**. No credential was sent. The two credential-like variables in the
+  working environment were a password-store path and a harness token, and this code does not read them.
+- **Not measured**: the **number of requests**. It is at least two for each suite run. The discarded run in which tests failed
+  shows more. The count was not captured.
+- **Affected evidence**: the WP-DF-00 evidence runs for pull request 88 (the baseline and candidate suites, SQLite and PostgreSQL,
+  and the discarded runs). The result of that evidence is not affected, because the two tests do not use `forge_contract_core` and skip
+  the same way in the baseline and the candidate. The authorization for those runs prohibited live service calls, so the runs did
+  not follow it. The decision owner's ruling of 2026-10-04 on D-I3 does not retrospectively authorize the calls.
+- **Corrections made to the pull request description (pull request 88, after the merge)**: the description first said that the two
+  tests were "not run" and that "the live-service tests are prohibited here". That was wrong. They ran, reached the hosted service
+  and skipped on its error. The description first said that every call got HTTP 401. That was true for eight runs and not for
+  the discarded run, which also had HTTP 403 and failing tests. The description first said that the only hostname in the saved
+  outputs was the hosted one. The corrected statement is that no request to any other host appears. The description now carries a
+  correction at its top. The records are in `forge_contract_core` `doc/rfcs/RFC-FC-PRC-01-r3-review-register.md`, section 20.3 (merged), and section 21 (the decision owner's rulings of 2026-10-04), which was in the open `forge_contract_core` pull request 172 when this entry was written.
+- **Not checked**: whether any other test can reach a hosted service. `app/config.py` has other defaults that name hosted services
+  (for example `SUPABASE_API_BASE` at line 124). They were not examined, and no request to them appears in the saved outputs.
+  The saved outputs are on the working machine and are not stored in this repository.
+- **Inference, not a finding**: the production service is meant to call NeuroForge (the comment in `app/config.py` says that all AI
+  operations route through it). The defect is that the **test suite** does this without an explicit opt-in. This entry does not
+  claim a production defect.
+- **Condition for any later run**: the decision owner ruled on 2026-10-04 that a future test authorization requires network isolation
+  that prevents access to hosted services and permits only explicitly identified local test services. Overriding `NEUROFORGE_URL`
+  or deselecting the two tests alone does not prove that the whole suite is isolated.
+- **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
+  or avoid hosted services, and that change has its own authorization and evidence.
+
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 
 - **Location**: `app/api/llm_intel_promotion_application_router.py`, routes
