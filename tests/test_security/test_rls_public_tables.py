@@ -9,12 +9,11 @@ against it (the same command scripts/render-build.sh runs on every deploy),
 then asserts every public table -- especially the ten that drifted after the
 2026-06-02 hardening pass -- has `relrowsecurity = true`.
 
-Run it against a local/disposable Postgres, e.g.:
+Run it through scripts/run-tests-isolated.sh. The runner starts a disposable
+Postgres with no network, sets DATAFORGE_RLS_TEST_POSTGRES_URL to its Unix socket and
+refuses any other server:
 
-    docker run --rm -d -p 55432:5432 -e POSTGRES_PASSWORD=postgres \\
-        --name rls-test-pg ankane/pgvector:latest
-    DATAFORGE_RLS_TEST_POSTGRES_URL=postgresql://postgres:postgres@localhost:55432/postgres \\
-        pytest tests/test_security/test_rls_public_tables.py -v -m integration
+    scripts/run-tests-isolated.sh -- tests/test_security/test_rls_public_tables.py -v -m integration
 
 Never point DATAFORGE_RLS_TEST_POSTGRES_URL at a production database -- this
 test creates and drops a throwaway database on the target server.
@@ -22,6 +21,7 @@ test creates and drops a throwaway database on the target server.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -55,6 +55,25 @@ DRIFTED_TABLES = (
 )
 
 
+def _assert_disposable_host(admin_url: sa.URL) -> None:
+    """Refuse a server that the isolated runner did not start (CREATE/DROP DATABASE follow).
+
+    The host must be a Unix-socket directory whose socket is in the runner's manifest.
+    """
+    manifest_path = os.environ.get("NETGUARD_MANIFEST")
+    if not manifest_path:
+        raise AssertionError("no runner manifest: this test creates and drops databases and only runs under the isolated runner")
+    with open(manifest_path, "r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    host = admin_url.query.get("host") or admin_url.host or ""
+    if not str(host).startswith("/"):
+        raise AssertionError(f"host {host!r} is not a Unix-socket directory of the runner")
+    socket_path = os.path.realpath(os.path.join(str(host), ".s.PGSQL.%s" % (admin_url.port or 5432)))
+    allowed = {os.path.realpath(entry["path"]) for entry in manifest.get("unix", [])}
+    if socket_path not in allowed:
+        raise AssertionError(f"socket {socket_path!r} is not a disposable server in the runner manifest")
+
+
 def _require_admin_dsn() -> str:
     if not ADMIN_DSN:
         pytest.skip(
@@ -66,7 +85,25 @@ def _require_admin_dsn() -> str:
     return ADMIN_DSN
 
 
+# The child process of alembic gets only these variables (no ambient proxy, DSN or socket).
+_CHILD_ENV_KEYS = (
+    "PATH", "HOME", "LANG", "TMPDIR", "PYTHONPATH", "PYTHONPYCACHEPREFIX", "PYTHONUNBUFFERED",
+    "NETGUARD_RUN_ID", "NETGUARD_MANIFEST", "NETGUARD_GUARD_DIR", "NETGUARD_CURRENT_TEST",
+    "SECRET_KEY", "NEUROFORGE_URL", "REDIS_URL", "SUPABASE_API_BASE",
+)
+
+
+def _child_env(test_url: sa.URL) -> dict:
+    env = {key: os.environ[key] for key in _CHILD_ENV_KEYS if key in os.environ}
+    for key in os.environ:
+        if key.startswith("DATAFORGE_TELEMETRY_"):
+            env[key] = os.environ[key]
+    env["DATAFORGE_DATABASE_URL"] = test_url.render_as_string(hide_password=False)
+    return env
+
+
 def _create_database(admin_url: sa.URL, prefix: str) -> tuple[str, sa.URL]:
+    _assert_disposable_host(admin_url)
     db_name = f"{prefix}_{uuid.uuid4().hex[:12]}"
     admin_engine = sa.create_engine(admin_url, isolation_level="AUTOCOMMIT")
     try:
@@ -78,6 +115,7 @@ def _create_database(admin_url: sa.URL, prefix: str) -> tuple[str, sa.URL]:
 
 
 def _drop_database(admin_url: sa.URL, db_name: str) -> None:
+    _assert_disposable_host(admin_url)
     admin_engine = sa.create_engine(admin_url, isolation_level="AUTOCOMMIT")
     try:
         with admin_engine.connect() as conn:
@@ -94,10 +132,7 @@ def _drop_database(admin_url: sa.URL, db_name: str) -> None:
 
 
 def _run_alembic(test_url: sa.URL, *arguments: str) -> None:
-    env = {
-        **os.environ,
-        "DATAFORGE_DATABASE_URL": test_url.render_as_string(hide_password=False),
-    }
+    env = _child_env(test_url)
     result = subprocess.run(
         [sys.executable, "-m", "alembic", *arguments],
         cwd=str(REPO_ROOT),

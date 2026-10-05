@@ -3,8 +3,43 @@ Pytest configuration and shared fixtures for DataForge tests.
 """
 import os
 import sys
-from pathlib import Path
-from typing import Generator
+
+
+def _refuse_direct_pytest() -> None:
+    """Refuse a run that did not start through scripts/run-tests-isolated.sh (finding M1).
+
+    This gate runs before any third-party or `app` import, so a refused run imports
+    nothing of the application. There is no override and no --collect-only exemption.
+    """
+    guard = sys.modules.get("netguard")
+    run_id = os.environ.get("NETGUARD_RUN_ID")
+    if run_id and guard is not None and getattr(guard, "INSTALLED", False) and getattr(guard, "RUN_ID", None) == run_id:
+        return
+    # pytest captures output while it imports a conftest, and os._exit would lose the message.
+    # Stop the capture through the plugin manager that is importing this file.
+    frame = sys._getframe()
+    while frame is not None:
+        manager = frame.f_locals.get("self")
+        if hasattr(manager, "get_plugin"):
+            try:
+                manager.get_plugin("capturemanager").stop_global_capturing()
+            except Exception:  # noqa: BLE001 - the exit code is the contract, the message is a help
+                pass
+            break
+        frame = frame.f_back
+    os.write(
+        2,
+        b"REFUSED (exit 87): the network guard is not installed. "
+        b"Run the suite with scripts/run-tests-isolated.sh. "
+        b"See docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md.\n",
+    )
+    os._exit(87)
+
+
+_refuse_direct_pytest()
+
+from pathlib import Path  # noqa: E402
+from typing import Generator  # noqa: E402
 
 import pytest
 from fastapi.testclient import TestClient
