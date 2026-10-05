@@ -49,7 +49,16 @@ absent ones. Forge Command saw `503 cloud_evidence_unavailable` from those handl
 1. **Audit (read-only).** Compare every table that the Alembic migrations create against the live
    database. Report each missing or partial table. Do this before any design choice. Query: [runtime_promotion_schema_audit.sql](runtime_promotion_schema_audit.sql). It is read-only. Output: a list in this file.
 2. **Find the cause.** Check why the tables are missing: a manual drop, a restore to an older point, or a
-   database that never ran those migrations. Use the Supabase project history. A repair that ignores the cause can repeat the fault.
+   database that never ran those migrations. A repair that ignores the cause can repeat the fault.
+   - *Repo findings (checked 2026-10-05):* The Render build runs `python -m alembic upgrade head` at every deploy
+     (`scripts/render-build.sh:33`). At head it changes nothing, so a build cannot restore missing tables.
+     Several proof scripts run `alembic stamp 20260714_01` on a scratch fixture database. A database in that
+     state shows a head revision without the older tables. No repo file explains the production state.
+   - *Supabase and Render checks (open):* (a) Is point-in-time recovery or a backup available, and from which date?
+     (b) Do Postgres logs or the audit log show a `DROP TABLE`, a restore or a schema reset, and when?
+     (c) When did the candidates route last answer without `UndefinedTable`? Search Render logs before 2026-09-30.
+     (d) Do the surviving tables (for example `api_keys`) hold rows older than the missing tables' migrations?
+     (e) Did anyone run a proof script or `alembic stamp` against the production URL?
 3. **Decide on recovery.** If the tables held data, recover it first (backup or point-in-time restore).
    Charlie decides. Do not create empty replacements before this decision.
 4. **Write one forward repair migration** on top of the current head. Confirm that the head is single.
