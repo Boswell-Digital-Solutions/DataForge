@@ -21,6 +21,29 @@ The diagnostic checked two tables. Four other runtime-promotion tables come from
 `runtime_promotion_verification_results`. Nobody has checked them. The candidate routes work only if the
 candidates table exists. The execution handoff routes need the rest.
 
+## Audit result (2026-10-05)
+
+GPT Pro ran [the audit query](runtime_promotion_schema_audit.sql) read-only on project
+`embvfponjxejbtrkryzs`. A Claude Code session did not run it. `alembic_version` holds `20260930_01`.
+
+- **56 of 152 expected tables are absent** from `public`. None has a copy in another schema.
+- **All seven runtime-promotion tables are absent:** receipts, candidates, candidate decisions, approval
+  decisions, execution requests, execution statuses and verification results. The fault is the whole family.
+  It is not two tables.
+- **49 other tables are absent.** They come from 13 migrations. Counts by migration:
+  `add_authorforge_v2_tables` 18, `20260226_0100_pressforge_automation_tables` 11,
+  `20251216_1901_add_neuroforge_tables` 4, `20260223_1200_create_agentic_reasoning_tables` 3,
+  `add_collab_tables` 3, `20260225_1400_create_eae_tables` 2,
+  `20260404_10_create_proving_slice_cloud_tables` 2, `gallery_update_and_collections` 2, and one each from the
+  rake jobs, routing decisions and match results migrations.
+- `healing_proposals` is one of the 49. Migration `20260606_03` drops it on purpose. It is not drift.
+  The other 48 are not yet judged.
+
+**Reading (inference, not established).** So many absent tables across old and new migrations fit a database that was
+created some other way, then stamped at a head revision. Another fit is a restore of a schema-only copy. Step 2
+must settle this. The proving-slice cloud tables (`ps_cloud_intake_records`, `ps_cloud_receipts`) are among the
+absent ones. Forge Command saw `503 cloud_evidence_unavailable` from those handlers. The two facts may be linked.
+
 ## Steps
 
 1. **Audit (read-only).** Compare every table that the Alembic migrations create against the live
@@ -49,7 +72,9 @@ candidates table exists. The execution handoff routes need the rest.
 ## Decisions for Charlie
 
 - D1: Does lost data need recovery before any repair?
-- D2: Repair only the two candidate tables, or every missing runtime-promotion table that step 1 finds?
+- D2: Repair the seven runtime-promotion tables only, or also the other 48 absent tables? The audit shows the
+  runtime-promotion family is wholly absent. The other 48 belong to several systems. Each system owner must
+  confirm that its tables are still wanted. A table that nothing uses should not be recreated.
 - D3: Deploy timing, and who takes the snapshot.
 
 ## Do not

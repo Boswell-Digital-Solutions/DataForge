@@ -25,6 +25,9 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Not established**: Why the tables are missing. Whether they held data. Whether the other four runtime-promotion
   tables exist (the diagnostic checked two). Whether an authenticated call works now. The read-only check used
   the connector role, not the application role.
+- **Audit 2026-10-05 (GPT Pro, read-only)**: 56 of 152 expected tables are absent. All seven runtime-promotion
+  tables are among them, so the fault is the whole family. 49 others are absent too; one of them
+  (`healing_proposals`) was dropped on purpose. The rest are not judged. Details are in the proposal.
 - **Plan**: [docs/proposals/runtime_promotion_schema_repair.md](proposals/runtime_promotion_schema_repair.md). Proposed, not approved.
 - **Do not**: Downgrade, edit `alembic_version` by hand, or run `alembic stamp head`. Stamp only changes the
   record. It does not create tables.
