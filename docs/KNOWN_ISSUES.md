@@ -6,7 +6,8 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 
 - **Location**: Database project `DataForgedb` (ref `embvfponjxejbtrkryzs`). Migrations
   `75660723bef6` (candidates) and `20260401_1200` (candidate decisions).
-- **Status**: Open. No repair applied. Not authorized.
+- **Status**: Open. A repair migration (`20261005_01`) is written and proved on a throwaway cluster. It is **not
+  deployed** and not approved for production. Merging it to `master` makes the next Render build apply it.
 - **What is wrong**: At 2026-10-05 10:02 UTC a read-only catalog query found no relation named
   `runtime_promotion_candidates` or `runtime_promotion_candidate_decisions` in any schema.
   `public.alembic_version` holds one revision, `20260930_01`. The version record says head, but the
@@ -38,6 +39,21 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   Then write a forward-repair migration for both tables, with the original constraints and indexes and
   the security policies. Test it on a copy of the drifted state and on a correctly migrated state.
   Keep the service-key gate. Verify the schema and an authenticated read before closing the Forge_Command finding.
+
+## The Runtime-Promotion Models And Migrations Differ In Small Ways (2026-10-05)
+
+- **Location**: `app/models/runtime_promotion_candidate_models.py`, `app/runtime_promotion/execution_handoff/models.py`,
+  and the five original runtime-promotion migrations.
+- **Status**: Open. Found while proving the schema repair. No change made. Corrected the same day: an earlier
+  version of this entry wrongly said that four indexes were missing.
+- **What differs**:
+  1. Index names. The models name four indexes `ix_runtime_promotion_<table>_root_decision_artifact_id`. The migrations create
+     the same-column indexes as `..._root_artifact_id`. Coverage is the same. Only the names differ.
+  2. Two model-declared `_id` indexes (`ix_runtime_promotion_candidates_id`, `ix_runtime_promotion_candidate_decisions_id`)
+     sit on the primary key. The primary key already covers those columns.
+  3. `runtime_promotion_candidate_decisions.created_at` is `NOT NULL` in the migration. The model declares it nullable.
+- **Impact**: Low. A future `alembic revision --autogenerate` would show these as changes.
+- **Next, if authorized**: Align the model names and nullability with the migrations, or the reverse.
 
 ## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
 

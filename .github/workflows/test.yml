@@ -101,6 +101,14 @@ jobs:
         python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
         git config --global --unset "url.https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/.insteadOf" || true
 
+    # Throwaway-cluster proof for the runtime-promotion schema repair (alembic 20261005_01).
+    # It builds the drifted state, runs the repair, and checks refusals. It never reads a configured database.
+    - name: Prove the runtime-promotion schema repair on a throwaway Postgres cluster
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends postgresql postgresql-common
+        DATAFORGE_TEST_PYTHON="$(command -v python)" pg_virtualenv bash scripts/prove_runtime_promotion_schema_repair_postgres.sh
+
     - name: Run mypy type checking
       run: |
         mypy app/utils/redis_utils.py \
