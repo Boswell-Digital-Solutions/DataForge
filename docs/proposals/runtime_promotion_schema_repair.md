@@ -44,6 +44,31 @@ created some other way, then stamped at a head revision. Another fit is a restor
 must settle this. The proving-slice cloud tables (`ps_cloud_intake_records`, `ps_cloud_receipts`) are among the
 absent ones. Forge Command saw `503 cloud_evidence_unavailable` from those handlers. The two facts may be linked.
 
+## Cause investigation (2026-10-05, open)
+
+GPT Pro ran these read-only checks with the Supabase and Render connectors. A Claude Code session did not run
+them. The cause is **not established**. The results are summaries of connector output, not provider attestations.
+
+- **Recovery (D1).** The organization reports the Free plan. Free does not include automatic backups or
+  point-in-time recovery under the published plan rules. The connector cannot read the backup inventory. So there
+  is no verified usable recovery point. A manual export or an older paid-plan backup may still exist. Nobody has checked.
+  Do not read this as permission to replace possibly lost data with empty tables.
+- **Logs.** No drop, restore, reset or stamp event appears in the windows searched (2 June, 14 July, 30 September,
+  and 4 to 5 October). The windows are not the whole project life. The persisted log table `supabase_log_events`
+  holds zero rows. The migration ledger holds one entry, `20260907194836`, which is unrelated.
+- **Last known good.** Unknown. The first known bad time is 2026-09-30 10:24:10 UTC (`42P01`, log
+  `e6a15ee5-c625-4e64-8757-8163cc41e657`). There are 14 such errors on that day. The tables may have been absent
+  long before. Render logs show no candidates request from 6 to 29 September.
+- **Surviving rows.** `users` (19) and `projects` (432) hold rows dated from 1 March. `api_keys` (4) holds rows from
+  2 June. A restore or import can keep old dates, so this does not prove the missing tables ever existed here.
+- **Stamp or proof script on production.** Not established. Render logs from 6 September to 5 October show no
+  `stamp` or `prove_` line. A command can run without a log line. The statement statistics were reset on 2026-10-02,
+  after the failure, so they cannot show the cause.
+
+**Open check (Charlie):** In the Supabase dashboard for DataForgedb, open Database, then Backups. Read the
+Scheduled and Point in Time pages. Record the availability message and any earliest and latest recovery dates.
+Do not start a restore.
+
 ## Steps
 
 1. **Audit (read-only).** Compare every table that the Alembic migrations create against the live
@@ -80,7 +105,7 @@ absent ones. Forge Command saw `503 cloud_evidence_unavailable` from those handl
 
 ## Decisions for Charlie
 
-- D1: Does lost data need recovery before any repair?
+- D1: Does lost data need recovery before any repair? No usable recovery point is verified. The Backups screen decides this.
 - D2: Repair the seven runtime-promotion tables only, or also the other 48 absent tables? The audit shows the
   runtime-promotion family is wholly absent. The other 48 belong to several systems. Each system owner must
   confirm that its tables are still wanted. A table that nothing uses should not be recreated.
