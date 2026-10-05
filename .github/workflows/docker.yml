@@ -70,14 +70,18 @@ jobs:
     # docs/KNOWN_ISSUES.md's "FORGE_TELEMETRY_TOKEN CI Secret Is Invalid"
     # entry. The Dockerfile's own git-auth step (line ~36) is credential-
     # agnostic; only this token's source changes.
-    - name: Mint an app token for the private forge-* dependency clones
+    - name: Mint the app tokens for the private forge-* dependency clones
       id: app-token
-      uses: actions/create-github-app-token@v2
+      uses: ./.github/actions/private-deps-token
       with:
-        app-id: ${{ vars.FORGE_PRIVATE_DEPS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY }}
+        mode: ${{ vars.FORGE_BUILD_AUTH_MODE }}
         owner: ${{ github.repository_owner }}
-        repositories: forge-telemetry,forge_contract_core
+        legacy-client-id: ${{ vars.FORGE_PRIVATE_DEPS_APP_CLIENT_ID }}
+        legacy-private-key: ${{ secrets.FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY }}
+        telemetry-client-id: ${{ vars.FORGE_TELEMETRY_APP_CLIENT_ID }}
+        telemetry-private-key: ${{ secrets.FORGE_TELEMETRY_APP_PRIVATE_KEY }}
+        contract-core-client-id: ${{ vars.FORGE_CONTRACT_CORE_APP_CLIENT_ID }}
+        contract-core-private-key: ${{ secrets.FORGE_CONTRACT_CORE_APP_PRIVATE_KEY }}
 
     - name: Build and push Docker image
       id: docker_build
@@ -89,8 +93,12 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          BUILD_AUTH_MODE=${{ steps.app-token.outputs.mode }}
         secrets: |
-          github_token=${{ steps.app-token.outputs.token }}
+          github_token=${{ steps.app-token.outputs.legacy-token }}
+          telemetry_token=${{ steps.app-token.outputs.telemetry-token }}
+          contract_core_token=${{ steps.app-token.outputs.contract-core-token }}
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}

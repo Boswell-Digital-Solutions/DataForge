@@ -25,19 +25,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for running application (security best practice)
 RUN groupadd -r dataforge && useradd -r -g dataforge dataforge
 
-# Copy requirements for dependency install
+# Copy requirements and the private-dependency auth helper for the dependency install
 COPY requirements.txt .
+COPY scripts/docker-git-auth.sh /usr/local/bin/docker-git-auth.sh
 
 # Install Python dependencies. requirements.txt pins private
 # Boswell-Digital-Solutions git dependencies (forge-telemetry,
-# forge_contract_core); BuildKit injects a short-lived token via --secret
-# so it never lands in an image layer or build history. No-op (falls back to
-# earlier failure) when the secret isn't provided -- see docker-build docs.
+# forge_contract_core); BuildKit injects short-lived tokens via --secret
+# so they never land in an image layer or build history. BUILD_AUTH_MODE picks the
+# secrets: "legacy" reads `github_token`; "split" reads one secret per repository and
+# fails closed (see scripts/docker-git-auth.sh). With no secret in legacy mode this is a
+# no-op that falls back to the earlier failure -- see docker-build docs.
+ARG BUILD_AUTH_MODE=legacy
 RUN --mount=type=secret,id=github_token,required=false \
+    --mount=type=secret,id=telemetry_token,required=false \
+    --mount=type=secret,id=contract_core_token,required=false \
     set -eu; \
-    if [ -s /run/secrets/github_token ]; then \
-        git config --global url."https://x-access-token:$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/"; \
-    fi; \
+    BUILD_AUTH_MODE="$BUILD_AUTH_MODE" sh /usr/local/bin/docker-git-auth.sh; \
     python -m pip install --no-cache-dir -r requirements.txt; \
     python -m pip cache purge; \
     rm -f /root/.gitconfig
