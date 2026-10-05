@@ -63,7 +63,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 ## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
 
 - **Location**: `scripts/render-git-auth.sh`. The same script exists in Rake, Forge-Agents and NeuroForge.
-- **Status**: Open. No change made. Not authorized.
+- **Status**: Open. Slice 1 (DataForge code and offline tests) is in review under plan
+  [BDS-DF-BUILD-AUTH-SPLIT-001](plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md). Nothing is deployed. The mode stays `legacy`
+  until an operator checkpoint sets it. Authorized 2026-10-05: implementation and tests only. App creation, secrets, Render
+  changes, live credential tests, merges and rollout need a separate checkpoint.
 - **What is wrong**: The script mints one installation token for `forge-telemetry` and
   `forge_contract_core` together (`PRIVATE_REPOS`, and the `repositories` request body). The
   credential must have access to both repositories.
@@ -72,13 +75,14 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   parity in Forge_Command. It is not for Render builds. If an operator puts it in
   `FORGE_PRIVATE_DEPS_APP_CLIENT_ID`, GitHub rejects the `forge-telemetry` request and the build fails.
   Do not broaden that App to make the script work.
-- **Proposed fix, not started**: Split the credentials. A new pair, `FORGE_CONTRACT_CORE_APP_CLIENT_ID`
-  and `FORGE_CONTRACT_CORE_APP_PRIVATE_KEY`, serves `forge_contract_core` only. The existing
-  credential serves `forge-telemetry` only. Each token gets its own path-scoped Git credential entry.
-  Tests must show that the contract-core token cannot read `forge-telemetry`, that a missing or invalid
-  key fails the build, and that no token appears in logs. The legacy PAT stays as a migration fallback only.
-- **Scope**: Open for all four repositories. Proposal: [docs/proposals/render_build_auth_split.md](proposals/render_build_auth_split.md) (not approved).
-- **Do not**: Change Render environment variables before the code reads the new pair.
+- **Fix (slice 1, in review)**: An explicit `FORGE_BUILD_AUTH_MODE` (`legacy` by default, or `split`). Split mode uses a separate
+  build App per repository, each installed on that repository only, with a token per repository, path-scoped credentials, a read
+  probe and a deny probe, and no fallback to a broader credential. The exposure is the App and its key, not the token request. So the
+  installations must be narrow. The Docker build and the three CI workflows follow the same mode. A migrated consumer fails closed.
+  Rake and Forge-Agents need `forge-telemetry` only. NeuroForge needs both. Those are later slices.
+- **Scope**: Open for all four repositories. DataForge is the first slice. The proposal [docs/proposals/render_build_auth_split.md](proposals/render_build_auth_split.md)
+  is superseded by the plan.
+- **Do not**: Change Render or GitHub variables, install secrets, or set the mode to `split` before the checkpoint.
 
 ## The Test Suite Reaches Hosted NeuroForge When `NEUROFORGE_URL` Is Unset (2026-10-04)
 

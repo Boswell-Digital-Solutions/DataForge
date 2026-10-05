@@ -2760,6 +2760,25 @@ is therefore not a rollout prerequisite to reconfirm for each service. The remai
 operation is to bind the existing App client ID and private key in Render without exposing their
 values in documentation, logs, issues, pull requests, or chat.
 
+### Split mode (opt-in; plan BDS-DF-BUILD-AUTH-SPLIT-001)
+
+`FORGE_BUILD_AUTH_MODE` selects the path. The default is `legacy`, the table above. Value `split`
+uses one build App per private repository and never reads the legacy variables or `GITHUB_TOKEN`.
+
+| Variable | Required in split mode | Notes |
+|----------|------------------------|-------|
+| `FORGE_BUILD_AUTH_MODE` | `split` | Any other value except `legacy` stops the build |
+| `FORGE_TELEMETRY_APP_CLIENT_ID` | YES | Client ID of the build App installed on `forge-telemetry` only |
+| `FORGE_TELEMETRY_APP_PRIVATE_KEY` | YES | That App's PEM; secret |
+| `FORGE_CONTRACT_CORE_APP_CLIENT_ID` | YES | Client ID of the build App installed on `forge_contract_core` only |
+| `FORGE_CONTRACT_CORE_APP_PRIVATE_KEY` | YES | That App's PEM; secret |
+
+Split mode fails closed. A missing value, an invalid key, a refused token, a token that cannot read its
+own repository, or a token that can read the other repository stops the build. Nothing is configured until
+both tokens are minted and checked. The Docker build and the CI workflows follow the same mode. See
+`docs/plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md`. Slice 1 is code only. The mode stays `legacy` until
+an operator checkpoint sets it.
+
 The build uses a path-scoped Git credential helper in `scripts/render-git-auth.sh`; it does not
 consume `SSH_KEY` or `SSH_KEY_B64`. Never print App credentials or minted/legacy tokens. An
 incomplete App pair fails closed instead of falling back. The web build is the sole Render

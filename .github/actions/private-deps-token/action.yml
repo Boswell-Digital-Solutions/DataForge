@@ -1,0 +1,110 @@
+name: Private dependency tokens
+description: >
+  Mint the short-lived GitHub App tokens for the private forge-telemetry and forge_contract_core clones.
+  Mode "legacy" (the default) mints one token for both repositories. Mode "split" mints one token per
+  repository from two separate Apps and fails closed. Split mode never reads the legacy App.
+inputs:
+  mode:
+    description: "legacy or split. Empty means legacy."
+    required: false
+    default: ""
+  owner:
+    description: Organization that owns the private repositories.
+    required: true
+  legacy-client-id:
+    required: false
+    default: ""
+  legacy-private-key:
+    required: false
+    default: ""
+  telemetry-client-id:
+    required: false
+    default: ""
+  telemetry-private-key:
+    required: false
+    default: ""
+  contract-core-client-id:
+    required: false
+    default: ""
+  contract-core-private-key:
+    required: false
+    default: ""
+outputs:
+  mode:
+    description: The mode that ran.
+    value: ${{ steps.mode.outputs.mode }}
+  legacy-token:
+    description: Token for both repositories. Empty in split mode.
+    value: ${{ steps.legacy.outputs.token }}
+  telemetry-token:
+    description: Token for forge-telemetry only. Empty in legacy mode.
+    value: ${{ steps.telemetry.outputs.token }}
+  contract-core-token:
+    description: Token for forge_contract_core only. Empty in legacy mode.
+    value: ${{ steps.contract-core.outputs.token }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve and validate the mode
+      id: mode
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        TELEMETRY_ID: ${{ inputs.telemetry-client-id }}
+        TELEMETRY_KEY: ${{ inputs.telemetry-private-key }}
+        CONTRACT_ID: ${{ inputs.contract-core-client-id }}
+        CONTRACT_KEY: ${{ inputs.contract-core-private-key }}
+      run: |
+        set -euo pipefail
+        mode="${MODE:-legacy}"
+        case "$mode" in
+          legacy) ;;
+          split)
+            # Fail closed. A missing value stops the job. The legacy App is never a fallback.
+            for pair in "TELEMETRY_ID:FORGE_TELEMETRY_APP_CLIENT_ID" "TELEMETRY_KEY:FORGE_TELEMETRY_APP_PRIVATE_KEY" \
+                        "CONTRACT_ID:FORGE_CONTRACT_CORE_APP_CLIENT_ID" "CONTRACT_KEY:FORGE_CONTRACT_CORE_APP_PRIVATE_KEY"; do
+              var="${pair%%:*}"; label="${pair#*:}"
+              if [ -z "${!var}" ]; then
+                echo "::error::FORGE_BUILD_AUTH_MODE is split, but $label is empty. No fallback credential is used."
+                exit 1
+              fi
+            done
+            ;;
+          *)
+            echo "::error::FORGE_BUILD_AUTH_MODE must be legacy or split, not '$mode'."
+            exit 1
+            ;;
+        esac
+        echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+    - name: Mint the two-repository token (legacy mode)
+      id: legacy
+      if: steps.mode.outputs.mode == 'legacy'
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.legacy-client-id }}
+        private-key: ${{ inputs.legacy-private-key }}
+        owner: ${{ inputs.owner }}
+        repositories: forge-telemetry,forge_contract_core
+
+    - name: Mint the forge-telemetry token (split mode)
+      id: telemetry
+      if: steps.mode.outputs.mode == 'split'
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.telemetry-client-id }}
+        private-key: ${{ inputs.telemetry-private-key }}
+        owner: ${{ inputs.owner }}
+        repositories: forge-telemetry
+        permission-contents: read
+
+    - name: Mint the forge_contract_core token (split mode)
+      id: contract-core
+      if: steps.mode.outputs.mode == 'split'
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.contract-core-client-id }}
+        private-key: ${{ inputs.contract-core-private-key }}
+        owner: ${{ inputs.owner }}
+        repositories: forge_contract_core
+        permission-contents: read
