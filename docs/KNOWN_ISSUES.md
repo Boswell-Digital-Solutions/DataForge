@@ -22,9 +22,15 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Live target confirmed 2026-10-05**: Charlie ran a read-only shell check on Render. Data Forge resolves its
   database to project `embvfponjxejbtrkryzs`, database `postgres`, with no target overrides. This is the inspected
   database. The missing tables are a live schema-drift fault, not a connection-target mistake.
+- **Cause investigation 2026-10-05 (GPT Pro, read-only)**: No drop, restore, reset or stamp event found in the
+  windows searched. The Supabase plan is Free, with no verified backup or recovery date. The first known bad time is
+  2026-09-30 10:24:10 UTC. See the proposal. The cause is still open.
 - **Not established**: Why the tables are missing. Whether they held data. Whether the other four runtime-promotion
   tables exist (the diagnostic checked two). Whether an authenticated call works now. The read-only check used
   the connector role, not the application role.
+- **Audit 2026-10-05 (GPT Pro, read-only)**: 56 of 152 expected tables are absent. All seven runtime-promotion
+  tables are among them, so the fault is the whole family. 49 others are absent too; one of them
+  (`healing_proposals`) was dropped on purpose. The rest are not judged. Details are in the proposal.
 - **Plan**: [docs/proposals/runtime_promotion_schema_repair.md](proposals/runtime_promotion_schema_repair.md). Proposed, not approved.
 - **Do not**: Downgrade, edit `alembic_version` by hand, or run `alembic stamp head`. Stamp only changes the
   record. It does not create tables.
