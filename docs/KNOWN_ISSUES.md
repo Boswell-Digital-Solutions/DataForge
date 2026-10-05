@@ -7,7 +7,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Location**: `app/config.py:107` (the default of `NEUROFORGE_URL`), `app/utils/embeddings.py:26` and `:126`
   (the endpoint and the unauthenticated `httpx` POST), and `tests/test_integration/test_infrastructure_health.py`
   (`test_embedding_generation` and `test_embedding_batch_generation`). Line numbers are for `dac5e835ec8b9b7f15e383b8621645f44a0c4d8c`.
-- **Status**: **Open. Not repaired. Documenting the finding does not repair it.** This entry authorizes no code change. It was
+- **Status**: **Closed (2026-10-05).** The decision owner accepted the repair evidence on 2026-10-05: the isolated runner merged as
+  `038a82f6c13ba026eef98ddae739b791cdd69d37`, its final independent review, the full-suite and CI runs under the runner, the
+  planted-violation run and the teardown results (see the notes at the end of this entry). The coverage gaps and follow-ups in the
+  next entry stay open. Status before 2026-10-05: open, not repaired. It was
   found as finding M1 of the security review of pull request 88 (the WP-DF-00 pin bump), and the working session verified it
   against the saved outputs and the source before it was reported.
 - **What is wrong**: `NEUROFORGE_URL` defaults to the hosted service `https://neuroforge-9lxc.onrender.com`. `tests/conftest.py` sets
@@ -54,12 +57,13 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Condition for any later run**: the decision owner ruled on 2026-10-04 that a future test authorization requires network isolation
   that prevents access to hosted services and permits only explicitly identified local test services. Overriding `NEUROFORGE_URL`
   or deselecting the two tests alone does not prove that the whole suite is isolated.
-- **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
-  or avoid hosted services, and that change has its own authorization and evidence.
+- **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Closed on 2026-10-05: the suite runs only under the
+  isolated runner (direct `pytest` exits 87), and the decision owner accepted the evidence.
 - **Status note (2026-10-04, implementation in review; superseded)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
   was implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`).
   **Update (2026-10-05, merged)**: pull request 91 merged as `038a82f6c13ba026eef98ddae739b791cdd69d37` (tree equal to PR head
-  `34a6b1299a5818316bb708b5fc6a5ee96a2fa9f9`). **M1 stays OPEN** until the decision owner accepts the repair evidence.
+  `34a6b1299a5818316bb708b5fc6a5ee96a2fa9f9`). **Update (2026-10-05, closed)**: the decision owner accepted the repair evidence, and M1 is closed. The
+  notes below are history.
   **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
   under the runner with zero violations, and an independent review of the exact head. (The update below records the first full runs.)
   **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
