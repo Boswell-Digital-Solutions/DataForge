@@ -6,8 +6,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 
 - **Location**: Database project `DataForgedb` (ref `embvfponjxejbtrkryzs`). Migrations
   `75660723bef6` (candidates) and `20260401_1200` (candidate decisions).
-- **Status**: Repair deployed 2026-10-05 (#97). The live `/version` reports `alembic_revision: 20261005_01`. Open until
-  a read-only catalog check shows all seven tables and an authenticated candidates read succeeds.
+- **Status**: CLOSED 2026-10-05 for the seven runtime-promotion tables. Repair deployed (#97). The live `/version` reports
+  `alembic_revision: 20261005_01`. A read-only catalog check shows all seven tables with RLS on and no policy. Forge Command's
+  Execution Review then read the candidates route with a minted `forgecommand` key and showed an empty queue with no error.
+  The cause is still unproved. The 48 other absent tables are separate and not repaired.
 - **Operator context (2026-10-05)**: The system has never been live. It has evolved over time and is now being solidified.
   No data was in use, so lost data is not a concern. The likeliest cause is that this database was never fully built from
   the migrations. That is the operator's account, not an event found in logs. The cause is not proved.
