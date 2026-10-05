@@ -456,3 +456,23 @@ def test_a_dotenv_file_gives_exit_86_in_a_scratch_copy_of_the_layout(tmp_path):
                             env=env, capture_output=True, text=True, timeout=120, cwd=str(layout))
     assert result.returncode == 86 and "a .env file exists" in result.stderr, result.stdout + result.stderr
     assert "Traceback" not in result.stderr and json.loads(report.read_text())["exit_code"] == 86
+
+
+def test_no_secret_like_value_is_written_to_a_run_file(planted):
+    import re
+
+    write_test(planted, "def test_ok():\n    assert True\n")
+    report = planted / "r.json"
+    result = run_runner("--keep-run-dir", "--report", str(report), *pytest_args_for(planted))
+    assert result.returncode == 0, result.stdout + result.stderr
+    run_dir = json.loads(report.read_text())["run_dir"]
+    try:
+        # a DSN with a password, or a key named like a secret that has a non-empty value (an empty value is fine)
+        pattern = re.compile(r"://[^/@\s\"']+:[^/@\s\"']+@|\"[^\"]*(password|secret|token)[^\"]*\":\s*\"[^\"]+\"", re.IGNORECASE)
+        for path in Path(run_dir).rglob("*"):
+            if path.is_file() and path.name != "seccomp.bpf" and "guard" not in path.parts:
+                assert not pattern.search(path.read_text(errors="ignore")), path
+    finally:
+        subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "-v", f"{run_dir}/pg:/d", "--entrypoint", "sh",
+                        "pgvector/pgvector:pg16", "-c", "rm -f /d/.s.PGSQL.*"], capture_output=True)
+        shutil.rmtree(run_dir, ignore_errors=True)

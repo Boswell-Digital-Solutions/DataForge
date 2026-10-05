@@ -53,7 +53,7 @@ def test_postgres_answers_over_the_bound_socket():
 
 def test_the_runner_urls_name_the_manifest_socket_explicitly():
     url = os.environ["DATAFORGE_RLS_TEST_POSTGRES_URL"]
-    assert "host=" + os.path.dirname(MANIFEST["unix"][0]["path"]) in url and "dftest:" in url
+    assert "host=" + os.path.dirname(MANIFEST["unix"][0]["path"]) in url and "dftest@" in url and "dftest:" not in url
 
 
 def test_declared_absent_probe_is_logged_and_does_not_fail_the_run():

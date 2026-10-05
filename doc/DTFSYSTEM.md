@@ -3042,6 +3042,33 @@ The CI workflow pulls the image by digest in a separate step.
 The runner sets every URL and DSN. It ignores ambient variables and removes every proxy variable.
 The runner refuses to start when a `.env` file exists in the repository or a parent directory.
 
+### No secret exists
+
+The runner starts PostgreSQL with `POSTGRES_HOST_AUTH_METHOD=trust` and the explicit role `dftest`. No password exists.
+This is a recorded deviation from the design, which said "random credentials".
+The reason is that a password would have to reach the sandbox through a file, and a file with a secret is a clear-text store.
+The protection is as follows.
+The container has `--network none`, so the socket is the only door.
+The run directory has mode 0700.
+The marker table checks the identity of the server.
+The manifest of the guard allows only that socket.
+The DSNs name the role and the socket directory. They hold no password.
+A canary scans the run files for secret-like values.
+
+### CI provider option A
+
+The design lets the runner create the namespaces without privilege and probe first.
+The first CI run proved the fail-closed exit 86 on a hosted runner. No test started.
+The run is https://github.com/Boswell-Digital-Solutions/DataForge/actions/runs/37258223856.
+The ubuntu 24.04 runner sets `kernel.apparmor_restrict_unprivileged_userns=1`, which blocks both routes.
+The workflow step "Allow unprivileged user namespaces on the runner VM" sets that key to 0 before the runner step.
+It also sets `kernel.unprivileged_userns_clone=1` where the key exists, and it prints the values before and after.
+The step changes the setting of the ephemeral runner VM only.
+The tests still run as the unprivileged runner user inside the sandbox.
+The `sudo` route for running tests stays refused.
+The runner still probes, and it exits 86 if the namespaces stay blocked.
+If loopback in `bwrap` still fails after the step, the fallback is Docker `--internal` (design option B). It is not implemented.
+
 ### Exit codes
 
 | Code | Meaning |

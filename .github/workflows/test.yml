@@ -120,6 +120,23 @@ jobs:
         docker pull pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
         docker tag pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b pgvector/pgvector:pg16
 
+    # CI provider option A, with a probe (design section 4.1). Ubuntu 24.04 runners set
+    # kernel.apparmor_restrict_unprivileged_userns=1, which blocks unprivileged user namespaces.
+    # This step changes that setting on the ephemeral runner VM only. The tests still run as the
+    # unprivileged runner user inside the sandbox. The sudo route for running tests stays refused.
+    # The runner still probes, and it exits 86 if the namespaces stay blocked.
+    # A key that is absent does not fail the step. The values are printed before and after.
+    - name: Allow unprivileged user namespaces on the runner VM
+      run: |
+        for key in kernel.apparmor_restrict_unprivileged_userns kernel.unprivileged_userns_clone user.max_user_namespaces; do
+          echo "before: $key = $(sysctl -n "$key" 2>/dev/null || echo absent)"
+        done
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || echo "key absent or not writable"
+        sudo sysctl -w kernel.unprivileged_userns_clone=1 || echo "key absent or not writable"
+        for key in kernel.apparmor_restrict_unprivileged_userns kernel.unprivileged_userns_clone user.max_user_namespaces; do
+          echo "after: $key = $(sysctl -n "$key" 2>/dev/null || echo absent)"
+        done
+
     # The runner exits 86 if it cannot isolate, 87 on a violation or an undeclared skip, 88 on a
     # teardown fault. It never runs the suite without isolation.
     - name: Run pytest with coverage (isolated runner)

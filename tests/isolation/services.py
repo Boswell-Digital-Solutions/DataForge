@@ -81,7 +81,7 @@ def image_id(image: str = IMAGE, digest: "str | None" = IMAGE_DIGEST) -> str:
     return found
 
 
-def start_postgres(run_id: str, socket_dir: str, role: str, password: str, image: str = IMAGE,
+def start_postgres(run_id: str, socket_dir: str, role: str, image: str = IMAGE,
                    fail_after_run: bool = False) -> dict:
     """Start the container and wait until the server answers on the socket. Return its record."""
     wanted = image_id(image)
@@ -93,7 +93,7 @@ def start_postgres(run_id: str, socket_dir: str, role: str, password: str, image
         "--security-opt", "no-new-privileges",
         "--tmpfs", "/var/lib/postgresql/data",
         "-v", "%s:%s" % (socket_dir, CONTAINER_SOCKET_DIR),
-        "-e", "POSTGRES_USER=%s" % role, "-e", "POSTGRES_PASSWORD=%s" % password,
+        "-e", "POSTGRES_USER=%s" % role, "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
         "-e", "POSTGRES_DB=postgres",
         image,
         "postgres", "-c", "listen_addresses=", "-c", "fsync=off",

@@ -614,7 +614,7 @@ def stage2(config_path: str) -> int:
                 import psycopg2
 
                 connection = psycopg2.connect(host=config["postgres"]["socket_dir"], user=config["postgres"]["role"],
-                                              password=config["postgres"]["password"], dbname="postgres", connect_timeout=10)
+                                              dbname="postgres", connect_timeout=10)
                 cursor = connection.cursor()
                 cursor.execute("SELECT run_id FROM dfiso_marker")
                 marker = cursor.fetchone()[0]
@@ -711,7 +711,7 @@ def sanitized_test_env(run_dir: str, run_id: str, stub_port: int, pg: "dict | No
         "DATAFORGE_RLS_TEST_POSTGRES_URL": "", "CLOUD_IMAGE_TEST_POSTGRES_URL": "",
     }
     if pg:
-        base = "postgresql://%s:%s@/%%s?host=%s" % (pg["role"], pg["password"], pg["socket_dir"])
+        base = "postgresql://%s@/%%s?host=%s" % (pg["role"], pg["socket_dir"])
         env["DATAFORGE_RLS_TEST_POSTGRES_URL"] = base % "postgres"
         env["CLOUD_IMAGE_TEST_POSTGRES_URL"] = base % "postgres"
         if database == "postgres":
@@ -930,9 +930,9 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
         write_run_files(run_dir, run_id, manifest, stub_port, uid, gid)
         # 3. Outside services: the container, and its identity checked from outside.
         if not args.no_postgres:
-            role, password = SANDBOX_USER, secrets.token_hex(12)
+            role = SANDBOX_USER  # no password exists: see the "no secret" note in doc/system/15-testing.md
             try:
-                state["pg_record"] = services.start_postgres(run_id, socket_dir, role, password,
+                state["pg_record"] = services.start_postgres(run_id, socket_dir, role,
                                                              fail_after_run=args.debug_fail_postgres_readiness)
                 record = state["pg_record"]
                 identity = services.verify_identity_outside(record, run_id)
@@ -940,7 +940,7 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
                     services.create_database(record, "dataforge_test")
             except services.ServiceError as exc:
                 raise Precondition("postgres: %s" % exc)
-            pg = {"role": role, "password": password, "socket_dir": socket_dir, "marker": re.sub(r"[^0-9a-f]", "", run_id)}
+            pg = {"role": role, "socket_dir": socket_dir, "marker": re.sub(r"[^0-9a-f]", "", run_id)}
             report["postgres"] = {**{k: record[k] for k in ("container_id", "image", "image_id")}, **identity}
         for name in WRITABLE_REPO_FILES:
             (REPO / name).touch(exist_ok=True)
