@@ -126,9 +126,22 @@ jobs:
               --ignore-missing-imports || true
       continue-on-error: true
     
-    - name: Run pytest with coverage
+    # Install steps keep their network egress. Only the pytest step below runs isolated.
+    # The runner needs bubblewrap, and it never pulls an image (finding M1). The image is
+    # pulled here, in a separate and declared step, by the digest that tests/isolation/services.py pins.
+    - name: Install the isolated runner prerequisites
       run: |
-        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends bubblewrap iproute2
+        docker pull pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
+        docker tag pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b pgvector/pgvector:pg16
+
+    # The runner exits 86 if it cannot isolate, 87 on a violation or an undeclared skip, 88 on a
+    # teardown fault. It never runs the suite without isolation.
+    - name: Run pytest with coverage (isolated runner)
+      run: |
+        scripts/run-tests-isolated.sh --database postgres --migrate --report isolation-report.json -- \
+          tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
     
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
