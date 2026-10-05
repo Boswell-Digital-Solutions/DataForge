@@ -1,7 +1,7 @@
 {
   "$schema": "https://github.com/Boswell-Digital-Solutions/forge/blob/main/docs/canonical/plan_registry_v1.schema.json",
   "schema_version": "bds.plan-registry.v1",
-  "as_of": "2026-08-23",
+  "as_of": "2026-10-05",
   "authority": {
     "organization": "Boswell-Digital-Solutions",
     "registry_repository": "Boswell-Digital-Solutions/forge",
@@ -82,6 +82,30 @@
       "archive": null,
       "superseded_by": null,
       "closeout_reason": "Owner accepted DFG-GOV-01 after PR #45 merged at 364dcb9443c938ccab28dec250d6768d70e30a7f; Test Suite, Docker Build and Push, and Security Scanning succeeded at reviewed head 1e6d5b62f970a7ba3141ca35fc931fb75c0ec056. The candidate remains unadmitted and creates no runtime authority."
+    },
+    {
+      "plan_id": "BDS-DF-BUILD-AUTH-SPLIT-001",
+      "title": "DataForge build authentication split (one build credential per private repository)",
+      "version": "1",
+      "owner_repository": "Boswell-Digital-Solutions/DataForge",
+      "scope": "cross_repository",
+      "lifecycle_status": "in_progress",
+      "plan_path": "docs/plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md",
+      "tracking_issue": null,
+      "implementation": {
+        "completed_slices": 0,
+        "total_slices": 2,
+        "evidence_status": "partial"
+      },
+      "next_action": "Review slice 1 (code and offline tests). Operator checkpoint for App creation, secrets, Render and the mode switch is not authorized.",
+      "blocker": null,
+      "doc_system_paths": [
+        "doc/system/14-config-env.md"
+      ],
+      "last_verified": null,
+      "archive": null,
+      "superseded_by": null,
+      "closeout_reason": null
     }
   ]
 }
