@@ -1,6 +1,6 @@
 # Runtime-promotion schema repair — proposal
 
-Status: PROPOSED 2026-10-05. Not approved. No production change is authorized.
+Status: PROPOSED 2026-10-05. Steps 4 and 5 are done on a branch. Not approved for production. No production change is authorized.
 
 ## Evidence
 
@@ -105,11 +105,25 @@ Do not start a restore.
 
 ## Decisions for Charlie
 
-- D1: Does lost data need recovery before any repair? No usable recovery point is verified. The Backups screen decides this.
+- D1 (resolved 2026-10-05): No backup or point-in-time recovery exists. Charlie confirmed that the Free plan offers none. Lost data, if any, cannot be recovered. The repair creates empty tables.
 - D2: Repair the seven runtime-promotion tables only, or also the other 48 absent tables? The audit shows the
   runtime-promotion family is wholly absent. The other 48 belong to several systems. Each system owner must
   confirm that its tables are still wanted. A table that nothing uses should not be recreated.
 - D3: Deploy timing, and who takes the snapshot.
+
+## Implementation (branch `fix/runtime-promotion-schema-repair`)
+
+- Migration `20261005_01` (`alembic/versions/20261005_01_repair_runtime_promotion_schema.py`), on top of the single head `20260930_01`.
+  It replays the five original migrations by group. A group with no table present runs the original `upgrade()`. A group with all
+  tables present is skipped. A group with some tables present stops with an error. Then it enables RLS with no policy on all seven tables.
+  The downgrade does nothing. The original migrations are the one source of the table definitions.
+- Limit: for tables that already exist, the migration does not compare their columns with the models. It only refuses partial groups.
+  Step 7 checks the live shape after deploy.
+- Proof: `pg_virtualenv bash scripts/prove_runtime_promotion_schema_repair_postgres.sh` (about 1 minute). On a throwaway cluster
+  with the head stamped and no tables, it passed: seven tables created with the models' columns and foreign keys, RLS on with no policy;
+  a re-run kept an existing row and changed nothing; a partial schema was refused and left unchanged.
+  Run with a clean virtualenv from `requirements.txt`. The service-key gate is not touched.
+- Found on the way: the models declare six indexes that the migrations never create. Recorded in KNOWN_ISSUES.
 
 ## Do not
 
