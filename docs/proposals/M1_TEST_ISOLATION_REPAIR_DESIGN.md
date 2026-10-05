@@ -17,6 +17,11 @@ inside the final sandbox and the spec names which layer brings loopback up. (2) 
 with explicit binds), a short run-directory path for the 108-byte socket limit, `--unshare-pid`, the audit events `socket.sendmsg` and the `os.spawn*` pair, explicit DSN hosts, and
 which file the exit 87 check reads. The earlier versions stay in the git history. This is still a proposal.
 
+**Revision 5 (2026-10-04).** Revised after the re-check of revision 4, which closed all six earlier findings and reproduced the new claims, and found four mandatory gaps. (1) In the plain route the test process is **uid 0**, so
+the synthetic `passwd` line must name the uid that the process has in that route and not "the invoking uid". (2) A loopback service cannot be started before the namespace: the order of events now has **outside services** and **inside services**, and an
+in-sandbox launcher starts the stub. (3) **`AF_VSOCK`** (and other socket families) is a route out of a network namespace on a virtual machine: the design adds a seccomp filter, a guard rule and a minimal `/dev`. (4) The **`sudo` route** is marked
+**unverified**, with its own stop condition. The optional items are recorded as residue in the pull request. The earlier versions stay in the git history. This is still a proposal.
+
 **Revision 4 (2026-10-04).** Revised after the third review, which found the design sound and eight gaps in the sandbox that it describes. This revision (1) adds a **synthetic `/etc`** (`hosts`,
 `nsswitch.conf`, `passwd`) to the allow-list, because an empty root has none, and the DSNs name a **`user=`** explicitly; (2) binds the **base interpreter** wherever it lives, with a preflight run inside the sandbox;
 (3) specifies the **mount allow-list procedure of the plain `unshare` route** (mounts are built before the capability drop; it needs a pid namespace to mount `/proc`); (4) makes the capability proof
@@ -67,6 +72,9 @@ and not ordinary skips; return the exact files, the mechanism, the allowlist, th
 8. A swallowed error: a blocked attempt that ends as a skip, a disabled cache, or a passing test.
 9. A connection through a **filesystem Unix-domain socket** to a service that is not disposable: the system PostgreSQL socket, the Docker socket, an SSH agent, D-Bus.
 
+10. A socket of **another address family** that leaves the namespace by a route that is not IP. `AF_VSOCK` is the case that was probed: a socket of that family **can be created** inside a network namespace (probed here; `/dev/vsock` exists on this machine),
+    and on a virtual machine (a hosted CI runner is one) a connection to the hypervisor or host CID can leave the namespace, where the kernel uses the global vsock mode. `libpq`, `curl` and `ctypes` code are not seen by an audit hook. `AF_NETLINK`, `AF_PACKET` and the like are in the same class.
+
 The runner must **permit**: the in-process ASGI app, in-memory SQLite, and the explicitly identified disposable services of section 5.
 
 ## 4. The design: four layers
@@ -80,7 +88,7 @@ The runner starts the test process in a new **user namespace** with a new **netw
 - **The network namespace** has only a loopback interface. It refuses every TCP, UDP and DNS route to the outside for every process inside it,
   including children, `libpq` and non-Python programs. **Loopback depends on the route.** In a plain `unshare -rn` namespace the loopback interface is **down**, and the runner must bring it up (`ip link set lo up`, which needs
   iproute2) before it drops privileges. Under `bwrap --unshare-net` the sandbox brings loopback **up itself**, and `ip link set lo up` **fails** there (`Operation not permitted`), so the runner
-  must not run it. In both routes the **proof is a self-connect on `127.0.0.1` inside the final sandbox**, run before any service starts. The `iproute2` precondition applies only to the plain
+  must not run it. In both routes the **proof is a self-connect on `127.0.0.1` inside the final sandbox**, run before any **in-sandbox** service starts (the stub). The `iproute2` precondition applies only to the plain
   `unshare` route.
 - **The network namespace does not isolate filesystem Unix-domain sockets.** A socket that is a path on the filesystem is reachable from inside the
   namespace. The mount namespace closes that gap.
@@ -91,9 +99,9 @@ The runner starts the test process in a new **user namespace** with a new **netw
   The sandbox also uses `--unshare-pid`, so that the process cannot reach `/proc/<pid>/root` or `/proc/<pid>/ns/net` of a process outside. The host's permissions deny that today, but they do not
   guarantee it.
 - **A synthetic `/etc`.** An empty root has no `/etc`, and three things need one. The runner writes three small files into the run directory and binds each **read only**:
-  `hosts` (`127.0.0.1 localhost` and `::1 localhost`, so that `localhost` resolves with no DNS), `nsswitch.conf` (`hosts: files`, so that no resolver runs), and `passwd` (one line for the invoking uid, so that
+  `hosts` (`127.0.0.1 localhost` and `::1 localhost`, so that `localhost` resolves with no DNS), `nsswitch.conf` (`hosts: files`, so that no resolver runs), and `passwd` (one line for **the uid that the test process has in the route in use**: the invoking user's uid under `bwrap`, **0** in the plain route, where the process is uid 0 inside the user namespace; so that
   `getpwuid` works). There is **no `resolv.conf`**: no name can resolve through DNS inside the sandbox, and a lookup of any other name is a violation of the guard anyway. Without the `passwd` line,
-  `pwd.getpwuid` raises `KeyError` for the uid (probed), and `libpq` would have no user name to send. The **DSNs also name `user=` explicitly**, so that they do not depend on the lookup.
+  `pwd.getpwuid` raises `KeyError` for the uid (probed: a line for uid 1000 does not help a process that is uid 0), and `libpq` would have no user name to send. The `user=` of the DSN is the name in that line. The canary reads `getpwuid(os.getuid())` in the final process. The **DSNs also name `user=` explicitly**, so that they do not depend on the lookup.
 - **The base interpreter.** A virtual environment's `python` is a symbolic link to a base interpreter, and the base interpreter and its standard library can sit **outside `/usr`** (a `pyenv` tree, `/opt`, the
   `setup-python` tool cache on a hosted runner). The runner resolves `os.path.realpath(sys.executable)`, `sys.base_prefix` and `sys.prefix`, and binds each tree read only at the same path. Before any service
   starts, a **preflight runs `python -c "import ssl, sqlite3, json"` inside the final sandbox**. If it fails, the runner exits 86 and no test starts. On this machine the base interpreter is `/usr/bin/python3.12`, which the `/usr` bind already covers (probed).
@@ -127,17 +135,23 @@ The runner starts the test process in a new **user namespace** with a new **netw
 - If the namespaces cannot be created, or the tool of the chosen route is missing (`bwrap`, or `ip` for the plain route only), or the loopback proof fails, the runner **refuses to run**. It never falls back to an unguarded
   run (section 6). The runner also refuses to run tests with **privilege** (the rule is in the next paragraph).
 
+**Closing the other socket families (item 10 of section 3).** Three measures work together. (a) A **seccomp filter** in the sandbox allows `socket(2)` only for `AF_UNIX`, `AF_INET` and `AF_INET6` and refuses every other family (`EAFNOSUPPORT` or `EPERM`). It is the
+only measure that also stops non-Python code. `bwrap` loads it with `--seccomp <fd>`. The plain route has no such option in `setpriv` (version 2.39.3 here), so the **launcher installs the filter with `prctl` after the capability drop**, which needs `NoNewPrivs`, already set. The filter is a fixed
+byte string built by a pinned script and checked in with a digest, and **it is not verified here**. (b) The guard refuses the audit event `socket.__new__` for any family outside the three (probed: the event fires with family 40 for `AF_VSOCK`). (c) A **minimal `/dev`**: `null`, `zero`,
+`full`, `random`, `urandom`, `tty` and `shm`, and not `/dev/vsock`. `bwrap --dev` provides this. In the plain route the launcher bind-mounts those device nodes one by one, because an unprivileged user namespace cannot create them and `mount --rbind /dev` would bring every host node. If the seccomp filter cannot be
+loaded, the runner exits 86. The canary creates a socket of `AF_VSOCK` with a C-level call and expects an error. It creates the socket only and never connects.
+
 **The privilege rule, by route.** The test process must have **no capabilities** (`CapEff` is zero), **`NoNewPrivs=1`**, and it must not be real root on the host. The route decides how that is met:
 
 | Route | uid in the test process | How the rule is met |
 |---|---|---|
 | `bwrap --unshare-user --unshare-net` | The invoking user's uid (verified: `1000`, `CapEff` zero, `NoNewPrivs=1`) | Met by the sandbox. The check reads `/proc/self/status` and the uid. |
 | Plain `unshare -rn` | **0 inside the user namespace**, which is not real root. The uid is unmapped, so `setpriv --reuid` **fails** (`Invalid argument`). | Drop the capabilities and set no-new-privs: `setpriv --no-new-privs --bounding-set=-all --inh-caps=-all`, **after** every mount and the loopback step (they need the capabilities). The check is the capability sets and `NoNewPrivs`, not the uid. (Reproduced: an unprivileged process cannot `nsenter` or `setns` into the host namespace.) |
-| `sudo` (only if the kernel needs it) | Real root until the process drops | Create the namespaces under `sudo`, then **switch to the invoking user's uid** and drop the capabilities before the test process starts. The check includes the uid. |
+| `sudo` (only if the kernel needs it) | Real root until the process drops | Create the namespaces under `sudo`, then **switch to the invoking user's uid** and drop the capabilities before the test process starts. The check includes the uid. **Unverified.** This route has **no user namespace**, so the probe and the explanation of the `setns` refusal above (the user-namespace boundary) do **not** apply to it. Real root can `setns` into the host namespace, and only the uid switch, the empty capability sets and `NoNewPrivs` protect. No probe was run, and the mount allow-list procedure for this route is not specified. **Stop condition:** the route is not part of this design until a separate probe and an amendment prove it. If CI needs it, the runner refuses (exit 86) rather than use it. |
 
 **The plain route, step by step.** The runner starts `unshare -rnmpf --propagation private` (user, network, mount and pid namespaces; `--propagation private` keeps every mount inside). Inside, **while it still has
 its capabilities**, a helper (1) brings loopback up (`ip link set lo up`), (2) mounts a tmpfs for the new root, (3) `mount --rbind`s each allow-list entry into it (read-only where the list says so, remounted read-only after the bind), (4) mounts `/proc` for the
-new pid namespace and binds `/dev`, (5) runs `pivot_root` and unmounts the old root, and **only then** (6) drops the capabilities and sets no-new-privs, and starts the test process. The loopback proof and the capability proof run
+new pid namespace and bind-mounts the minimal device nodes of the list above one by one, (5) runs `pivot_root` and unmounts the old root, and **only then** (6) drops the capabilities and sets no-new-privs, and starts the test process. The loopback proof and the capability proof run
 after step 6, in the final process. This order is required: steps 1 to 5 need `CAP_NET_ADMIN` and `CAP_SYS_ADMIN`. The `bwrap` route does steps 2 to 6 itself.
 
 **The capability proof must be able to fail.** A check that only reads a value that is always zero proves nothing. The runner therefore runs the check **twice**: (a) in a **control** process **before** the drop (plain route), where the
@@ -146,9 +160,8 @@ check itself is broken, and the runner exits 86.
 
 **Provider for CI (a decision).**
 Option A: the runner creates the namespaces **unprivileged** with a user namespace (as above) on the hosted runner, where the kernel allows it. If the
-runner needs `sudo` to create them, the test process **switches to the invoking user and drops its capabilities** (`setpriv`) before it starts. Real root has
-`CAP_SYS_ADMIN` and could `setns` into the host network namespace, which an unprivileged process cannot. `sudo` also resets the environment and drops
-`PYTHONPATH`, so the runner passes the sanitized environment explicitly. Whether the hosted runner allows either route is **inferred and not verified**. The
+kernel refuses unprivileged namespaces (on Ubuntu 24.04, `kernel.apparmor_restrict_unprivileged_userns=1` can block a plain `unshare -rn`, so expect `bwrap` with an AppArmor profile, or the fallback), the `sudo` route is **not accepted** by this design (unverified, section 4.1): the runner refuses (exit 86), and Option B is the fallback. `sudo` would also reset the environment and drop
+`PYTHONPATH`. Whether the hosted runner allows an unprivileged route is **inferred and not verified**. The
 runner probes it in a first step.
 Option B: a Docker network created with `--internal` (no gateway), with the disposable Postgres container and a test container attached to it. It works where user
 namespaces are restricted, and it is heavier. The recommendation is A with a probe, and B as the documented fallback.
@@ -208,9 +221,11 @@ single statement of what is allowed.
 
 1. The runner checks its preconditions: Linux, namespace creation works (a probe), no `.env`, no proxy variable, no stale run directory. Any failure
    is exit 86 with a message, and **no test starts**.
-2. It creates a run directory with a random name and writes the manifest after the services are up.
-3. It starts the disposable services (section 5) and verifies their identity.
-4. It starts the namespace and, inside it, `python -m pytest ...` with the sanitized environment and `PYTHONPATH` set to the runner directory first.
+2. It creates a run directory with a random name. It **chooses the stub's loopback port** now (a random port from a fixed range; a new network namespace has no listener, so the port is free there) and writes the manifest with every endpoint, the stub's port included.
+3. It starts the **outside services**: the disposable PostgreSQL container with its Unix-domain socket in the run directory, and it verifies its identity **from outside** (the socket is a file, and it crosses the namespace). A loopback service **cannot** be started here, because a listener in the host network namespace is not visible inside the sandbox.
+4. It starts the namespace with an **in-sandbox launcher** (a small program of the runner) and not yet with `pytest`. The launcher does, in this order: the steps of the route that need privilege (section 4.1); the **loopback self-connect proof**; the **capability proof**
+   (including its control); the seccomp filter (section 4.1); then the **inside services**: it starts the NeuroForge stub on the chosen port and **verifies the stub's identity** (a health request that answers with the run identifier). It reports each result through a status file in the run directory.
+   If any step fails, the launcher exits and the runner exits 86. **Only then** the launcher starts `python -m pytest ...` with the sanitized environment and `PYTHONPATH` set to the runner directory first.
 5. The interpreter starts. `sitecustomize` installs the guard. It records a snapshot of `sys.modules` and a counter, **before** `pytest`, `httpx`,
    `redis`, `psycopg2`, `sqlalchemy` or `app` is imported.
 6. Pytest starts. The plugin loads with `-p`. In the earliest hook (`pytest_load_initial_conftests`) it checks that the guard is installed and that
@@ -225,7 +240,7 @@ The manifest names **explicit endpoints**, each tied to a process that the runne
 | Service | How it is provided | Endpoint in the manifest | Identity check before tests |
 |---|---|---|---|
 | Disposable PostgreSQL with pgvector (the RLS tests, the cloud-image concurrency tests, and any test that needs Postgres) | A container started with `--network none` from a pinned image (`pgvector/pgvector:pg16` is cached locally), with a Unix-domain socket in the run directory mounted into it | `unix:<run-dir>/pg/.s.PGSQL.5432` | The container id and the socket path are recorded. A query returns the server version and a marker that the runner wrote into a table. Random credentials. The socket directory is under the run directory. |
-| Stub of the NeuroForge embedding endpoint | A small process that the runner starts **inside** the namespace on a loopback port that the runner chose | `tcp:127.0.0.1:<port>`, service `neuroforge-stub` | A health request answers with the run identifier. |
+| Stub of the NeuroForge embedding endpoint | A small process that the runner starts **inside** the namespace on a loopback port that the runner chose | `tcp:127.0.0.1:<port>`, service `neuroforge-stub` | The in-sandbox launcher sends a health request that answers with the run identifier, **before pytest starts**. The port is chosen in step 2 and is in the manifest and the environment. |
 | Redis | **Declared absent** unless the decision owner wants a disposable Redis (the image is not cached locally) | `declared_absent: unix:<run-dir>/redis-absent.sock` | None. A probe fails with "no such file" and is logged. |
 | In-process ASGI app, in-memory SQLite | Not a socket | none | none |
 
@@ -297,6 +312,8 @@ A separate canary suite exercises the **runner itself**. It does not import `app
 | Loopback | The proof is a self-connect on `127.0.0.1` inside the final sandbox. In the plain `unshare` route the runner brings `lo` up first (and exits 86 if `ip` is missing). In the `bwrap` route it must **not** run `ip link set lo up`, which fails there. If the proof fails, the runner exits 86. |
 | Privilege | A test process cannot `setns` or `nsenter` into the host network namespace. The runner checks the privilege rule of section 4.1 (no capabilities in `CapEff` and `CapBnd`, `NoNewPrivs=1`, and the uid where the route preserves it) and exits 86 if it is not met. A **control** process before the drop must show non-zero `CapEff`, or the runner exits 86. |
 | Synthetic `/etc` and interpreter | Inside the sandbox `getpwuid` returns the synthetic user, `localhost` resolves, there is no `resolv.conf`, and the preflight imports `ssl`, `sqlite3` and `json` from the bound interpreter. A deliberately unbound interpreter tree gives exit 86. |
+| Other socket families | A C-level `socket(AF_VSOCK, ...)` in the final process fails (creation only, never a connect). The guard refuses the `socket.__new__` event for family 40. The sandbox has no `/dev/vsock`. If the seccomp filter cannot be loaded, the runner exits 86. |
+| In-sandbox services | The stub starts inside the sandbox on the chosen port and answers with the run identifier **before pytest starts**. A listener started outside the sandbox on that port is not visible inside. |
 | Unwritable record | If `violations.jsonl` cannot be written, the process stops. |
 | Collect only | `pytest --collect-only` without the runner exits 87. |
 | Teardown | After the run no container, socket or process of the run remains. |
@@ -327,7 +344,7 @@ planted violation in a copy of the suite fails the run; and an independent revie
 6. **Postgres image.** The local host has no pgvector extension. Is a pinned container image acceptable as the provider, and which tag?
 7. **Where the runner is required.** Every run, or release evidence only? The design says every run of the suite, because ordinary runs caused M1.
 8. **The mount-namespace tool.** `bwrap` (installed here) or `unshare -m` with explicit bind mounts? And what is the policy for a host where neither is available (the runner refuses)?
-9. **Privilege.** Is the rule of section 4.1 the right rule for CI: the test process has **no capabilities, `NoNewPrivs=1` and is never real root**, with the uid of the invoking user where the route keeps it (`bwrap`, `sudo` after a switch) and uid 0 only inside an unprivileged user namespace (the plain route)? The runner never runs tests as real root, and it needs `sudo` only if the kernel refuses unprivileged namespaces.
+9. **Privilege.** The `sudo` route is **not accepted** in this design (unverified, section 4.1). Is the rule of section 4.1 the right rule for CI for the other two routes: the test process has **no capabilities, `NoNewPrivs=1` and is never real root**, with the uid of the invoking user where the route keeps it (`bwrap`, `sudo` after a switch) and uid 0 only inside an unprivileged user namespace (the plain route)? The runner never runs tests as real root, and it needs `sudo` only if the kernel refuses unprivileged namespaces.
 
 ## 11. Dependencies, review and stop conditions
 
