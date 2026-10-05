@@ -30,7 +30,8 @@ from app.runtime_promotion.execution_handoff.worker import (
 )
 
 
-pytestmark = pytest.mark.usefixtures("forge_command_candidate_key")
+pytestmark = pytest.mark.usefixtures("forge_command_candidate_key", "receipt_producer_key")
+PRODUCER_HEADERS = {"Authorization": "Bearer producer-key"}
 
 def _build_local_failure_pattern_request() -> dict:
     unique_suffix = uuid.uuid4().hex
@@ -68,6 +69,7 @@ def _ingest_and_get_candidate(
     response = client.post(
         "/api/v1/runtime-promotion/receipts/local-failure-pattern",
         json=body,
+        headers=PRODUCER_HEADERS,
     )
     assert response.status_code == 201, response.text
 

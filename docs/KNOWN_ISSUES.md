@@ -330,9 +330,14 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Rollout order**: Forge Command must send the key first. Then mint the key in Forge Command
   Settings with both scopes and service `forgecommand`. Then merge this change. If this merges
   first, Forge Command recommendations fail closed with an upstream 401.
-- **Still open**: The receipt-ingest route `POST /api/v1/runtime-promotion/receipts/local-failure-pattern`
-  still takes no credential. The tests call it with no key and it answers 201. It creates
-  candidates. The other routes in `runtime_promotion_router.py` were not read in this change.
+- **Receipt-ingest route (2026-10-05)**: `POST /api/v1/runtime-promotion/receipts/local-failure-pattern` took no
+  credential and creates candidates in the review queue. It was unreachable in practice while the runtime-promotion
+  tables were missing from the live database. The repair (#97) made it work for anyone. **Fixed in this change:** the route now needs a
+  service key bound to `forge_local_runtime` with scope `runtime-promotion:receipts:write`. No key gives 401. The Forge Command
+  key, a wrong service, or a wrong scope gives 403 or 401. Four new tests cover it. No caller of this route exists in the
+  workspace, so nothing breaks. When a producer exists, mint its key with metadata `{"service_name": "forge_local_runtime",
+  "scopes": ["runtime-promotion:receipts:write"]}`. Not live until this merges and Render deploys.
+- **Still open**: The other routes in `runtime_promotion_router.py` were not read in this change.
 
 ## Hosted CI Fails Before Any Job Step Runs
 

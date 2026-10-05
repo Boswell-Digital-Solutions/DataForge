@@ -6,10 +6,14 @@ from datetime import UTC, datetime
 from hashlib import sha256
 import json
 
-from fastapi import APIRouter, Depends, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth import validate_api_key
 from app.database import get_db
 from app.models.runtime_promotion_models import RuntimePromotionReceipt
 from app.models.runtime_promotion_schemas import (
@@ -21,6 +25,36 @@ router = APIRouter(
     prefix="/api/v1/runtime-promotion",
     tags=["runtime-promotion"],
 )
+
+bearer = HTTPBearer(auto_error=False)
+RECEIPT_PRODUCER_SERVICE = "forge_local_runtime"
+RECEIPT_WRITE_SCOPE_NAME = "runtime-promotion:receipts:write"
+
+
+def receipt_write_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> str:
+    """Fail closed: a service key bound to the local runtime with the receipt write scope.
+
+    A receipt creates a candidate in the review queue, so an anonymous write is a boundary fault.
+    """
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Service key required")
+    key = validate_api_key(credentials.credentials)
+    if key is None:
+        raise HTTPException(status_code=401, detail="Service key required")
+    metadata = key.metadata or {}
+    scopes = metadata.get("scopes")
+    if (
+        metadata.get("service_name") != RECEIPT_PRODUCER_SERVICE
+        or not isinstance(scopes, list)
+        or RECEIPT_WRITE_SCOPE_NAME not in scopes
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "runtime_promotion_scope_required", "scope": RECEIPT_WRITE_SCOPE_NAME},
+        )
+    return RECEIPT_PRODUCER_SERVICE
 
 
 def _build_receipt_id(request: LocalFailurePatternIngestRequest) -> str:
@@ -63,6 +97,7 @@ def _build_ack(
     "/receipts/local-failure-pattern",
     response_model=RuntimePromotionIngestAck,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(receipt_write_scope)],
 )
 def ingest_local_failure_pattern(
     request: LocalFailurePatternIngestRequest,
