@@ -105,7 +105,7 @@ Do not start a restore.
 
 ## Decisions for Charlie
 
-- D1 (answered 2026-10-05): The Free plan has no automatic backups or point-in-time recovery. A manual export or a copy outside Supabase may still exist. Nobody has checked. If lost data is wanted, look for a manual export first. Otherwise the repair creates empty tables.
+- D1 (closed 2026-10-05): The operator says the system has never been live and no data was in use, so lost data is not a concern. No recovery is needed. Earlier finding: The Free plan has no automatic backups or point-in-time recovery. A manual export or a copy outside Supabase may still exist. Nobody has checked. If lost data is wanted, look for a manual export first. Otherwise the repair creates empty tables.
 - D2: Repair the seven runtime-promotion tables only, or also the other 48 absent tables? The audit shows the
   runtime-promotion family is wholly absent. The other 48 belong to several systems. Each system owner must
   confirm that its tables are still wanted. A table that nothing uses should not be recreated.
@@ -128,7 +128,7 @@ Do not start a restore.
   no policy; a re-run that keeps a row; a wrong-shape table that is refused; an unexpected policy that is refused; a partial schema that is refused
   and left unchanged. The service-key gate is not touched.
 - Found on the way: small differences between the models and the migrations. Recorded in KNOWN_ISSUES.
-- Before deploy (step 6): take a verified manual export of the surviving database. No backup exists on the Free plan.
+- Deployed 2026-10-05 (#97). The manual export was not needed, because no data was in use (D1).
 
 ## Do not
 
