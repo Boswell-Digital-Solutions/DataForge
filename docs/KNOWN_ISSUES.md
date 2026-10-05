@@ -2,6 +2,26 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
+
+- **Location**: `scripts/render-git-auth.sh`. The same script exists in Rake, Forge-Agents and NeuroForge.
+- **Status**: Open. No change made. Not authorized.
+- **What is wrong**: The script mints one installation token for `forge-telemetry` and
+  `forge_contract_core` together (`PRIVATE_REPOS`, and the `repositories` request body). The
+  credential must have access to both repositories.
+- **Why it matters**: On 2026-10-05 a new GitHub App, `BDS Contract Core Reader` (App ID 5194470),
+  was installed with `contents: read` on selected repositories. It is for PIN-2 release-mode
+  parity in Forge_Command. It is not for Render builds. If an operator puts it in
+  `FORGE_PRIVATE_DEPS_APP_CLIENT_ID`, GitHub rejects the `forge-telemetry` request and the build fails.
+  Do not broaden that App to make the script work.
+- **Proposed fix, not started**: Split the credentials. A new pair, `FORGE_CONTRACT_CORE_APP_CLIENT_ID`
+  and `FORGE_CONTRACT_CORE_APP_PRIVATE_KEY`, serves `forge_contract_core` only. The existing
+  credential serves `forge-telemetry` only. Each token gets its own path-scoped Git credential entry.
+  Tests must show that the contract-core token cannot read `forge-telemetry`, that a missing or invalid
+  key fails the build, and that no token appears in logs. The legacy PAT stays as a migration fallback only.
+- **Scope**: Open for all four repositories. A plan in `docs/plans/` must come first.
+- **Do not**: Change Render environment variables before the code reads the new pair.
+
 ## The Test Suite Reaches Hosted NeuroForge When `NEUROFORGE_URL` Is Unset (2026-10-04)
 
 - **Location**: `app/config.py:107` (the default of `NEUROFORGE_URL`), `app/utils/embeddings.py:26` and `:126`
