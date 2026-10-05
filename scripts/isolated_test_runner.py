@@ -51,6 +51,30 @@ PROXY_VARIABLES = (
 WRITABLE_REPO_DIRS = ("htmlcov", "logs", "reports")
 WRITABLE_REPO_FILES = ("coverage.xml",)
 REDIS_ABSENT_REASON = "the decision owner declared Redis absent; no disposable Redis image is cached locally"
+
+# Declared skips. Each entry is an EXACT, full-string reason, with the reason why it is declared.
+# A reason that is not here, or that differs by one character, is an undeclared skip (exit 87).
+# Adding an entry hides a skip. Record why in this table, and say whether coverage is lost.
+DECLARED_SKIPS = (
+    ("Requires pgvector \u2014 raw SQL with <=> operator bypasses mock",
+     "tests/test_experience.py: a hard-coded @pytest.mark.skip on three tests. It is unrelated to the sandbox. The skip is permanent on every backend."),
+    ("Load tests require an explicit RUN_LOAD_TESTS=1 opt-in and a running local API server.",
+     "tests/load/test_k6_load.py: an opt-in load surface that needs a live local API server. The sandbox never starts one."),
+    ("PostgreSQL-specific check is not applicable for this test backend",
+     "tests/test_integration/test_infrastructure_health.py: the `db` fixture of tests/conftest.py is a fixed in-memory SQLite engine "
+     "and ignores DATAFORGE_DATABASE_URL. The checks never ran on any backend. This is a coverage gap that exists without the runner."),
+    ("Could not check disk space: (sqlite3.OperationalError) no such function: current_database\n"
+     "[SQL: SELECT pg_database_size(current_database()) as size]\n"
+     "(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+     "The same SQLite `db` fixture as above (pg_database_size on SQLite)."),
+    ("Could not check table sizes: (sqlite3.OperationalError) no such table: pg_tables\n"
+     "[SQL: SELECT table_name, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) FROM pg_tables "
+     "WHERE schemaname = 'public' LIMIT 1]\n"
+     "(Background on this error at: https://sqlalche.me/e/20/e3q8)",
+     "The same SQLite `db` fixture as above (pg_tables on SQLite)."),
+    ("psycopg not installed",
+     "test_psycopg_available imports psycopg 3. requirements.txt pins psycopg2-binary only, and the application uses psycopg2."),
+)
 DEFAULT_PREFLIGHT_MODULES = "ssl,sqlite3,json,pytest,psycopg2"
 # Trees that must never be bound into the sandbox (they hold the sockets of section 3, item 9).
 FORBIDDEN_TREES = ("/", "/var", "/run", "/var/run", "/home", "/root", "/tmp", "/dev", "/proc", "/sys", "/etc")
@@ -747,7 +771,7 @@ def make_manifest(run_dir: str, run_id: str, stub_port: int, pg_socket: "str | N
         "unix": [{"path": pg_socket, "service": "postgres"}] if pg_socket else [],
         "declared_absent": [{"service": "redis", "path": os.path.join(run_dir, "redis-absent.sock"), "reason": REDIS_ABSENT_REASON}],
         "programs": ["python*", "bash", "sh", "git", "openssl"],
-        "declared_skip_patterns": [],
+        "declared_skip_reasons": [r for r, _why in DECLARED_SKIPS] + ["declared absent: redis (%s)" % REDIS_ABSENT_REASON],
     }
 
 
@@ -1010,7 +1034,7 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
     report.update(
         launcher_exit=rc, status=status, violations=0, stderr_markers=tee.markers,
         declared_absent_probes=len(absent), declared_absent_services=sorted({a["service"] for a in absent}),
-        skips_total=len(skips), skips_declared=len(skips) - len(undeclared), skips_undeclared=undeclared[:200],
+        skips_total=len(skips), skips_declared=len(skips) - len(undeclared), skips_undeclared=undeclared,
     )
     if "ready" not in steps:
         failed = [s for s in status if not s.get("ok")]
@@ -1020,7 +1044,9 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
         say("pytest exited %d but wrote no skip report; undeclared skips cannot be excluded" % rc)
         return EXIT_VIOLATION
     if undeclared:
-        say("%d skip(s) with no declared reason" % len(undeclared))
+        say("%d skip(s) with no declared reason:" % len(undeclared))
+        for item in undeclared:
+            say("  UNDECLARED SKIP %s :: %s" % (item["nodeid"], item["reason"]))
         return EXIT_VIOLATION
     return rc
 

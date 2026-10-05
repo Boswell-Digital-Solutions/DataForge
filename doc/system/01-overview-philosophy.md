@@ -14,7 +14,7 @@ not a bootstrap repo or passive library.
 - **Alembic migrations:** `66`
 - **Python files under `app/`:** `215`
 - **Pytest files:** `60`
-- **Collected tests:** `791` via `python -m pytest --collect-only -q --no-cov`
+- **Collected tests:** `791` via `scripts/run-tests-isolated.sh -- --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract

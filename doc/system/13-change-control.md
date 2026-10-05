@@ -42,8 +42,8 @@ production-certification claims.
 ## Required Verification Commands
 
 ```bash
-PYTHONPATH=. ./.venv/bin/pytest -q            # full suite
-pytest --cov=app tests/                       # coverage
+scripts/run-tests-isolated.sh -- -q           # full suite (direct pytest exits 87)
+scripts/run-tests-isolated.sh -- --cov=app tests/   # coverage
 alembic upgrade head                          # schema changes (C1)
 ruff check app/ && mypy app/                  # lint + types
 bash doc/system/BUILD.sh                       # doc changes (C0) -> BUILD_OK designation=DTF

@@ -81,7 +81,7 @@ not a bootstrap repo or passive library.
 - **Alembic migrations:** `66`
 - **Python files under `app/`:** `215`
 - **Pytest files:** `60`
-- **Collected tests:** `791` via `python -m pytest --collect-only -q --no-cov`
+- **Collected tests:** `791` via `scripts/run-tests-isolated.sh -- --collect-only -q --no-cov`
 - **Sibling repo boundary:** `../forge-telemetry/` is a separate git repo with its own documentation stack
 
 ## The Source-of-Truth Contract
@@ -2498,8 +2498,8 @@ production-certification claims.
 ## Required Verification Commands
 
 ```bash
-PYTHONPATH=. ./.venv/bin/pytest -q            # full suite
-pytest --cov=app tests/                       # coverage
+scripts/run-tests-isolated.sh -- -q           # full suite (direct pytest exits 87)
+scripts/run-tests-isolated.sh -- --cov=app tests/   # coverage
 alembic upgrade head                          # schema changes (C1)
 ruff check app/ && mypy app/                  # lint + types
 bash doc/system/BUILD.sh                       # doc changes (C0) -> BUILD_OK designation=DTF
@@ -2866,9 +2866,10 @@ Run the focused SQLite contract/rollback suite and the PostgreSQL concurrency
 gate separately:
 
 ```bash
-PYTHONPATH=. ./.venv/bin/python -m pytest -q \
+scripts/run-tests-isolated.sh -- -q \
   tests/test_cloud_image_state.py tests/test_cloud_image_recovery.py
-pg_virtualenv bash -c 'export CLOUD_IMAGE_TEST_POSTGRES_URL=postgresql:///postgres DATAFORGE_DATABASE_URL=postgresql:///postgres; PYTHONPATH=. ./.venv/bin/python -m pytest -q tests/test_cloud_image_state_postgres.py'
+scripts/run-tests-isolated.sh --no-postgres -- -q tests/test_cloud_image_state.py   # SQLite only, no container
+scripts/run-tests-isolated.sh -- -q tests/test_cloud_image_state_postgres.py       # the runner supplies the disposable PostgreSQL
 ```
 
 Migration proof covers a clean `alembic upgrade head`, an upgrade from stamped
@@ -2889,7 +2890,7 @@ test URL is supplied; SQLite cannot prove row-lock concurrency or
 |--------|-------|
 | Total test files | `59` |
 | Total tests collected | `791` |
-| Inventory command | `./.venv/bin/python -m pytest --collect-only -q --no-cov` |
+| Inventory command | `scripts/run-tests-isolated.sh -- --collect-only -q --no-cov` |
 | Inventory audit date | `2026-07-24` |
 | Coverage config | branch coverage enabled in `pytest.ini` |
 
@@ -3069,6 +3070,22 @@ The `sudo` route for running tests stays refused.
 The runner still probes, and it exits 86 if the namespaces stay blocked.
 If loopback in `bwrap` still fails after the step, the fallback is Docker `--internal` (design option B). It is not implemented.
 
+### Render build and preflight
+
+`scripts/render-build.sh` calls `scripts/preflight.sh --no-tests`.
+The flag skips the two pytest phases and keeps every other check (dependencies, single Alembic head).
+Render has no `bwrap` and no Docker, so the runner cannot isolate there.
+Nothing is live, and CI runs the suite under the runner.
+The flag is the only mode that skips the tests. No option runs the suite without the runner.
+
+### Closure evidence tool
+
+`python scripts/prove_planted_violation.py` plants a temporary test file in `tests/`.
+It holds a connect to `192.0.2.1` and a lookup of `x.invalid`. Each is wrapped in `except Exception: pytest.skip(...)`.
+It runs only that file through the runner, with the real `tests/conftest.py`.
+It expects exit 87, two failed tests and two recorded violations. It removes the file in every case.
+This tool is one step of the closure evidence. It does not close M1.
+
 ### Exit codes
 
 | Code | Meaning |
@@ -3088,8 +3105,24 @@ It refuses a remote `DOCKER_HOST` or a remote Docker context with exit 86.
 It starts the container with an explicit environment, and it always removes the container by its fixed name.
 The sandbox gets `/dev/null` as standard input. It inherits no socket.
 
-A skip has a declared reason only when the reason starts with `declared absent:` or matches a pattern in `declared_skip_patterns` of the manifest.
+A skip has a declared reason only when its text equals, character for character, an entry of `DECLARED_SKIPS` in `scripts/isolated_test_runner.py`.
+The declared Redis reason is built from the manifest. No pattern or prefix match exists.
+The runner prints every undeclared skip, with its test id and exact reason, on stderr and in the `--report` JSON.
 The report lists every skip.
+
+Declared skips and why (the local full run: 1050 passed, 23 skipped, 0 violations):
+
+| Skips | Reason | Why it is declared |
+|---|---|---|
+| 9, `test_infrastructure_health.py` Redis tests | `declared absent: redis (...)` | The decision owner declared Redis absent. |
+| 3, `tests/test_experience.py` | `Requires pgvector ...` | A hard-coded `@pytest.mark.skip`. It is unrelated to the sandbox. |
+| 3, `tests/load/test_k6_load.py` | `Load tests require an explicit RUN_LOAD_TESTS=1 opt-in ...` | An opt-in load surface. It needs a live API server. |
+| 8, `test_infrastructure_health.py` database and driver tests | The five SQLite messages, and `psycopg not installed` | See the note below. |
+
+The eight infrastructure tests skip although the runner provides PostgreSQL.
+The cause is not the runner. The `db` fixture of `tests/conftest.py` is a fixed in-memory SQLite engine, and it ignores `DATAFORGE_DATABASE_URL`.
+These checks never ran on any backend, before or after the runner. This is a coverage gap that exists without the runner.
+A later change can give those tests a PostgreSQL fixture. `test_psycopg_available` imports psycopg 3, but `requirements.txt` pins psycopg2 only.
 
 ### Canaries
 
@@ -3112,7 +3145,9 @@ A hardening option is a write-only pipe that the runner drains.
 - The runner limits `DOCKER_HOST` to `unix://`. A local `docker.sock` that forwards to a remote TCP host is not detected.
 - The guard cannot see raw C calls (`ctypes`). The namespaces and the seccomp filter cover them.
 - The runner has no proof for a full run of the suite. Closure of M1 needs that proof.
-- Scripts that call `pytest` directly (`scripts/preflight.sh`, `run_tests.sh`, `Makefile`, `ci_gate.sh`) exit 87 until they use the runner.
+- `scripts/preflight.sh`, `run_tests.sh`, `ci_gate.sh` and the `make test` target now call the runner.
+- The `Makefile` on `master` has literal `\t` characters instead of tabs, so `make` fails with "missing separator". This is older than the runner.
+- `app/tests/` has no gate. A direct `pytest app/tests` is not refused and not guarded.
 
 ## Running the Suite
 
@@ -3339,8 +3374,7 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic current
 
 # 4. Run tests to confirm nothing broke
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+scripts/run-tests-isolated.sh --database postgres --migrate -- -q
 
 # 5. Start service
 .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
@@ -3351,8 +3385,7 @@ For migration-sensitive changes, the preferred validation loop is:
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic upgrade head
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+scripts/run-tests-isolated.sh --database postgres --migrate -- -q
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic downgrade -1
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \

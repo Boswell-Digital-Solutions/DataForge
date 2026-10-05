@@ -61,8 +61,8 @@ def _log_dir() -> str:
     return netguard.MANIFEST.get("log_dir", "")
 
 
-def _declared_skip_patterns() -> list:
-    return list(netguard.MANIFEST.get("declared_skip_patterns", []))
+def _declared_skip_reasons() -> frozenset:
+    return frozenset(netguard.MANIFEST.get("declared_skip_reasons", []))
 
 
 def pytest_collection_modifyitems(config, items):
@@ -121,7 +121,7 @@ def _skip_reason(report) -> str:
 def pytest_runtest_logreport(report):
     if report.skipped and not hasattr(report, "wasxfail"):
         reason = _skip_reason(report)
-        declared = reason.startswith("declared absent:") or any(p in reason for p in _declared_skip_patterns())
+        declared = reason in _declared_skip_reasons()  # an exact, full-string match; never a pattern
         _state["skips"].append({"nodeid": report.nodeid, "reason": reason, "declared": declared})
 
 

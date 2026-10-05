@@ -34,43 +34,48 @@ echo ""
 echo "Running tests..."
 echo ""
 
+# Every pytest run goes through the isolated runner (finding M1). Direct pytest exits 87.
+run_pytest() {
+    ISOLATED_RUNNER_PYTHON="$(command -v python3)" bash "$(dirname "$0")/scripts/run-tests-isolated.sh" -- "$@"
+}
+
 # Parse command line arguments
 TEST_TYPE="${1:-all}"
 
 case $TEST_TYPE in
     unit)
         echo "🧪 Running unit tests only..."
-        pytest tests/test_unit/ -v -m unit
+        run_pytest tests/test_unit/ -v -m unit
         ;;
     integration)
         echo "🔗 Running integration tests only..."
-        pytest tests/test_integration/ -v -m integration
+        run_pytest tests/test_integration/ -v -m integration
         ;;
     api)
         echo "🌐 Running API tests only..."
-        pytest tests/test_api/ -v
+        run_pytest tests/test_api/ -v
         ;;
     auth)
         echo "🔐 Running authentication tests only..."
-        pytest -v -m auth
+        run_pytest -v -m auth
         ;;
     search)
         echo "🔍 Running search tests only..."
-        pytest -v -m search
+        run_pytest -v -m search
         ;;
     coverage)
         echo "📊 Running tests with coverage report..."
-        pytest --cov=app --cov-report=html --cov-report=term-missing
+        run_pytest --cov=app --cov-report=html --cov-report=term-missing
         echo ""
         echo -e "${GREEN}✅ Coverage report generated in htmlcov/index.html${NC}"
         ;;
     fast)
         echo "⚡ Running fast tests only (unit tests)..."
-        pytest tests/test_unit/ -v --tb=short
+        run_pytest tests/test_unit/ -v --tb=short
         ;;
     all)
         echo "🚀 Running all tests..."
-        pytest -v
+        run_pytest -v
         ;;
     *)
         echo -e "${RED}❌ Unknown test type: $TEST_TYPE${NC}"

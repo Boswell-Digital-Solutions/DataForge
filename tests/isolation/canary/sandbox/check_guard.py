@@ -361,3 +361,25 @@ def test_hostaddr_is_refused_even_with_a_manifest_socket_directory(tmp_path):
     result, nested = run_guarded(tmp_path, code, unix=[str(sock_dir / ".s.PGSQL.5432")])
     assert "NetworkIsolationViolation" in result.stdout and "hostaddr" in result.stdout, result.stdout + result.stderr
     assert any("hostaddr" in k for k in kinds(nested))
+
+
+def test_a_declared_skip_needs_an_exact_full_string_match(tmp_path):
+    nested = write_manifest(tmp_path)
+    manifest = json.loads(Path(nested["env"]["NETGUARD_MANIFEST"]).read_text())
+    manifest["declared_skip_reasons"] = ["exact reason"]
+    Path(nested["env"]["NETGUARD_MANIFEST"]).write_text(json.dumps(manifest))
+    (tmp_path / "check_nested.py").write_text(textwrap.dedent("""
+        import pytest
+        def test_exact():
+            pytest.skip('exact reason')
+        def test_longer():
+            pytest.skip('exact reason and more')
+        def test_prefix():
+            pytest.skip('exact')
+    """))
+    (tmp_path / "pytest.ini").write_text("[pytest]\npython_files = check_*.py\n")
+    subprocess.run([sys.executable, "-m", "pytest", "-p", "pytest_plugin", "-p", "no:cacheprovider", "-c", str(tmp_path / "pytest.ini"),
+                    "--rootdir", str(tmp_path), "-q", str(tmp_path / "check_nested.py")], env=nested["env"], capture_output=True, text=True, cwd=str(tmp_path))
+    report = json.loads(next((tmp_path / "log").glob("skips-*.json")).read_text())
+    declared = {s["nodeid"].split("::")[-1]: s["declared"] for s in report["skips"]}
+    assert declared == {"test_exact": True, "test_longer": False, "test_prefix": False}

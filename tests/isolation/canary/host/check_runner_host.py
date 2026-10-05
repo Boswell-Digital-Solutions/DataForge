@@ -476,3 +476,18 @@ def test_no_secret_like_value_is_written_to_a_run_file(planted):
         subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "-v", f"{run_dir}/pg:/d", "--entrypoint", "sh",
                         "pgvector/pgvector:pg16", "-c", "rm -f /d/.s.PGSQL.*"], capture_output=True)
         shutil.rmtree(run_dir, ignore_errors=True)
+
+
+def test_the_planted_violation_proof_script_passes_against_the_real_conftest():
+    result = subprocess.run([sys.executable, str(REPO / "scripts" / "prove_planted_violation.py")], capture_output=True, text=True,
+                            timeout=900, cwd=str(REPO), env={k: v for k, v in os.environ.items() if k not in runner.PROXY_VARIABLES})
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (REPO / "tests" / "test_zz_planted_violation.py").exists()
+
+
+def test_declared_skips_are_exact_full_strings():
+    reasons = [r for r, _why in runner.DECLARED_SKIPS]
+    assert len(reasons) == len(set(reasons))
+    manifest = runner.make_manifest("/tmp/dfi-00000000", "00000000", 21000, None)
+    assert manifest["declared_skip_reasons"][:-1] == reasons
+    assert "declared_skip_patterns" not in manifest

@@ -174,7 +174,7 @@ Basic verification:
 curl http://127.0.0.1:8001/health
 curl http://127.0.0.1:8001/ready
 curl http://127.0.0.1:8001/version
-PYTHONPATH=. ./.venv/bin/pytest --collect-only -q
+scripts/run-tests-isolated.sh -- --collect-only -q --no-cov
 ```
 
 ## Documentation

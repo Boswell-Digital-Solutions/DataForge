@@ -75,8 +75,10 @@ echo ""
 echo "=== Gate 2: local proving-slice intake tests ==="
 LOCAL_REPORT="$REPORT_DIR/local_tests_$(date +%Y%m%d_%H%M%S).xml"
 cd "$SCRIPT_DIR"
-PYTHONPATH="." "$PYTHON_LOCAL" -m pytest tests/test_proving_slice_intake.py -v \
-    --junit-xml="$LOCAL_REPORT" \
+# Through the isolated runner (finding M1). The sandbox writes the report under reports/, which it binds read-write.
+ISOLATED_RUNNER_PYTHON="$PYTHON_LOCAL" bash "$SCRIPT_DIR/scripts/run-tests-isolated.sh" -- \
+    tests/test_proving_slice_intake.py -v \
+    --junit-xml="reports/$(basename "$LOCAL_REPORT")" \
     --tb=short
 
 echo ""

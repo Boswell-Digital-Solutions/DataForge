@@ -33,7 +33,8 @@ def write_manifest(tmp: Path, tcp=(), unix=(), absent=(), programs=("python*", "
         "tcp": [{"host": "127.0.0.1", "port": p, "service": "canary"} for p in tcp],
         "unix": [{"path": u, "service": "canary"} for u in unix],
         "declared_absent": [{"service": "redis", "path": a, "reason": "canary"} for a in absent],
-        "programs": list(programs), "declared_skip_patterns": [],
+        "programs": list(programs),
+        "declared_skip_reasons": ["declared absent: redis (canary)"] if absent else [],
     }
     path = tmp / "manifest.json"
     path.write_text(json.dumps(manifest))

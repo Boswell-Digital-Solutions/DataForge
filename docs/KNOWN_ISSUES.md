@@ -60,6 +60,12 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
   **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
   under the runner with zero violations, and an independent review of the exact head. No full run has happened.
+  **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
+  1050 passed, 23 skipped and no violation. The 14 skips with no declared reason are now declared by their exact reason strings,
+  with one entry per reason in `DECLARED_SKIPS` (`scripts/isolated_test_runner.py`). Eight of them are infrastructure-health tests
+  that skip because the `db` fixture is a fixed SQLite engine. That coverage gap exists without the runner. The direct callers
+  of pytest now use the runner, and the Render build skips the suite (`scripts/preflight.sh --no-tests`). M1 stays OPEN until
+  the closure steps are reviewed.
   **Threat model**: the guard and the plugin are in-process Python. They are defence in depth against accidental calls, not
   against a hostile test process. The kernel layers are the barrier: the network namespace, the mount allow-list, the seccomp
   filter and the absence of inherited sockets. A hostile test can truncate `violations.jsonl` or silence the stderr marker.

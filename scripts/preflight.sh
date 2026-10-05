@@ -5,6 +5,18 @@
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
+# --no-tests skips the two pytest phases and keeps every other check. Only scripts/render-build.sh uses it.
+# Reason: the suite must run through scripts/run-tests-isolated.sh (finding M1). Render has no bwrap and no
+# Docker, so the runner cannot isolate there. Nothing is live, and CI runs the suite under the runner.
+# There is no flag that runs the suite without the runner.
+RUN_TESTS=1
+for arg in "$@"; do
+  case "$arg" in
+    --no-tests) RUN_TESTS=0 ;;
+    *) echo "unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
@@ -78,9 +90,18 @@ else
   echo "  alembic not found — skipping (install deps first)."
 fi
 
+# ─── Phases 3 and 4 run the suite through the isolated runner ─────
+run_isolated() {
+  ISOLATED_RUNNER_PYTHON="$(command -v python3)" bash "$SCRIPT_DIR/run-tests-isolated.sh" -- "$@"
+}
+
+if [[ "$RUN_TESTS" == "0" ]]; then
+  step "Skipping the test phases (--no-tests): the suite runs under the isolated runner in CI, not here"
+else
+
 # ─── Phase 3: Production-boundary Tests ──────────────────────────
 step "Running poller and AuthorForge boundary tests..."
-python3 -m pytest \
+run_isolated \
   tests/test_unit/test_supabase_log_ingest.py \
   tests/test_unit/test_supabase_log_poller.py \
   tests/test_unit/test_authorforge_analytics.py \
@@ -92,7 +113,7 @@ python3 -m pytest \
 # Exclude tests requiring live infrastructure (PostgreSQL, Redis, pgvector).
 # The db_session fixture is undefined without a running database, causing 194+ errors.
 step "Running pytest (unit tests)..."
-python3 -m pytest tests/ -x --tb=short -q \
+run_isolated tests/ -x --tb=short -q \
   --ignore=tests/test_integration \
   --ignore=tests/test_api \
   --ignore=tests/test_unit \
@@ -101,6 +122,8 @@ python3 -m pytest tests/ -x --tb=short -q \
   --ignore=tests/test_security \
   --ignore=tests/load \
   || fail "pytest"
+
+fi
 
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════════${RESET}"
