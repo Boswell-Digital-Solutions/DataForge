@@ -91,6 +91,9 @@ def start_postgres(run_id: str, socket_dir: str, role: str, image: str = IMAGE,
         "run", "--detach", "--rm", "--pull=never", "--network", "none",
         "--name", name, "--label", "dfiso.run=%s" % run_id,
         "--security-opt", "no-new-privileges",
+        # The entrypoint needs these five to chown the data directory and drop to uid 999.
+        "--cap-drop", "ALL", "--cap-add", "CHOWN", "--cap-add", "SETUID", "--cap-add", "SETGID",
+        "--cap-add", "DAC_OVERRIDE", "--cap-add", "FOWNER",
         "--tmpfs", "/var/lib/postgresql/data",
         "-v", "%s:%s" % (socket_dir, CONTAINER_SOCKET_DIR),
         "-e", "POSTGRES_USER=%s" % role, "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
@@ -164,7 +167,7 @@ def remove_container(name: str, socket_dir: "str | None" = None) -> bool:
         # A stop during initdb can leave socket files that belong to uid 999. A throwaway container
         # of the same pinned image removes them (no network, never a pull).
         _docker("run", "--rm", "--pull=never", "--network", "none", "-v", "%s:/d" % socket_dir,
-                "--entrypoint", "sh", IMAGE, "-c", "rm -f /d/.s.PGSQL.*", check=False, timeout=60)
+                "--entrypoint", "sh", IMAGE, "-c", "rm -rf /d/* /d/.[!.]*", check=False, timeout=60)
     return gone and not (socket_dir and os.path.isdir(socket_dir) and os.listdir(socket_dir))
 
 

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -42,7 +44,15 @@ def test_planted_lookup_of_an_invalid_name():
 '''
 
 
+def _cleanup_and_exit(signum, _frame):
+    PLANTED.unlink(missing_ok=True)
+    sys.exit(128 + signum)
+
+
 def main() -> int:
+    PLANTED.unlink(missing_ok=True)  # a stale copy from an earlier, killed run
+    signal.signal(signal.SIGTERM, _cleanup_and_exit)
+    signal.signal(signal.SIGINT, _cleanup_and_exit)
     report = Path(tempfile.mkdtemp(prefix="planted-proof-")) / "report.json"
     PLANTED.write_text(SOURCE)
     try:
@@ -54,6 +64,8 @@ def main() -> int:
     finally:
         PLANTED.unlink(missing_ok=True)
     data = json.loads(report.read_text()) if report.exists() else {}
+    if data.get("run_dir"):  # the runner keeps the run directory after exit 87; this tool uses no container
+        shutil.rmtree(data["run_dir"], ignore_errors=True)
     checks = {
         "exit code is 87": result.returncode == 87,
         "two violations are recorded": data.get("violations") == 2,

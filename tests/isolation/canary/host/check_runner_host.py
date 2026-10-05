@@ -30,6 +30,25 @@ RUNNER = REPO / "scripts" / "isolated_test_runner.py"
 PLANTED_ROOT = REPO / "tests" / "isolation" / "canary"
 DOC_ADDRESS = "192.0.2.1"
 
+def purge_run_dir(path: str) -> None:
+    """Remove a kept run directory. Files of uid 999 need the throwaway container of the pinned image."""
+    pg = Path(path, "pg")
+    if pg.is_dir() and os.listdir(pg):
+        subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "-v", f"{pg}:/d", "--entrypoint", "sh",
+                        "pgvector/pgvector:pg16", "-c", "rm -rf /d/* /d/.[!.]*"], capture_output=True)
+    shutil.rmtree(path, ignore_errors=True)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def leave_no_run_directory_behind():
+    import glob
+
+    before = set(glob.glob("/tmp/dfi-*"))
+    yield
+    for path in set(glob.glob("/tmp/dfi-*")) - before:
+        purge_run_dir(path)
+
+
 spec = importlib.util.spec_from_file_location("isolated_runner", RUNNER)
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
@@ -473,9 +492,7 @@ def test_no_secret_like_value_is_written_to_a_run_file(planted):
             if path.is_file() and path.name != "seccomp.bpf" and "guard" not in path.parts:
                 assert not pattern.search(path.read_text(errors="ignore")), path
     finally:
-        subprocess.run(["docker", "run", "--rm", "--pull=never", "--network", "none", "-v", f"{run_dir}/pg:/d", "--entrypoint", "sh",
-                        "pgvector/pgvector:pg16", "-c", "rm -f /d/.s.PGSQL.*"], capture_output=True)
-        shutil.rmtree(run_dir, ignore_errors=True)
+        purge_run_dir(run_dir)
 
 
 def test_the_planted_violation_proof_script_passes_against_the_real_conftest():

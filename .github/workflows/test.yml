@@ -125,6 +125,7 @@ jobs:
     # This step changes that setting on the ephemeral runner VM only. The tests still run as the
     # unprivileged runner user inside the sandbox. The sudo route for running tests stays refused.
     # The runner still probes, and it exits 86 if the namespaces stay blocked.
+    # Remove this step if the job ever moves to a self-hosted runner: the setting would persist there.
     # A key that is absent does not fail the step. The values are printed before and after.
     - name: Allow unprivileged user namespaces on the runner VM
       run: |

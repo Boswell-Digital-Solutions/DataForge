@@ -59,7 +59,7 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Status note (2026-10-04, implementation in review)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
   is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
   **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
-  under the runner with zero violations, and an independent review of the exact head. No full run has happened.
+  under the runner with zero violations, and an independent review of the exact head. (The update below records the first full runs.)
   **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
   1050 passed, 23 skipped and no violation. The 14 skips with no declared reason are now declared by their exact reason strings,
   with one entry per reason in `DECLARED_SKIPS` (`scripts/isolated_test_runner.py`). Eight of them are infrastructure-health tests

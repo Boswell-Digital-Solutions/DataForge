@@ -3117,7 +3117,7 @@ Declared skips and why (the local full run: 1050 passed, 23 skipped, 0 violation
 | 9, `test_infrastructure_health.py` Redis tests | `declared absent: redis (...)` | The decision owner declared Redis absent. |
 | 3, `tests/test_experience.py` | `Requires pgvector ...` | A hard-coded `@pytest.mark.skip`. It is unrelated to the sandbox. |
 | 3, `tests/load/test_k6_load.py` | `Load tests require an explicit RUN_LOAD_TESTS=1 opt-in ...` | An opt-in load surface. It needs a live API server. |
-| 8, `test_infrastructure_health.py` database and driver tests | The five SQLite messages, and `psycopg not installed` | See the note below. |
+| 8, `test_infrastructure_health.py` database and driver tests | Three SQLite reasons (five tests share the first one) and `psycopg not installed` | See the note below. |
 
 The eight infrastructure tests skip although the runner provides PostgreSQL.
 The cause is not the runner. The `db` fixture of `tests/conftest.py` is a fixed in-memory SQLite engine, and it ignores `DATAFORGE_DATABASE_URL`.
@@ -3138,6 +3138,8 @@ The kernel layers are the barrier: the network namespace, the mount allow-list, 
 A hostile test can truncate `violations.jsonl` or silence the stderr marker.
 That can erase only the record of an attempt that the kernel already blocked.
 A hardening option is a write-only pipe that the runner drains.
+The PostgreSQL container runs with `--cap-drop ALL`, plus only the five capabilities that its entrypoint needs, and with `no-new-privileges`.
+After a run, a throwaway container of the same pinned image removes every file in the socket directory, so uid 999 residue does not keep the run directory.
 
 ### Known limits
 
@@ -3147,7 +3149,9 @@ A hardening option is a write-only pipe that the runner drains.
 - The runner has no proof for a full run of the suite. Closure of M1 needs that proof.
 - `scripts/preflight.sh`, `run_tests.sh`, `ci_gate.sh` and the `make test` target now call the runner.
 - The `Makefile` on `master` has literal `\t` characters instead of tabs, so `make` fails with "missing separator". This is older than the runner.
-- `app/tests/` has no gate. A direct `pytest app/tests` is not refused and not guarded.
+- Skip reasons are global. They are not bound to a (file, reason) pair, so the same text in another file is also declared.
+- The two long SQLAlchemy skip reasons contain version-sensitive text. A SQLAlchemy upgrade can change them, and the run then fails closed with exit 87.
+- `app/tests/` has no gate. The owner decision on it is pending. A direct `pytest app/tests` is not refused and not guarded.
 
 ## Running the Suite
 
