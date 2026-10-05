@@ -56,6 +56,21 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   or deselecting the two tests alone does not prove that the whole suite is isolated.
 - **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
   or avoid hosted services, and that change has its own authorization and evidence.
+- **Status note (2026-10-04, implementation in review)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
+  is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
+  **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
+  under the runner with zero violations, and an independent review of the exact head. (The update below records the first full runs.)
+  **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
+  1050 passed, 23 skipped and no violation. The 14 skips with no declared reason are now declared by their exact reason strings,
+  with one entry per reason in `DECLARED_SKIPS` (`scripts/isolated_test_runner.py`). Eight of them are infrastructure-health tests
+  that skip because the `db` fixture is a fixed SQLite engine. That coverage gap exists without the runner. The direct callers
+  of pytest now use the runner, and the Render build skips the suite (`scripts/preflight.sh --no-tests`). M1 stays OPEN until
+  the closure steps are reviewed.
+  **Threat model**: the guard and the plugin are in-process Python. They are defence in depth against accidental calls, not
+  against a hostile test process. The kernel layers are the barrier: the network namespace, the mount allow-list, the seccomp
+  filter and the absence of inherited sockets. A hostile test can truncate `violations.jsonl` or silence the stderr marker.
+  That can erase only the record of an attempt that the kernel already blocked. A hardening option is a write-only pipe that
+  the runner drains. Residue: `DOCKER_HOST` is limited to `unix://`, and a `docker.sock` that forwards to a remote TCP host is not detected.
 
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 

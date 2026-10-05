@@ -38,18 +38,18 @@
 
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q tests/test_integration/test_api_endpoints.py
+  scripts/run-tests-isolated.sh -- -q tests/test_integration/test_api_endpoints.py
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q tests/test_integration/test_e2e_workflows.py
+  scripts/run-tests-isolated.sh -- -q tests/test_integration/test_e2e_workflows.py
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q tests/test_integration/test_infrastructure_health.py
+  scripts/run-tests-isolated.sh -- -q tests/test_integration/test_infrastructure_health.py
 ```
 
 ### Run Security Tests
 
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q tests/test_security/test_vulnerability_scanning.py
+  scripts/run-tests-isolated.sh -- -q tests/test_security/test_vulnerability_scanning.py
 ```
 
 ### Run Load Tests
@@ -58,7 +58,7 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
 
 ```bash
 RUN_LOAD_TESTS=1 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q tests/load/test_k6_load.py
+  scripts/run-tests-isolated.sh -- -q tests/load/test_k6_load.py
 ```
 
 **K6 native (high concurrency):**
@@ -77,14 +77,14 @@ locust -f tests/load/locustfile.py --host=http://localhost:8001
 
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+  scripts/run-tests-isolated.sh -- -q
 ```
 
 ### Generate Coverage Report
 
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest --cov=app tests/ --cov-report=html
+  scripts/run-tests-isolated.sh -- --cov=app tests/ --cov-report=html
 open htmlcov/index.html
 ```
 
@@ -169,8 +169,8 @@ Expected: < 1000ms avg, > 90% success
 
 ## Next Steps
 
-1. Run all test suites: `DATAFORGE_DATABASE_URL=... .venv/bin/pytest -q`
-2. Review coverage: `DATAFORGE_DATABASE_URL=... .venv/bin/pytest --cov=app tests/ --cov-report=html`
+1. Run all test suites: `DATAFORGE_DATABASE_URL=... scripts/run-tests-isolated.sh -- -q`
+2. Review coverage: `DATAFORGE_DATABASE_URL=... scripts/run-tests-isolated.sh -- --cov=app tests/ --cov-report=html`
 3. Run load tests: `k6 run tests/load/k6_test.js`
 4. Integrate into CI/CD pipeline
 5. Monitor performance trends

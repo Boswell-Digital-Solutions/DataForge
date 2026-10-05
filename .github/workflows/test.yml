@@ -29,27 +29,14 @@ jobs:
       contents: read
       issues: write
     env:
-      DATAFORGE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
       SECRET_KEY: test-secret-key-for-ci
       VOYAGE_API_KEY: test-key
     
-    services:
-      postgres:
-        image: ankane/pgvector:latest
-        env:
-          POSTGRES_DB: dataforge_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
     steps:
     - uses: actions/checkout@v4
+      with:
+        # No later step needs the checkout token header. The private clones use the app token.
+        persist-credentials: false
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -114,9 +101,6 @@ jobs:
         python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
         git config --global --unset "url.https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/.insteadOf" || true
 
-    - name: Apply database migrations
-      run: python -m alembic upgrade head
-    
     - name: Run mypy type checking
       run: |
         mypy app/utils/redis_utils.py \
@@ -126,12 +110,47 @@ jobs:
               --ignore-missing-imports || true
       continue-on-error: true
     
-    - name: Run pytest with coverage
+    # Install steps keep their network egress. Only the pytest step below runs isolated.
+    # The runner needs bubblewrap, and it never pulls an image (finding M1). The image is
+    # pulled here, in a separate and declared step, by the digest that tests/isolation/services.py pins.
+    - name: Install the isolated runner prerequisites
       run: |
-        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends bubblewrap iproute2
+        docker pull pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
+        docker tag pgvector/pgvector@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b pgvector/pgvector:pg16
+
+    # CI provider option A, with a probe (design section 4.1). Ubuntu 24.04 runners set
+    # kernel.apparmor_restrict_unprivileged_userns=1, which blocks unprivileged user namespaces.
+    # This step changes that setting on the ephemeral runner VM only. The tests still run as the
+    # unprivileged runner user inside the sandbox. The sudo route for running tests stays refused.
+    # The runner still probes, and it exits 86 if the namespaces stay blocked.
+    # Remove this step if the job ever moves to a self-hosted runner: the setting would persist there.
+    # A key that is absent does not fail the step. The values are printed before and after.
+    - name: Allow unprivileged user namespaces on the runner VM
+      run: |
+        for key in kernel.apparmor_restrict_unprivileged_userns kernel.unprivileged_userns_clone user.max_user_namespaces; do
+          echo "before: $key = $(sysctl -n "$key" 2>/dev/null || echo absent)"
+        done
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || echo "key absent or not writable"
+        sudo sysctl -w kernel.unprivileged_userns_clone=1 || echo "key absent or not writable"
+        for key in kernel.apparmor_restrict_unprivileged_userns kernel.unprivileged_userns_clone user.max_user_namespaces; do
+          echo "after: $key = $(sysctl -n "$key" 2>/dev/null || echo absent)"
+        done
+
+    # The runner exits 86 if it cannot isolate, 87 on a violation or an undeclared skip, 88 on a
+    # teardown fault. It never runs the suite without isolation.
+    - name: Run pytest with coverage (isolated runner)
+      run: |
+        scripts/run-tests-isolated.sh --database postgres --migrate --report isolation-report.json -- \
+          tests/ -v --cov=app --cov-report=xml --cov-report=term-missing -x
     
+    # Advisory only (decision owner, 2026-10-05): a coverage-upload fault must not fail the job.
+    # The upload is still attempted, and its failure stays visible in the log. The runner step
+    # (sandbox proofs, migrations, tests and the skip policy) stays blocking. This change touches no other step.
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
+      continue-on-error: true
       with:
         file: ./coverage.xml
         flags: unittests

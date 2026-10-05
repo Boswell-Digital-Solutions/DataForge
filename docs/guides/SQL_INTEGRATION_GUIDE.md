@@ -70,7 +70,7 @@ does not authorize one.
 ## Verification
 
 ```bash
-.venv/bin/pytest \
+scripts/run-tests-isolated.sh -- \
   tests/test_unit/test_authorforge_analytics.py \
   tests/test_unit/test_authorforge_boundary_audit.py -q
 ```

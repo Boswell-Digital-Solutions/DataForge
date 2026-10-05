@@ -19,7 +19,7 @@ help:
 \t@printf "  run         - start uvicorn in development mode (--reload)\n"
 \t@printf "  run-prod    - start uvicorn without reload\n"
 \t@printf "  health      - curl http://$(HOST):$(PORT)/health\n"
-\t@printf "  test        - run pytest if available\n"
+\t@printf "  test        - run pytest through the isolated runner if available\n"
 \t@printf "  lint        - run ruff check if available\n"
 \t@printf "  format      - run ruff format if available\n"
 \t@printf "  clean       - remove caches\n"
@@ -54,7 +54,7 @@ health:
 
 test: venv
 \t@if $(PYTHON) -m pytest --version >/dev/null 2>&1; then \
-\t\t$(PYTHON) -m pytest; \
+\t\tISOLATED_RUNNER_PYTHON="$(PYTHON)" bash scripts/run-tests-isolated.sh --; \
 \telse \
 \t\techo "pytest not installed in $(PYTHON)" && exit 0; \
 \tfi

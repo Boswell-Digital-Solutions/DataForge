@@ -27,6 +27,7 @@ bash scripts/render-git-auth.sh
 python -m pip install --no-cache-dir -r requirements.txt
 
 chmod +x scripts/preflight.sh
-bash scripts/preflight.sh
+# --no-tests: Render has no bwrap or Docker, so the suite cannot run isolated here (see scripts/preflight.sh).
+bash scripts/preflight.sh --no-tests
 
 python -m alembic upgrade head

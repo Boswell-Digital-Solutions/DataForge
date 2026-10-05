@@ -72,3 +72,6 @@ temp/
 
 # BDS Documentation Protocol
 context-bundle.md
+
+# Temporary file of scripts/prove_planted_violation.py
+tests/test_zz_planted_violation.py

@@ -108,8 +108,7 @@ DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic current
 
 # 4. Run tests to confirm nothing broke
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+scripts/run-tests-isolated.sh --database postgres --migrate -- -q
 
 # 5. Start service
 .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
@@ -120,8 +119,7 @@ For migration-sensitive changes, the preferred validation loop is:
 ```bash
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic upgrade head
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+scripts/run-tests-isolated.sh --database postgres --migrate -- -q
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
   .venv/bin/alembic downgrade -1
 DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \

@@ -11,13 +11,17 @@ Full reference: `doc/DTFSYSTEM.md` (designation DTF), built from `doc/system/` v
 ## Common Commands
 
 ```bash
-bash scripts/preflight.sh     # canonical gate: deps -> single alembic head -> pytest
-make test
+bash scripts/preflight.sh     # canonical gate: deps -> single alembic head -> pytest (through the isolated runner)
+scripts/run-tests-isolated.sh -- tests/ -q   # the suite; direct pytest exits 87
+make test                     # calls the isolated runner
 make lint
 make format
 make health
 ./scripts/context-bundle.sh --list          # focused context presets: core, api, schema, testing
 ```
+
+Every run of the suite must use `scripts/run-tests-isolated.sh` (namespaces, guard, disposable PostgreSQL; finding M1, `doc/system/15-testing.md`).
+`bash scripts/preflight.sh --no-tests` keeps every other check and skips the test phases. Only `scripts/render-build.sh` uses it, because Render has no `bwrap` or Docker.
 
 Postgres-backed proofs live in `scripts/prove_*.sh` (ForgeEvent.v1 storage, telemetry CP2-CP6).
 
