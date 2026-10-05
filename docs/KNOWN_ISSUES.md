@@ -19,9 +19,13 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   `psycopg2.errors.UndefinedTable: relation "runtime_promotion_candidates" does not exist` for
   `GET /api/v1/runtime-promotion/candidates` (2026-09-30 10:49 UTC) and for the detail route (10:56 UTC).
   This is the cause of the HTTP 500 that Forge_Command recorded as FC-RT-20260930-010.
-- **Not established**: Why the tables are missing. Whether they held data. Whether the live Render
-  process connects to this same project (its connection was not read). Whether an authenticated call
-  works now. The read-only check used the connector role, not the application role.
+- **Live target confirmed 2026-10-05**: Charlie ran a read-only shell check on Render. Data Forge resolves its
+  database to project `embvfponjxejbtrkryzs`, database `postgres`, with no target overrides. This is the inspected
+  database. The missing tables are a live schema-drift fault, not a connection-target mistake.
+- **Not established**: Why the tables are missing. Whether they held data. Whether the other four runtime-promotion
+  tables exist (the diagnostic checked two). Whether an authenticated call works now. The read-only check used
+  the connector role, not the application role.
+- **Plan**: [docs/proposals/runtime_promotion_schema_repair.md](proposals/runtime_promotion_schema_repair.md). Proposed, not approved.
 - **Do not**: Downgrade, edit `alembic_version` by hand, or run `alembic stamp head`. Stamp only changes the
   record. It does not create tables.
 - **Next, if authorized**: Confirm the live database identity. Check whether old data must be recovered.
