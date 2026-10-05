@@ -131,38 +131,114 @@ bytes, validator faults, malformed measurement classes, and value-free errors.
 - `tests/test_unit/test_vibeforge_services.py`
 - `tests/load/test_k6_load.py` (opt-in load surface)
 
+## Isolated Test Runner
+
+Status: implementation in review. Finding M1 stays open until a separately authorized closure proof.
+The design is `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`. The tracked finding is in `docs/KNOWN_ISSUES.md`.
+
+Every run of the suite must use `scripts/run-tests-isolated.sh`.
+A run of `pytest` without the runner exits with code 87 before `tests/conftest.py` imports `app`.
+No override exists. The refusal also covers `--collect-only`.
+
+```bash
+scripts/run-tests-isolated.sh -- tests/ -q                       # the suite, SQLite
+scripts/run-tests-isolated.sh --database postgres --migrate -- tests/ -q   # the suite, disposable PostgreSQL
+scripts/run-tests-isolated.sh --canary                           # the canary suite of the runner (in the sandbox)
+python -m pytest tests/isolation/canary/host -c pytest.ini -o addopts= -o python_files='check_*.py' \
+  --confcutdir tests/isolation/canary/host -p no:cacheprovider    # the host canaries of the runner
+```
+
+### What the runner does
+
+The runner starts the tests in a new user, network, pid and mount namespace.
+The namespace has no route out. It has a loopback interface only.
+The mount namespace starts from an empty root. It binds in only the files that the tests need.
+The sockets of the host (`/run`, `/var/run`, the Docker socket) do not exist inside it.
+A seccomp filter allows `socket()` for `AF_UNIX`, `AF_INET` and `AF_INET6` only.
+The filter also denies the x32 ABI and `io_uring_setup`, `io_uring_enter` and `io_uring_register`.
+The filter covers `x86_64` only. On another architecture the runner exits 86.
+The digest of the filter is pinned in `scripts/isolated_test_runner.py`.
+
+Two routes create the namespaces. The runner tries `bwrap` first. It tries `unshare -rnmpf --propagation private` second.
+No route uses `sudo`. If neither route works, the runner exits 86. Docker `--internal` is a documented fallback only.
+The test process never runs as real root. It has no capability, and `NoNewPrivs` is 1.
+
+A guard installs at interpreter start (`tests/isolation/sitecustomize.py`).
+The guard checks every connection, name lookup, spawned program and PostgreSQL target against a manifest.
+A violation is a `BaseException`. The guard also appends it to `violations.jsonl`.
+The runner reads that file after pytest exits. One line fails the run with code 87.
+A pytest plugin converts a skipped or passed test that caused a violation into a failed test.
+
+### Local services
+
+| Service | How the runner provides it |
+|---|---|
+| PostgreSQL with pgvector | The pinned local image `pgvector/pgvector:pg16`, started with `--pull=never --network none`. A Unix socket directory is the only door. |
+| NeuroForge | A stub on a loopback port that the runner chooses. The embedding tests run against it. |
+| Redis | Declared absent. A probe is logged. Tests that use `_get_redis_or_skip` skip before any connection, with a declared reason. |
+
+The runner never pulls an image. A missing image is exit 86.
+The CI workflow pulls the image by digest in a separate step.
+The runner sets every URL and DSN. It ignores ambient variables and removes every proxy variable.
+The runner refuses to start when a `.env` file exists in the repository or a parent directory.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| 86 | A precondition failed. No test started. |
+| 87 | A violation, a refused run, or a skip with no declared reason. |
+| 88 | A service did not stop in teardown. |
+| other | The normal pytest status. |
+
+A skip has a declared reason only when the reason starts with `declared absent:` or matches a pattern in `declared_skip_patterns` of the manifest.
+The report lists every skip.
+
+### Canaries
+
+The canaries use only RFC 5737 addresses (`192.0.2.0/24`) and `.invalid` names.
+They do not import `app` and do not run the suite.
+The sandbox canaries are in `tests/isolation/canary/sandbox`. The host canaries are in `tests/isolation/canary/host`.
+The default `pytest` run does not collect them, because their files do not match `python_files`.
+
+### Known limits
+
+- The guard cannot see raw C calls (`ctypes`). The namespaces and the seccomp filter cover them.
+- The runner has no proof for a full run of the suite. Closure of M1 needs that proof.
+- Scripts that call `pytest` directly (`scripts/preflight.sh`, `run_tests.sh`, `Makefile`, `ci_gate.sh`) exit 87 until they use the runner.
+
 ## Running the Suite
+
+Every command below must run through the runner (see Isolated Test Runner). Direct `pytest` exits 87.
 
 ### Inventory Only
 
 ```bash
-PYTHONPATH=. ./.venv/bin/pytest --collect-only -q
+scripts/run-tests-isolated.sh -- --collect-only -q --no-cov
 ```
 
 ### Full Repo Suite
 
 ```bash
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest -q
+scripts/run-tests-isolated.sh --database postgres --migrate -- -q
 ```
 
 ### With Coverage
 
 ```bash
-DATAFORGE_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dataforge \
-  .venv/bin/pytest --cov=app tests/ --cov-report=term-missing
+scripts/run-tests-isolated.sh --database postgres --migrate -- --cov=app tests/ --cov-report=term-missing
 ```
 
 ### Focused Governance Surfaces
 
 ```bash
-.venv/bin/pytest tests/test_policy_envelope_router.py tests/test_runtime_promotion_candidates.py -v
+scripts/run-tests-isolated.sh -- tests/test_policy_envelope_router.py tests/test_runtime_promotion_candidates.py -v
 ```
 
 ### Focused Poller and AuthorForge Boundary
 
 ```bash
-.venv/bin/pytest \
+scripts/run-tests-isolated.sh -- \
   tests/test_unit/test_supabase_log_ingest.py \
   tests/test_unit/test_supabase_log_poller.py \
   tests/test_unit/test_authorforge_analytics.py \

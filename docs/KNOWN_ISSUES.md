@@ -56,6 +56,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   or deselecting the two tests alone does not prove that the whole suite is isolated.
 - **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
   or avoid hosted services, and that change has its own authorization and evidence.
+- **Status note (2026-10-04, implementation in review)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
+  is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
+  **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
+  under the runner with zero violations, and an independent review of the exact head. No full run has happened.
 
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 
