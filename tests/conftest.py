@@ -315,3 +315,25 @@ def forge_command_candidate_key(client: TestClient, monkeypatch: pytest.MonkeyPa
     )
     client.headers["Authorization"] = "Bearer fc-key"
     return metadata
+
+
+RECEIPT_PRODUCER_HEADERS = {"Authorization": "Bearer producer-key"}
+
+
+@pytest.fixture
+def receipt_producer_key(monkeypatch: pytest.MonkeyPatch) -> dict:
+    """Make `producer-key` a local-runtime service key. Pass RECEIPT_PRODUCER_HEADERS to the ingest route."""
+    from types import SimpleNamespace
+
+    from app.api import runtime_promotion_router as receipt_router
+
+    metadata = {
+        "service_name": "forge_local_runtime",
+        "scopes": ["runtime-promotion:receipts:write"],
+    }
+    monkeypatch.setattr(
+        receipt_router,
+        "validate_api_key",
+        lambda token: SimpleNamespace(metadata=metadata) if token == "producer-key" else None,
+    )
+    return metadata

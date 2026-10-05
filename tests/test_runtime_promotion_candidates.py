@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-pytestmark = pytest.mark.usefixtures("forge_command_candidate_key")
+pytestmark = pytest.mark.usefixtures("forge_command_candidate_key", "receipt_producer_key")
+PRODUCER_HEADERS = {"Authorization": "Bearer producer-key"}
 
 def _build_local_failure_pattern_request() -> dict:
     unique_suffix = uuid.uuid4().hex
@@ -45,6 +46,7 @@ def _ingest_and_get_candidate(
     response = client.post(
         "/api/v1/runtime-promotion/receipts/local-failure-pattern",
         json=body,
+        headers=PRODUCER_HEADERS,
     )
     assert response.status_code == 201, response.text
 
@@ -101,6 +103,7 @@ def test_runtime_promotion_ingest_materializes_candidate_and_dedupes(
     first_response = client.post(
         "/api/v1/runtime-promotion/receipts/local-failure-pattern",
         json=request_body,
+        headers=PRODUCER_HEADERS,
     )
     assert first_response.status_code == 201, first_response.text
 
@@ -115,6 +118,7 @@ def test_runtime_promotion_ingest_materializes_candidate_and_dedupes(
     second_response = client.post(
         "/api/v1/runtime-promotion/receipts/local-failure-pattern",
         json=request_body,
+        headers=PRODUCER_HEADERS,
     )
     assert second_response.status_code == 201, second_response.text
 
@@ -520,3 +524,48 @@ def test_the_recorded_identity_comes_from_the_key_not_the_body(client: TestClien
     assert response.status_code == 200, response.text
     history = _get_candidate_detail(client, candidate_id)["decision_history"]
     assert history[0]["operator_identity"] == "forgecommand"
+
+
+def test_receipt_ingest_without_a_key_is_refused_and_writes_nothing(client: TestClient) -> None:
+    body = _build_local_failure_pattern_request()
+    response = client.post(
+        "/api/v1/runtime-promotion/receipts/local-failure-pattern",
+        json=body,
+        headers={"Authorization": ""},
+    )
+    assert response.status_code == 401
+    listing = client.get("/api/v1/runtime-promotion/candidates").json()
+    assert all(c["dedupe_key"] != body["dedupe_key"] for c in listing if "dedupe_key" in c)
+
+
+def test_receipt_ingest_with_the_forge_command_key_is_refused(client: TestClient) -> None:
+    # The candidate key is a different service. It must not be able to create receipts.
+    response = client.post(
+        "/api/v1/runtime-promotion/receipts/local-failure-pattern",
+        json=_build_local_failure_pattern_request(),
+    )
+    assert response.status_code == 401
+
+
+def test_receipt_ingest_needs_the_write_scope(
+    client: TestClient, receipt_producer_key: dict
+) -> None:
+    receipt_producer_key["scopes"] = ["runtime-promotion:receipts:read"]
+    response = client.post(
+        "/api/v1/runtime-promotion/receipts/local-failure-pattern",
+        json=_build_local_failure_pattern_request(),
+        headers=PRODUCER_HEADERS,
+    )
+    assert response.status_code == 403
+
+
+def test_receipt_ingest_needs_the_local_runtime_service(
+    client: TestClient, receipt_producer_key: dict
+) -> None:
+    receipt_producer_key["service_name"] = "forgecommand"
+    response = client.post(
+        "/api/v1/runtime-promotion/receipts/local-failure-pattern",
+        json=_build_local_failure_pattern_request(),
+        headers=PRODUCER_HEADERS,
+    )
+    assert response.status_code == 403
