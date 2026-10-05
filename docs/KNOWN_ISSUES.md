@@ -2,6 +2,37 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## The Runtime-Promotion Candidate Tables Are Missing From The Connected Database (2026-10-05)
+
+- **Location**: Database project `DataForgedb` (ref `embvfponjxejbtrkryzs`). Migrations
+  `75660723bef6` (candidates) and `20260401_1200` (candidate decisions).
+- **Status**: Open. No repair applied. Not authorized.
+- **What is wrong**: At 2026-10-05 10:02 UTC a read-only catalog query found no relation named
+  `runtime_promotion_candidates` or `runtime_promotion_candidate_decisions` in any schema.
+  `public.alembic_version` holds one revision, `20260930_01`. The version record says head, but the
+  tables do not exist.
+- **Source**: A read-only diagnostic by GPT Pro on 2026-10-05, using the Render and Supabase connectors. A
+  Claude Code session did not run the queries. It checked the repository claims only: both migration files exist
+  at commit `65c0e773`, `20260930_01` is a migration revision, and `20260711_01` names project
+  `embvfponjxejbtrkryzs` as DataForgedb. The database and log results are unverified by this session.
+- **Evidence**: Render logs for service `srv-d503rdvpm1nc73c3t8pg` show
+  `psycopg2.errors.UndefinedTable: relation "runtime_promotion_candidates" does not exist` for
+  `GET /api/v1/runtime-promotion/candidates` (2026-09-30 10:49 UTC) and for the detail route (10:56 UTC).
+  This is the cause of the HTTP 500 that Forge_Command recorded as FC-RT-20260930-010.
+- **Live target confirmed 2026-10-05**: Charlie ran a read-only shell check on Render. Data Forge resolves its
+  database to project `embvfponjxejbtrkryzs`, database `postgres`, with no target overrides. This is the inspected
+  database. The missing tables are a live schema-drift fault, not a connection-target mistake.
+- **Not established**: Why the tables are missing. Whether they held data. Whether the other four runtime-promotion
+  tables exist (the diagnostic checked two). Whether an authenticated call works now. The read-only check used
+  the connector role, not the application role.
+- **Plan**: [docs/proposals/runtime_promotion_schema_repair.md](proposals/runtime_promotion_schema_repair.md). Proposed, not approved.
+- **Do not**: Downgrade, edit `alembic_version` by hand, or run `alembic stamp head`. Stamp only changes the
+  record. It does not create tables.
+- **Next, if authorized**: Confirm the live database identity. Check whether old data must be recovered.
+  Then write a forward-repair migration for both tables, with the original constraints and indexes and
+  the security policies. Test it on a copy of the drifted state and on a correctly migrated state.
+  Keep the service-key gate. Verify the schema and an authenticated read before closing the Forge_Command finding.
+
 ## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
 
 - **Location**: `scripts/render-git-auth.sh`. The same script exists in Rake, Forge-Agents and NeuroForge.
