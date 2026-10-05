@@ -24,7 +24,7 @@ candidates table exists. The execution handoff routes need the rest.
 ## Steps
 
 1. **Audit (read-only).** Compare every table that the Alembic migrations create against the live
-   database. Report each missing or partial table. Do this before any design choice. Output: a list in this file.
+   database. Report each missing or partial table. Do this before any design choice. Query: [runtime_promotion_schema_audit.sql](runtime_promotion_schema_audit.sql). It is read-only. Output: a list in this file.
 2. **Find the cause.** Check why the tables are missing: a manual drop, a restore to an older point, or a
    database that never ran those migrations. Use the Supabase project history. A repair that ignores the cause can repeat the fault.
 3. **Decide on recovery.** If the tables held data, recover it first (backup or point-in-time restore).
