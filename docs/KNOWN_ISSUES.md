@@ -56,8 +56,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   or deselecting the two tests alone does not prove that the whole suite is isolated.
 - **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
   or avoid hosted services, and that change has its own authorization and evidence.
-- **Status note (2026-10-04, implementation in review)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
-  is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
+- **Status note (2026-10-04, implementation in review; superseded)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
+  was implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`).
+  **Update (2026-10-05, merged)**: pull request 91 merged as `038a82f6c13ba026eef98ddae739b791cdd69d37` (tree equal to PR head
+  `34a6b1299a5818316bb708b5fc6a5ee96a2fa9f9`). **M1 stays OPEN** until the decision owner accepts the repair evidence.
   **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
   under the runner with zero violations, and an independent review of the exact head. (The update below records the first full runs.)
   **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
@@ -71,6 +73,53 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   filter and the absence of inherited sockets. A hostile test can truncate `violations.jsonl` or silence the stderr marker.
   That can erase only the record of an attempt that the kernel already blocked. A hardening option is a write-only pipe that
   the runner drains. Residue: `DOCKER_HOST` is limited to `unix://`, and a `docker.sock` that forwards to a remote TCP host is not detected.
+
+- **Final review of the merged runner (2026-10-05)**: an independent review of `038a82f6` found no safety or fail-open defect
+  (verdict: approve with changes; none blocks). Evidence: canaries 54 passed on each route, host canaries 39 passed, the full
+  suite under the runner 1050 passed and 23 skipped with every skip declared and no violation, the planted-violation tool exit 87
+  with two violations and two failed tests, and clean teardown after every normal run. CI: the runner step passed on PR run
+  37265341309 and master run 37266293444. **The coverage upload failed in both** (`codecov/codecov-action@v3`, TLS handshake
+  failure). The step is advisory, so no Codecov upload has succeeded for this code. The follow-ups are in the next entry.
+
+## Follow-ups of the M1 Runner Review (2026-10-05)
+
+- **Location**: `scripts/isolated_test_runner.py`, `scripts/prove_planted_violation.py`, `scripts/preflight.sh`,
+  `tests/isolation/services.py`, `tests/isolation/canary/host/check_runner_host.py`, `.github/workflows/test.yml`,
+  `tests/conftest.py`, `doc/system/15-testing.md`. Line numbers are for `038a82f6`.
+- **Status**: **Open. Not repaired.** Found by the independent review of the merged runner. None is a path to a hosted service.
+- **PostgreSQL coverage (open, not repaired by declaring skips)**: eight infrastructure-health checks never run on any backend.
+  Seven skip because the shared `db` fixture is a fixed in-memory SQLite engine. `test_psycopg_available` skips for another
+  reason: it imports psycopg 3, and the repository pins `psycopg2-binary` only. Declaring their skips does not give PostgreSQL coverage.
+- **Recorded deviation**: the disposable Postgres container uses trust authentication over its Unix socket (no password), not the
+  design's random credentials. The protection is `--network none`, the 0700 run directory and the identity check.
+- **Misleading CI comment**: `test.yml` posts "Tests passed! Coverage reports available." whenever `coverage.xml` exists, although
+  every upload so far has failed.
+- **Signal leftovers**: after SIGTERM or SIGINT, `prove_planted_violation.py` leaves a `/tmp/dfi-*` run directory, and it never
+  deletes its `planted-proof-*` temporary directory. `rmtree` on the run directory has no check that the path starts with `/tmp/dfi-`.
+- **Host-canary cleanup can hit another run**: the module fixture deletes every `/tmp/dfi-*` that appeared during the module, so a
+  concurrent run from another session can lose its live run directory (it then fails closed).
+- **Unproven capabilities**: the Postgres container passed the canaries with only `CHOWN`, `SETUID` and `SETGID`. The docs say it
+  needs five (`DAC_OVERRIDE` and `FOWNER` too).
+- **`--no-tests` is not tied to Render**: any caller can run `preflight.sh --no-tests` and see "PRE-FLIGHT PASSED". `run_isolated`
+  also overwrites a caller's `ISOLATED_RUNNER_PYTHON`.
+- **Stale text**: `doc/system/15-testing.md` still says "The runner has no proof for a full run of the suite."
+- **Earlier gaps, noted only**: `alembic heads` failing passes the single-head check; the Makefile has literal `\t`; exit 1 also keeps
+  the run directory, and the docs list only 86, 87 and 88; `app/tests/` has no gate (decision pending).
+- **Scope**: open until bounded, authorized changes fix them. Each needs its own evidence.
+
+## The CI App Credential Can Mint Organization-Admin Tokens (2026-10-05)
+
+- **Location**: `.github/workflows/test.yml` (the step "Mint an app token for the private forge-* dependency clones") and the
+  repository secret `FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY`.
+- **Status**: **Open. Not repaired.** Found by a read-only inventory on 2026-10-05.
+- **What is wrong**: the step mints a token of the GitHub App `bds-fleet-operator` (app id 4425224, installation 149850721). The
+  installation covers all repositories of the organization and grants, among others, administration, secrets, workflows and contents
+  write, and organization administration and organization secrets write. The step asks for two repositories, but the private key
+  in this repository's secrets can mint a token with the full installation scope. Any workflow in this repository that can read the
+  secret can therefore act with organization-admin rights.
+- **Fix (not authorized)**: a dedicated GitHub App with only the permissions that the clone needs (Contents: Read on the dependency
+  repositories), or mint-time narrowing plus a protected environment. Removing this key needs the decision owner.
+- **Scope**: this repository's CI and any other repository that holds the same key.
 
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 
