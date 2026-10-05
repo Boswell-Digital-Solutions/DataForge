@@ -1,10 +1,15 @@
 """The direct-pytest gate of the isolated runner (finding M1).
 
-Standard library only: no third-party import and no `app` import. Both the repository-root
-conftest.py and tests/conftest.py call refuse_unless_guarded() before any other import, so a
-run that did not start through scripts/run-tests-isolated.sh exits 87 and imports nothing of
-the application. That covers tests/, app/tests/ and any later test directory under the root.
-There is no override and no --collect-only exemption. A second call does the same check again.
+Standard library only: no third-party import and no `app` import. The repository-root
+conftest.py, tests/conftest.py and app/tests/conftest.py call refuse_unless_guarded() before any
+other import. An ACCIDENTAL direct pytest run (including --collect-only) therefore exits 87 and
+imports nothing of the application. There is no override flag. A second call does the same check.
+
+It is not a barrier against a deliberate bypass. pytest --noconftest, a --confcutdir below the
+root conftest outside app/tests and tests, a -p plugin that imports app, PYTEST_ADDOPTS carrying
+those options, python -m unittest and plain python <file> all skip it. A hand-built install of
+the netguard module with a matching NETGUARD_RUN_ID also satisfies the check. The kernel layers
+of the runner are the barrier (doc/system/15-testing.md, "Threat model" and "Known limits").
 """
 
 import os

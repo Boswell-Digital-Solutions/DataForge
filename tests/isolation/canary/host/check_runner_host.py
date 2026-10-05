@@ -89,7 +89,7 @@ def _gate_line(tree) -> int:
     raise AssertionError("no gate call at module level")
 
 
-@pytest.mark.parametrize("conftest", ["conftest.py", "tests/conftest.py"])
+@pytest.mark.parametrize("conftest", ["conftest.py", "tests/conftest.py", "app/tests/conftest.py"])
 def test_the_gate_precedes_every_third_party_and_app_import(conftest):
     tree = ast.parse((REPO / conftest).read_text())
     gate_line = _gate_line(tree)
@@ -129,9 +129,9 @@ def _layout_copy(tmp_path: Path) -> tuple:
     shutil.copy2(REPO / "pytest.ini", root / "pytest.ini")
     shutil.copy2(REPO / "tests" / "conftest.py", root / "tests" / "conftest.py")
     shutil.copy2(REPO / "tests" / "isolation" / "gate.py", root / "tests" / "isolation" / "gate.py")
+    shutil.copy2(REPO / "app" / "tests" / "conftest.py", root / "app" / "tests" / "conftest.py")
     (root / "tests" / "__init__.py").write_text("")
     (root / "app" / "__init__.py").write_text(f"open({str(marker)!r}, 'w').close()\nraise SystemExit('poison app imported')\n")
-    (root / "app" / "tests" / "__init__.py").write_text("")
     (root / "app" / "tests" / "test_x.py").write_text("import app\n\ndef test_x():\n    assert True\n")
     (root / "tests" / "test_y.py").write_text("import app\n\ndef test_y():\n    assert True\n")
     return root, marker
@@ -159,6 +159,24 @@ def test_tests_conftest_refuses_on_its_own_without_the_root_conftest(tmp_path):
     result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", "--collect-only", "tests"],
                             env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
     assert result.returncode == 87 and "network guard is not installed" in result.stderr and not marker.exists()
+
+
+def test_a_confcutdir_below_the_root_conftest_is_refused_by_the_app_tests_conftest(tmp_path):
+    root, marker = _layout_copy(tmp_path)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=",
+                             "--confcutdir", "app/tests", "app/tests"], env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode == 87 and "network guard is not installed" in result.stderr and not marker.exists()
+
+
+def test_the_documented_limit_noconftest_skips_the_gate(tmp_path):
+    """A known limit, not a defence: --noconftest skips every conftest, so the poison app loads.
+    This canary keeps the documentation honest; it fails if the limit ever changes."""
+    root, marker = _layout_copy(tmp_path)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", "--noconftest",
+                             "--collect-only", "app/tests"], env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode != 87 and marker.exists()
 
 
 def test_a_missing_gate_file_fails_closed(tmp_path):

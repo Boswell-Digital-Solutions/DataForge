@@ -319,8 +319,11 @@ one fails a check.
 
 **Status note (2026-10-05)**: the direct-pytest part is closed. The repository-root `conftest.py` now calls the
 isolation gate (`tests/isolation/gate.py`), so `pytest app/tests` without `scripts/run-tests-isolated.sh` exits 87
-before any `app` import. Collection of `app/tests/` by `testpaths` or CI stays an open decision. The five failures
-above are still open.
+before any `app` import. `app/tests/conftest.py` calls the same gate, which closes `--confcutdir app/tests`.
+The gate stops an accidental direct run only. It is not a barrier against a deliberate bypass: `--noconftest`, a
+`--confcutdir` below the root conftest elsewhere, `-p` with a plugin that imports `app`, those options through
+`PYTEST_ADDOPTS`, `python -m unittest` and plain `python <file>` all skip it (doc/system/15-testing.md, Known limits).
+Collection of `app/tests/` by `testpaths` or CI stays an open decision. The five failures above are still open.
 
 ---
 

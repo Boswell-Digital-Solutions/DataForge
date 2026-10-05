@@ -138,10 +138,12 @@ Status: implementation in review. Finding M1 stays open until a separately autho
 The design is `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`. The tracked finding is in `docs/KNOWN_ISSUES.md`.
 
 Every run of the suite must use `scripts/run-tests-isolated.sh`.
-A run of `pytest` without the runner exits with code 87 before any `app` import.
+An accidental run of `pytest` without the runner exits with code 87 before any `app` import.
 The gate is `tests/isolation/gate.py`. It imports only the standard library.
-The repository-root `conftest.py` calls it first, so the gate covers `tests/`, `app/tests/` and any later test directory.
-`tests/conftest.py` calls the same gate again. A second call does the same check.
+The repository-root `conftest.py` calls it first, so a plain `pytest` of `tests/`, `app/tests/` or a later test directory is refused.
+That also refuses the repository-root files `test_ecosystem.py` and `test_rag_refactoring.py`.
+`tests/conftest.py` and `app/tests/conftest.py` call the same gate again. A second call does the same check.
+The gate stops an accidental direct run. It is not a barrier against a deliberate bypass (see Known limits).
 If the gate file is missing, the run also exits 87.
 No override exists. The refusal also covers `--collect-only`.
 
@@ -286,6 +288,14 @@ The PostgreSQL container runs with `--cap-drop ALL`, plus only the five capabili
 After a run, a throwaway container of the same pinned image removes every file in the socket directory, so uid 999 residue does not keep the run directory.
 
 ### Known limits
+
+- The gate is a conftest, so it stops only an accidental direct `pytest` run. These skip it and can import `app` with no guard:
+  `pytest --noconftest`, a `--confcutdir` below the root conftest outside `tests/` and `app/tests/`,
+  `pytest -p <a module that imports app>` (a plugin loads before any conftest), the same options through `PYTEST_ADDOPTS`,
+  `python -m unittest app.tests...`, `python -m unittest discover` and plain `python <file>`.
+  A hand-built install of the `netguard` module with a matching `NETGUARD_RUN_ID` also satisfies the check.
+  This matches the Threat model: the kernel layers of the runner are the barrier, not the gate.
+  `app/tests/conftest.py` closes `--confcutdir app/tests`. Nothing in a conftest can close `--noconftest`.
 
 - A Python child that starts with a socket as its standard input exits 87. The inherited-descriptor check of the guard causes this.
 - The runner limits `DOCKER_HOST` to `unix://`. A local `docker.sock` that forwards to a remote TCP host is not detected.
