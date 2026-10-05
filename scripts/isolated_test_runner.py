@@ -51,7 +51,7 @@ PROXY_VARIABLES = (
 WRITABLE_REPO_DIRS = ("htmlcov", "logs", "reports")
 WRITABLE_REPO_FILES = ("coverage.xml",)
 REDIS_ABSENT_REASON = "the decision owner declared Redis absent; no disposable Redis image is cached locally"
-DEFAULT_PREFLIGHT_MODULES = "ssl,sqlite3,json"
+DEFAULT_PREFLIGHT_MODULES = "ssl,sqlite3,json,pytest,psycopg2"
 # Trees that must never be bound into the sandbox (they hold the sockets of section 3, item 9).
 FORBIDDEN_TREES = ("/", "/var", "/run", "/var/run", "/home", "/root", "/tmp", "/dev", "/proc", "/sys", "/etc")
 
@@ -287,7 +287,9 @@ def build_plan(run_dir: str, repo: Path, with_postgres: bool, etc_dir: str, extr
     plan.append(("bind", guard_dir, guard_dir, True))
     plan.append(("bind", os.path.join(run_dir, "manifest.json"), os.path.join(run_dir, "manifest.json"), True))
     plan.append(("bind", os.path.join(run_dir, "launch.json"), os.path.join(run_dir, "launch.json"), True))
-    plan.append(("bind", os.path.join(run_dir, "viol"), os.path.join(run_dir, "viol"), False))
+    # The violation record is bound as a file (a mount point), so the test process cannot unlink or rename it.
+    viol_file = os.path.join(run_dir, "viol", "violations.jsonl")
+    plan.append(("bind", viol_file, viol_file, False))
     plan.append(("bind", os.path.join(run_dir, "log"), os.path.join(run_dir, "log"), False))
     if with_postgres:
         plan.append(("bind", os.path.join(run_dir, "pg"), os.path.join(run_dir, "pg"), True))
@@ -529,7 +531,14 @@ def stage2(config_path: str) -> int:
     route = config["route"]
     status_line(config, "stage2-start", True, "route=%s uid=%d" % (route, os.getuid()))
     # L1 to L4 ran before this process (bwrap options, or stage 1 of the plain route).
-    # L5. Preflight inside the final sandbox: the interpreter modules and the programs.
+    # L5. Preflight inside the final sandbox: inherited descriptors, the interpreter modules and the programs.
+    sys.path.insert(0, os.path.join(config["run_dir"], "guard"))
+    import netguard  # only for its descriptor check; the guard is not installed in the launcher
+
+    bad_fds = netguard.inherited_fd_problems()
+    if bad_fds:
+        fail_launcher(config, "preflight-descriptors", "; ".join(bad_fds))
+    sys.path.pop(0)
     modules = [m for m in config["preflight_modules"].split(",") if m]
     code = "import " + ", ".join(modules) if modules else "pass"
     pre = subprocess.run([config["python"], "-c", code], capture_output=True, text=True, env=config["launcher_env"])
@@ -752,12 +761,32 @@ def validate_manifest(manifest: dict, run_dir: str) -> None:
             raise Precondition("manifest entry %r is outside the run directory" % (entry,))
 
 
-def read_jsonl(path: str) -> list:
+class RecordError(Exception):
+    """A record file is missing, replaced or unparseable. The runner exits 87."""
+
+
+def read_jsonl_strict(path: str, held_fd: "int | None" = None) -> list:
+    """Read a JSON-lines file. With `held_fd`, read through the descriptor that the runner opened
+    before the launch, and require that the path still names the same file."""
     try:
-        with open(path, "r", encoding="utf-8") as handle:
-            return [json.loads(line) for line in handle if line.strip()]
-    except OSError:
-        return []
+        if held_fd is not None:
+            if os.stat(path).st_ino != os.fstat(held_fd).st_ino:
+                raise RecordError("%s is not the file that the runner opened" % path)
+            os.lseek(held_fd, 0, os.SEEK_SET)
+            chunks = []
+            while True:
+                chunk = os.read(held_fd, 1 << 20)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            text = b"".join(chunks).decode("utf-8")
+        else:
+            text = Path(path).read_text(encoding="utf-8")
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
+    except RecordError:
+        raise
+    except (OSError, ValueError) as exc:
+        raise RecordError("%s: %r" % (path, exc))
 
 
 class Tee(threading.Thread):
@@ -792,6 +821,7 @@ def parse_args(argv: list) -> argparse.Namespace:
     parser.add_argument("--simulate-namespace-failure", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--preflight-modules", default=DEFAULT_PREFLIGHT_MODULES, help=argparse.SUPPRESS)
     parser.add_argument("--debug-omit-interpreter-trees", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--debug-fail-postgres-readiness", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("pytest_args", nargs="*")
     args = parser.parse_args(argv)
     if args.migrate and args.database != "postgres":
@@ -821,6 +851,13 @@ def check_preconditions(args: argparse.Namespace) -> str:
             raise Precondition("missing %s" % (ISOLATION_DIR / name))
     if not args.no_postgres:
         tool("docker")
+        sys.path.insert(0, str(ISOLATION_DIR))
+        import services
+
+        try:
+            services.check_docker_local(os.environ)
+        except services.ServiceError as exc:
+            raise Precondition("docker: %s" % exc)
     return probe_route(args.route, args.simulate_namespace_failure)
 
 
@@ -838,7 +875,7 @@ def launch(args, route, run_dir, config, plan, seccomp_program) -> "tuple[int, T
         command = bwrap_args(plan, fd, REPO) + [config["python"], runner, "--internal-stage2", launch_json]
     else:
         command = ["unshare", "-rnmpf", "--propagation", "private", config["python"], runner, "--internal-stage1", launch_json]
-    proc = subprocess.Popen(command, env=host_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=pass_fds, cwd=str(REPO))
+    proc = subprocess.Popen(command, env=host_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=pass_fds, cwd=str(REPO))
     tee_err, tee_out = Tee(proc.stderr, sys.stderr), Tee(proc.stdout, sys.stdout)
     tee_err.start()
     tee_out.start()
@@ -895,7 +932,8 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
         if not args.no_postgres:
             role, password = SANDBOX_USER, secrets.token_hex(12)
             try:
-                state["pg_record"] = services.start_postgres(run_id, socket_dir, role, password)
+                state["pg_record"] = services.start_postgres(run_id, socket_dir, role, password,
+                                                             fail_after_run=args.debug_fail_postgres_readiness)
                 record = state["pg_record"]
                 identity = services.verify_identity_outside(record, run_id)
                 if args.database == "postgres":
@@ -931,37 +969,64 @@ def run_once(args: argparse.Namespace, state: dict) -> int:
         }
         say("route=%s run=%s uid-in-sandbox=%d" % (route, run_id, uid))
         # 4. The in-sandbox launcher (without the guard) runs L1 to L15, which include pytest.
+        state["viol_fd"] = os.open(os.path.join(run_dir, "viol", "violations.jsonl"), os.O_RDONLY)
         rc, tee = launch(args, route, run_dir, config, plan, build_seccomp_x86_64())
     except Precondition as exc:
         say("PRECONDITION FAILED: %s" % exc)
         report["precondition_error"] = str(exc)
         return EXIT_PRECONDITION
     # 8. Read the records after pytest exits (step 5 to 7 ran in the sandbox).
-    status = read_jsonl(os.path.join(run_dir, "log", "status.jsonl"))
-    steps = {s["step"] for s in status if s["ok"]}
-    violations = read_jsonl(os.path.join(run_dir, "viol", "violations.jsonl"))
-    absent = read_jsonl(os.path.join(run_dir, "log", "declared_absent.jsonl"))
-    skips = []
+    try:
+        violations = read_jsonl_strict(os.path.join(run_dir, "viol", "violations.jsonl"), state["viol_fd"])
+    except RecordError as exc:
+        say("the violation record is unusable: %s" % exc)
+        report["record_error"] = str(exc)
+        return EXIT_VIOLATION
+    # A guard violation counts even if the sandbox never reached pytest (for example during --migrate).
+    if violations or tee.markers:
+        report.update(launcher_exit=rc, violations=len(violations), stderr_markers=tee.markers)
+        say("%d violation(s) in violations.jsonl, %d marker(s) on output" % (len(violations), tee.markers))
+        return EXIT_VIOLATION
+    try:
+        status = read_jsonl_strict(os.path.join(run_dir, "log", "status.jsonl"))
+    except RecordError:
+        status = []  # a missing status file means the launcher never started
+    steps = {s["step"] for s in status if s.get("ok")}
+    try:
+        absent = read_jsonl_strict(os.path.join(run_dir, "log", "declared_absent.jsonl"))
+    except RecordError as exc:
+        say("the declared-absent log is unusable: %s" % exc)
+        return EXIT_VIOLATION
+    skips, skip_files = [], 0
     for name in sorted(os.listdir(os.path.join(run_dir, "log"))):
         if name.startswith("skips-"):
-            skips += json.loads(Path(run_dir, "log", name).read_text())["skips"]
+            skip_files += 1
+            try:
+                skips += json.loads(Path(run_dir, "log", name).read_text())["skips"]
+            except (OSError, ValueError, KeyError) as exc:
+                say("the skip report %s is unusable: %r" % (name, exc))
+                return EXIT_VIOLATION
     undeclared = [s for s in skips if not s["declared"]]
     report.update(
-        launcher_exit=rc, status=status, violations=len(violations), stderr_markers=tee.markers,
+        launcher_exit=rc, status=status, violations=0, stderr_markers=tee.markers,
         declared_absent_probes=len(absent), declared_absent_services=sorted({a["service"] for a in absent}),
         skips_total=len(skips), skips_declared=len(skips) - len(undeclared), skips_undeclared=undeclared[:200],
     )
     if "ready" not in steps:
-        failed = [s for s in status if not s["ok"]]
+        failed = [s for s in status if not s.get("ok")]
         say("the sandbox did not reach pytest: %s" % (failed[-1] if failed else "no status written (launch failed)"))
         return EXIT_PRECONDITION
-    if violations or tee.markers:
-        say("%d violation(s) in violations.jsonl, %d marker(s) on stderr" % (len(violations), tee.markers))
+    if rc in (0, 1) and skip_files == 0:
+        say("pytest exited %d but wrote no skip report; undeclared skips cannot be excluded" % rc)
         return EXIT_VIOLATION
     if undeclared:
         say("%d skip(s) with no declared reason" % len(undeclared))
         return EXIT_VIOLATION
     return rc
+
+
+def _interrupt(signum, _frame):
+    raise KeyboardInterrupt("signal %d" % signum)
 
 
 def main(argv=None) -> int:
@@ -971,27 +1036,42 @@ def main(argv=None) -> int:
     if argv and argv[0] == "--internal-stage2":
         return stage2(argv[1])
     args = parse_args(argv)
+    signal.signal(signal.SIGTERM, _interrupt)  # teardown must run on SIGTERM and SIGINT
+    signal.signal(signal.SIGINT, _interrupt)
     run_id = secrets.token_hex(4)
     state = {"run_id": run_id, "run_dir": os.path.join(RUN_PARENT, "dfi-" + run_id), "pg_record": None,
-             "report": {"run_id": run_id}}
+             "viol_fd": None, "report": {"run_id": run_id}}
     code = EXIT_PRECONDITION
     try:
         code = run_once(args, state)
+    except KeyboardInterrupt as exc:
+        say("interrupted (%s)" % exc)
+        code = EXIT_PRECONDITION
     finally:
-        # 9. Teardown: the container, then the run directory.
+        # 9. Teardown: the container by its fixed name (even if start_postgres raised), then the run directory.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         clean = True
-        if state["pg_record"] is not None:
+        if not args.no_postgres:
             import services
 
-            clean = services.stop_postgres(state["pg_record"])
-            if not clean:
-                say("TEARDOWN FAILED: container %s remains" % state["pg_record"]["name"])
+            if services._DOCKER_ENV:  # the docker client passed the local-endpoint check
+                clean = services.remove_container(services.container_name(run_id), os.path.join(state["run_dir"], "pg"))
+                if not clean:
+                    say("TEARDOWN FAILED: container %s remains" % services.container_name(run_id))
+        if state["viol_fd"] is not None:
+            os.close(state["viol_fd"])
         if not clean and code not in (EXIT_PRECONDITION, EXIT_VIOLATION):
             code = EXIT_TEARDOWN
         report = state["report"]
         report.update(teardown_clean=clean, exit_code=code, run_dir=state["run_dir"])
         if args.report:
-            Path(args.report).write_text(json.dumps(report, indent=1, sort_keys=True, default=str))
+            try:
+                Path(args.report).write_text(json.dumps(report, indent=1, sort_keys=True, default=str))
+            except OSError as exc:
+                say("cannot write the report %s: %r" % (args.report, exc))
+                if code == 0:
+                    code = EXIT_TEARDOWN
         run_dir = state["run_dir"]
         if os.path.isdir(run_dir):
             if code == 0 and clean and not args.keep_run_dir:

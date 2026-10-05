@@ -191,6 +191,16 @@ The runner refuses to start when a `.env` file exists in the repository or a par
 | 88 | A service did not stop in teardown. |
 | other | The normal pytest status. |
 
+After exit 86, 87 or 88 the runner keeps its run directory `/tmp/dfi-<run id>` for evidence.
+After exit 0 it removes the directory.
+Remove a kept directory by hand when you no longer need it.
+A kept `pg` subdirectory can hold files that belong to uid 999. Run `docker rm --force dfiso-pg-<run id>` first, then remove the directory.
+
+The runner refuses a Docker client that does not use a local Unix socket.
+It refuses a remote `DOCKER_HOST` or a remote Docker context with exit 86.
+It starts the container with an explicit environment, and it always removes the container by its fixed name.
+The sandbox gets `/dev/null` as standard input. It inherits no socket.
+
 A skip has a declared reason only when the reason starts with `declared absent:` or matches a pattern in `declared_skip_patterns` of the manifest.
 The report lists every skip.
 

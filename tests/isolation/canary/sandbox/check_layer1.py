@@ -82,12 +82,57 @@ def test_mounts_are_read_only_where_the_design_says():
             open(path, "a")
 
 
-def test_the_violation_record_has_its_own_bind():
+def test_the_violation_record_is_a_mount_point_that_cannot_be_unlinked():
     mounts = open("/proc/self/mountinfo").read()
-    viol_dir = os.path.dirname(MANIFEST["violations_path"])
     points = {line.split()[4] for line in mounts.splitlines()}
-    assert viol_dir in points and MANIFEST["log_dir"] in points and viol_dir != MANIFEST["log_dir"]
-    assert os.access(viol_dir, os.W_OK)
+    record = MANIFEST["violations_path"]
+    assert record in points and MANIFEST["log_dir"] in points
+    for operation in (lambda: os.unlink(record), lambda: os.rename(record, record + ".moved")):
+        with pytest.raises(OSError):
+            operation()
+    assert os.path.exists(record)
+
+
+def _classify(pid: int) -> list:
+    import stat
+
+    bad = []
+    null = os.stat("/dev/null")
+    for name in os.listdir(f"/proc/{pid}/fd"):
+        try:
+            st = os.stat(f"/proc/{pid}/fd/{name}")
+            link = os.readlink(f"/proc/{pid}/fd/{name}")
+        except OSError:
+            continue
+        if stat.S_ISREG(st.st_mode) or stat.S_ISFIFO(st.st_mode) or link.startswith(("pipe:", "anon_inode:")):
+            continue
+        if stat.S_ISCHR(st.st_mode) and st.st_rdev == null.st_rdev:
+            continue
+        bad.append((pid, name, link))
+    return bad
+
+
+def test_no_socket_and_no_terminal_descriptor_crossed_into_the_sandbox():
+    """Descriptors of every ancestor of this process and the startup snapshot of the guard."""
+    pid, chain = os.getppid(), []
+    while pid > 0:
+        chain.append(pid)
+        fields = open(f"/proc/{pid}/stat").read().rsplit(")", 1)[1].split()
+        pid = int(fields[1])
+    assert chain, "no ancestor visible"
+    readable = 0
+    for ancestor in chain:
+        try:
+            problems = _classify(ancestor)
+            stdin = os.readlink(f"/proc/{ancestor}/fd/0")
+        except PermissionError:
+            continue  # the plain route's pid 1 holds capabilities in its user namespace and is not readable
+        readable += 1
+        assert problems == [], ancestor
+        assert stdin == "/dev/null", ancestor  # stdin is /dev/null, never a socket
+    assert readable >= 1
+    snapshot = json.load(open(os.path.join(MANIFEST["log_dir"], "snapshot-%d.json" % os.getpid())))
+    assert snapshot["inherited_fd_problems"] == []
 
 
 def test_privilege_rule():

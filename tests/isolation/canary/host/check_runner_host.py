@@ -295,3 +295,139 @@ def test_coverage_outputs_are_writable_while_the_repository_is_read_only(planted
         "-o", f"addopts=--cov={planted} --cov-report=term --cov-report=xml --cov-report=html")
     assert result.returncode == 0, result.stdout + result.stderr
     assert (REPO / "coverage.xml").stat().st_size > 0 and (REPO / "htmlcov" / "index.html").exists()
+
+
+def test_a_readiness_failure_after_docker_run_still_removes_the_container(planted, tmp_path):
+    write_test(planted, "def test_ok():\n    assert True\n")
+    report = tmp_path / "r.json"
+    result = run_runner("--debug-fail-postgres-readiness", "--report", str(report), *pytest_args_for(planted))
+    assert result.returncode == 86 and "forced failure after docker run" in result.stderr, result.stdout + result.stderr
+    run_id = json.loads(report.read_text())["run_id"]
+    listed = subprocess.run(["docker", "ps", "-a", "--filter", f"name=dfiso-pg-{run_id}", "-q"], capture_output=True, text=True)
+    assert listed.stdout.strip() == ""
+    leftover = Path("/tmp/dfi-" + run_id, "pg")
+    assert not leftover.exists() or os.listdir(leftover) == []
+    shutil.rmtree("/tmp/dfi-" + run_id, ignore_errors=True)
+
+
+@pytest.mark.parametrize("env_extra,fragment", [
+    ({"DOCKER_HOST": "tcp://192.0.2.1:2375"}, "not a local unix endpoint"),
+    ({"DOCKER_CONTEXT": "dfiso-context-that-does-not-exist"}, "cannot resolve the endpoint"),
+])
+def test_a_docker_client_that_is_not_local_is_refused_with_86(env_extra, fragment):
+    result = run_runner("--canary", env_extra=env_extra)
+    assert result.returncode == 86 and fragment in result.stderr, result.stderr
+    assert "test session starts" not in result.stdout + result.stderr
+
+
+def test_the_docker_environment_is_explicit():
+    sys.path.insert(0, str(REPO / "tests" / "isolation"))
+    import services
+
+    env = services.docker_env(context="default")
+    assert set(env) == {"PATH", "HOME", "DOCKER_CONTEXT"}
+    assert "docker_env" in (REPO / "tests" / "isolation" / "services.py").read_text()
+
+
+def test_unusable_records_are_errors_not_empty_lists(tmp_path):
+    good = tmp_path / "v.jsonl"
+    good.write_text('{"a": 1}\n')
+    assert runner.read_jsonl_strict(str(good)) == [{"a": 1}]
+    with pytest.raises(runner.RecordError):
+        runner.read_jsonl_strict(str(tmp_path / "missing.jsonl"))
+    bad = tmp_path / "bad.jsonl"
+    bad.write_text('{"a": 1}\nnot json\n')
+    with pytest.raises(runner.RecordError):
+        runner.read_jsonl_strict(str(bad))
+    fd = os.open(str(good), os.O_RDONLY)
+    try:
+        assert runner.read_jsonl_strict(str(good), fd) == [{"a": 1}]
+        good.unlink()
+        good.write_text("{}\n")  # a new file at the same path
+        with pytest.raises(runner.RecordError):
+            runner.read_jsonl_strict(str(good), fd)
+        good.unlink()
+        with pytest.raises(runner.RecordError):
+            runner.read_jsonl_strict(str(good), fd)
+    finally:
+        os.close(fd)
+
+
+CONFTEST_QUIET = """
+import os, socket
+
+def pytest_unconfigure(config):
+    # runs after every report: no output, no failed test, only violations.jsonl can show it
+    devnull = os.open('/dev/null', os.O_WRONLY)
+    saved = (os.dup(1), os.dup(2))
+    os.dup2(devnull, 1)
+    os.dup2(devnull, 2)
+    try:
+        socket.create_connection(('192.0.2.1', 80), timeout=1)
+    except BaseException:
+        pass
+    os.dup2(saved[0], 1)
+    os.dup2(saved[1], 2)
+"""
+
+
+def test_the_record_file_alone_fails_a_run_whose_output_is_silent(planted, tmp_path):
+    write_test(planted, "def test_ok():\n    assert True\n")
+    (planted / "conftest.py").write_text(CONFTEST_QUIET)
+    report = tmp_path / "r.json"
+    result = run_runner("--no-postgres", "--report", str(report), *pytest_args_for(planted))
+    assert result.returncode == 87, result.stdout + result.stderr
+    assert "1 passed" in result.stdout and "NETGUARD-VIOLATION" not in result.stdout + result.stderr
+    assert json.loads(report.read_text())["violations"] == 1
+
+
+def test_a_missing_skip_report_after_pytest_exit_0_is_exit_87(planted):
+    write_test(planted, "def test_ok():\n    assert True\n")
+    (planted / "conftest.py").write_text(
+        "import glob, os\n\ndef pytest_unconfigure(config):\n"
+        "    for path in glob.glob(os.path.join(os.path.dirname(os.environ['NETGUARD_MANIFEST']), 'log', 'skips-*.json')):\n"
+        "        os.unlink(path)\n")
+    result = run_runner("--no-postgres", *pytest_args_for(planted))
+    assert result.returncode == 87 and "wrote no skip report" in result.stderr, result.stdout + result.stderr
+
+
+def test_a_bad_report_path_still_tears_down_and_exits_88(planted):
+    write_test(planted, "def test_ok():\n    assert True\n")
+    result = run_runner("--no-postgres", "--report", "/nonexistent-dir-dfiso/r.json", *pytest_args_for(planted))
+    assert result.returncode == 88 and "cannot write the report" in result.stderr, result.stdout + result.stderr
+
+
+def test_sigterm_tears_everything_down(planted, tmp_path):
+    import signal
+    import time
+
+    write_test(planted, "import time\ndef test_sleep():\n    time.sleep(120)\n")
+    report = tmp_path / "r.json"
+    env = {k: v for k, v in os.environ.items() if k not in runner.PROXY_VARIABLES}
+    proc = subprocess.Popen([sys.executable, str(RUNNER), "--report", str(report), *pytest_args_for(planted)], env=env,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(REPO))
+    time.sleep(12)  # the container and the sandbox are up by now
+    proc.send_signal(signal.SIGTERM)
+    try:
+        out, err = proc.communicate(timeout=120)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        raise
+    data = json.loads(report.read_text())
+    assert proc.returncode != 0 and data["teardown_clean"] is True, out + err
+    listed = subprocess.run(["docker", "ps", "-a", "--filter", "label=dfiso.run=" + data["run_id"], "-q"], capture_output=True, text=True)
+    assert listed.stdout.strip() == ""
+    assert subprocess.run(["pgrep", "-f", data["run_id"]], capture_output=True, text=True).stdout.strip() == ""
+    shutil.rmtree(data["run_dir"], ignore_errors=True)
+
+
+def test_a_socket_on_the_runners_stdin_does_not_enter_the_sandbox():
+    left, right = socket.socketpair()
+    try:
+        env = {k: v for k, v in os.environ.items() if k not in runner.PROXY_VARIABLES}
+        result = subprocess.run([sys.executable, str(RUNNER), "--canary"], env=env, stdin=right, capture_output=True, text=True,
+                                timeout=300, cwd=str(REPO))
+    finally:
+        left.close()
+        right.close()
+    assert result.returncode == 0, result.stdout[-2000:] + result.stderr

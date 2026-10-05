@@ -331,3 +331,33 @@ def test_redis_clients_probing_the_declared_absent_path_are_logged_not_failed(tm
     result, nested = run_guarded(tmp_path, code, absent=[absent])
     assert "sync ConnectionError" in result.stdout and "async ConnectionError" in result.stdout, result.stdout + result.stderr
     assert kinds(nested) == [] and len(lines(nested["absent"])) >= 2
+
+
+def test_an_inherited_socket_descriptor_stops_a_guarded_process(tmp_path):
+    import socket
+
+    left, right = socket.socketpair()
+    try:
+        nested = write_manifest(tmp_path)
+        result = subprocess.run([sys.executable, "-c", "print('started')"], env=nested["env"], capture_output=True, text=True,
+                                pass_fds=(right.fileno(),), cwd=str(tmp_path))
+    finally:
+        left.close()
+        right.close()
+    assert result.returncode == 87 and "started" not in result.stdout and "inherited descriptors" in result.stderr
+
+
+def test_hostaddr_is_refused_even_with_a_manifest_socket_directory(tmp_path):
+    pytest.importorskip("psycopg2")
+    sock_dir = tmp_path / "pg"
+    sock_dir.mkdir()
+    code = textwrap.dedent(f"""
+        import psycopg2
+        try:
+            psycopg2.connect(host={str(sock_dir)!r}, hostaddr='{DOC_ADDRESS}', user='u', dbname='d', connect_timeout=1)
+        except BaseException as e:
+            print(type(e).__name__, e)
+    """)
+    result, nested = run_guarded(tmp_path, code, unix=[str(sock_dir / ".s.PGSQL.5432")])
+    assert "NetworkIsolationViolation" in result.stdout and "hostaddr" in result.stdout, result.stdout + result.stderr
+    assert any("hostaddr" in k for k in kinds(nested))

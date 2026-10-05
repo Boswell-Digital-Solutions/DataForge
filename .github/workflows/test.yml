@@ -29,27 +29,14 @@ jobs:
       contents: read
       issues: write
     env:
-      DATAFORGE_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dataforge_test
       SECRET_KEY: test-secret-key-for-ci
       VOYAGE_API_KEY: test-key
     
-    services:
-      postgres:
-        image: ankane/pgvector:latest
-        env:
-          POSTGRES_DB: dataforge_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
     steps:
     - uses: actions/checkout@v4
+      with:
+        # No later step needs the checkout token header. The private clones use the app token.
+        persist-credentials: false
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -114,9 +101,6 @@ jobs:
         python -m pip install pytest pytest-asyncio pytest-cov bandit safety mypy
         git config --global --unset "url.https://x-access-token:${FORGE_DEPS_TOKEN}@github.com/.insteadOf" || true
 
-    - name: Apply database migrations
-      run: python -m alembic upgrade head
-    
     - name: Run mypy type checking
       run: |
         mypy app/utils/redis_utils.py \

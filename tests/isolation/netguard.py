@@ -378,6 +378,9 @@ def install() -> None:
     except Exception as exc:  # noqa: BLE001
         _fatal("cannot load the manifest or open the records: %r" % (exc,))
     RUN_ID = run_id
+    bad = inherited_fd_problems()
+    if bad:
+        _fatal("inherited descriptors that are not a file, a pipe or /dev/null: %s" % "; ".join(bad))
     for name in PROXY_VARIABLES:
         if os.environ.get(name):
             INSTALLED = True
@@ -388,9 +391,42 @@ def install() -> None:
     try:
         snapshot = os.path.join(MANIFEST["log_dir"], "snapshot-%d.json" % os.getpid())
         with open(snapshot, "w", encoding="utf-8") as handle:
-            json.dump({"pid": os.getpid(), "early_imports": EARLY_IMPORTS, "argv": sys.argv[:3]}, handle)
+            json.dump({"pid": os.getpid(), "early_imports": EARLY_IMPORTS, "inherited_fd_problems": [], "argv": sys.argv[:3]}, handle)
     except OSError:
         pass
+
+
+def inherited_fd_problems() -> list:
+    """Descriptors that the process holds at start and that are not a regular file, a pipe or /dev/null.
+
+    A connected socket on fd 0 to 2 or above would bypass the namespaces.
+    """
+    import stat
+
+    problems = []
+    null = os.stat("/dev/null")
+    try:
+        names = os.listdir("/proc/self/fd")
+    except OSError:
+        return ["cannot list /proc/self/fd"]
+    for name in names:
+        fd = int(name)
+        try:
+            st = os.fstat(fd)
+        except OSError:
+            continue  # the descriptor of listdir itself
+        if stat.S_ISREG(st.st_mode) or stat.S_ISFIFO(st.st_mode):
+            continue
+        if stat.S_ISCHR(st.st_mode) and st.st_rdev == null.st_rdev:
+            continue
+        if stat.S_ISCHR(st.st_mode) and fd <= 2:
+            continue  # a terminal on a standard stream, never a socket
+        try:
+            target = os.readlink("/proc/self/fd/" + name)
+        except OSError:
+            target = "?"
+        problems.append("fd %d: %s" % (fd, target))
+    return problems
 
 
 def violation_lines() -> int:
