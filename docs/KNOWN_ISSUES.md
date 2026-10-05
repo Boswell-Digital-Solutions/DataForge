@@ -77,7 +77,7 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   credential serves `forge-telemetry` only. Each token gets its own path-scoped Git credential entry.
   Tests must show that the contract-core token cannot read `forge-telemetry`, that a missing or invalid
   key fails the build, and that no token appears in logs. The legacy PAT stays as a migration fallback only.
-- **Scope**: Open for all four repositories. A plan in `docs/plans/` must come first.
+- **Scope**: Open for all four repositories. Proposal: [docs/proposals/render_build_auth_split.md](proposals/render_build_auth_split.md) (not approved).
 - **Do not**: Change Render environment variables before the code reads the new pair.
 
 ## The Test Suite Reaches Hosted NeuroForge When `NEUROFORGE_URL` Is Unset (2026-10-04)
