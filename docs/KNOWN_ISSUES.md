@@ -11,6 +11,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   `runtime_promotion_candidates` or `runtime_promotion_candidate_decisions` in any schema.
   `public.alembic_version` holds one revision, `20260930_01`. The version record says head, but the
   tables do not exist.
+- **Source**: A read-only diagnostic by GPT Pro on 2026-10-05, using the Render and Supabase connectors. A
+  Claude Code session did not run the queries. It checked the repository claims only: both migration files exist
+  at commit `65c0e773`, `20260930_01` is a migration revision, and `20260711_01` names project
+  `embvfponjxejbtrkryzs` as DataForgedb. The database and log results are unverified by this session.
 - **Evidence**: Render logs for service `srv-d503rdvpm1nc73c3t8pg` show
   `psycopg2.errors.UndefinedTable: relation "runtime_promotion_candidates" does not exist` for
   `GET /api/v1/runtime-promotion/candidates` (2026-09-30 10:49 UTC) and for the detail route (10:56 UTC).
