@@ -1036,6 +1036,7 @@ def main(argv=None) -> int:
     if argv and argv[0] == "--internal-stage2":
         return stage2(argv[1])
     args = parse_args(argv)
+    sys.path.insert(0, str(ISOLATION_DIR))  # services must import in the cleanup, whatever failed first
     signal.signal(signal.SIGTERM, _interrupt)  # teardown must run on SIGTERM and SIGINT
     signal.signal(signal.SIGINT, _interrupt)
     run_id = secrets.token_hex(4)
@@ -1053,12 +1054,16 @@ def main(argv=None) -> int:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         clean = True
         if not args.no_postgres:
-            import services
+            try:
+                import services
 
-            if services._DOCKER_ENV:  # the docker client passed the local-endpoint check
-                clean = services.remove_container(services.container_name(run_id), os.path.join(state["run_dir"], "pg"))
-                if not clean:
-                    say("TEARDOWN FAILED: container %s remains" % services.container_name(run_id))
+                if services._DOCKER_ENV:  # the docker client passed the local-endpoint check
+                    clean = services.remove_container(services.container_name(run_id), os.path.join(state["run_dir"], "pg"))
+                    if not clean:
+                        say("TEARDOWN FAILED: container %s remains" % services.container_name(run_id))
+            except Exception as exc:  # noqa: BLE001 - a cleanup fault must not mask the real exit code
+                clean = False
+                say("TEARDOWN FAILED: %r" % (exc,))
         if state["viol_fd"] is not None:
             os.close(state["viol_fd"])
         if not clean and code not in (EXIT_PRECONDITION, EXIT_VIOLATION):

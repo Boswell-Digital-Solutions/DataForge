@@ -211,8 +211,18 @@ They do not import `app` and do not run the suite.
 The sandbox canaries are in `tests/isolation/canary/sandbox`. The host canaries are in `tests/isolation/canary/host`.
 The default `pytest` run does not collect them, because their files do not match `python_files`.
 
+### Threat model
+
+The guard and the plugin are in-process Python. They are defence in depth against accidental calls. They do not stop a hostile test process.
+The kernel layers are the barrier: the network namespace, the mount allow-list, the seccomp filter and the absence of inherited sockets.
+A hostile test can truncate `violations.jsonl` or silence the stderr marker.
+That can erase only the record of an attempt that the kernel already blocked.
+A hardening option is a write-only pipe that the runner drains.
+
 ### Known limits
 
+- A Python child that starts with a socket as its standard input exits 87. The inherited-descriptor check of the guard causes this.
+- The runner limits `DOCKER_HOST` to `unix://`. A local `docker.sock` that forwards to a remote TCP host is not detected.
 - The guard cannot see raw C calls (`ctypes`). The namespaces and the seccomp filter cover them.
 - The runner has no proof for a full run of the suite. Closure of M1 needs that proof.
 - Scripts that call `pytest` directly (`scripts/preflight.sh`, `run_tests.sh`, `Makefile`, `ci_gate.sh`) exit 87 until they use the runner.

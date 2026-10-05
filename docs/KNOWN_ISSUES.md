@@ -60,6 +60,11 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
   **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
   under the runner with zero violations, and an independent review of the exact head. No full run has happened.
+  **Threat model**: the guard and the plugin are in-process Python. They are defence in depth against accidental calls, not
+  against a hostile test process. The kernel layers are the barrier: the network namespace, the mount allow-list, the seccomp
+  filter and the absence of inherited sockets. A hostile test can truncate `violations.jsonl` or silence the stderr marker.
+  That can erase only the record of an attempt that the kernel already blocked. A hardening option is a write-only pipe that
+  the runner drains. Residue: `DOCKER_HOST` is limited to `unix://`, and a `docker.sock` that forwards to a remote TCP host is not detected.
 
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 

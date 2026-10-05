@@ -431,3 +431,28 @@ def test_a_socket_on_the_runners_stdin_does_not_enter_the_sandbox():
         left.close()
         right.close()
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr
+
+
+def test_a_proxy_variable_gives_exit_86_and_a_written_report(tmp_path):
+    report = tmp_path / "r.json"
+    result = run_runner("--canary", "--report", str(report), env_extra={"HTTP_PROXY": "http://proxy.invalid:3128"})
+    assert result.returncode == 86, result.stdout + result.stderr
+    assert "ModuleNotFoundError" not in result.stderr and "Traceback" not in result.stderr
+    data = json.loads(report.read_text())
+    assert data["exit_code"] == 86 and "proxy variable" in data["precondition_error"]
+
+
+def test_a_dotenv_file_gives_exit_86_in_a_scratch_copy_of_the_layout(tmp_path):
+    layout = tmp_path / "repo"
+    (layout / "scripts").mkdir(parents=True)
+    (layout / "tests" / "isolation").mkdir(parents=True)
+    shutil.copy2(RUNNER, layout / "scripts" / "isolated_test_runner.py")
+    for name in runner.GUARD_FILES + ("services.py",):
+        shutil.copy2(REPO / "tests" / "isolation" / name, layout / "tests" / "isolation" / name)
+    (layout / ".env").write_text("X=1\n")
+    report = tmp_path / "r.json"
+    env = {k: v for k, v in os.environ.items() if k not in runner.PROXY_VARIABLES}
+    result = subprocess.run([sys.executable, str(layout / "scripts" / "isolated_test_runner.py"), "--canary", "--report", str(report)],
+                            env=env, capture_output=True, text=True, timeout=120, cwd=str(layout))
+    assert result.returncode == 86 and "a .env file exists" in result.stderr, result.stdout + result.stderr
+    assert "Traceback" not in result.stderr and json.loads(report.read_text())["exit_code"] == 86
