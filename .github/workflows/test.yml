@@ -147,7 +147,7 @@ jobs:
     
     # Advisory only (decision owner, 2026-10-05): a coverage-upload fault must not fail the job.
     # The upload is still attempted, and its failure stays visible in the log. The runner step
-    # (tests, migrations, canaries and the skip policy) stays blocking. This change touches no other step.
+    # (sandbox proofs, migrations, tests and the skip policy) stays blocking. This change touches no other step.
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       continue-on-error: true
