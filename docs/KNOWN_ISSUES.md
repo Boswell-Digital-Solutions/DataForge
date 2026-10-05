@@ -337,7 +337,7 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   key, a wrong service, or a wrong scope gives 403 or 401. Four new tests cover it. No caller of this route exists in the
   workspace, so nothing breaks. When a producer exists, mint its key with metadata `{"service_name": "forge_local_runtime",
   "scopes": ["runtime-promotion:receipts:write"]}`. Not live until this merges and Render deploys.
-- **Still open**: The other routes in `runtime_promotion_router.py` were not read in this change.
+- **Checked**: `runtime_promotion_router.py` defines this one route only, so no other route in that file lacks a credential.
 
 ## Hosted CI Fails Before Any Job Step Runs
 
