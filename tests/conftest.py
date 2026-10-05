@@ -5,38 +5,36 @@ import os
 import sys
 
 
-def _refuse_direct_pytest() -> None:
-    """Refuse a run that did not start through scripts/run-tests-isolated.sh (finding M1).
+def _load_isolation_gate():
+    """Load tests/isolation/gate.py by path (standard library only; the root conftest.py does the same)."""
+    import importlib.util
 
-    This gate runs before any third-party or `app` import, so a refused run imports
-    nothing of the application. There is no override and no --collect-only exemption.
-    """
-    guard = sys.modules.get("netguard")
-    run_id = os.environ.get("NETGUARD_RUN_ID")
-    if run_id and guard is not None and getattr(guard, "INSTALLED", False) and getattr(guard, "RUN_ID", None) == run_id:
-        return
-    # pytest captures output while it imports a conftest, and os._exit would lose the message.
-    # Stop the capture through the plugin manager that is importing this file.
-    frame = sys._getframe()
-    while frame is not None:
-        manager = frame.f_locals.get("self")
-        if hasattr(manager, "get_plugin"):
-            try:
-                manager.get_plugin("capturemanager").stop_global_capturing()
-            except Exception:  # noqa: BLE001 - the exit code is the contract, the message is a help
-                pass
-            break
-        frame = frame.f_back
-    os.write(
-        2,
-        b"REFUSED (exit 87): the network guard is not installed. "
-        b"Run the suite with scripts/run-tests-isolated.sh. "
-        b"See docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md.\n",
-    )
-    os._exit(87)
+    name = "_dataforge_isolation_gate"
+    if name in sys.modules:
+        return sys.modules[name]
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isolation", "gate.py")
+    try:
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception:  # noqa: BLE001 - fail closed
+        frame = sys._getframe()  # stop pytest's capture, or the message is lost
+        while frame is not None:
+            if hasattr(frame.f_locals.get("self"), "get_plugin"):
+                try:
+                    frame.f_locals["self"].get_plugin("capturemanager").stop_global_capturing()
+                except Exception:  # noqa: BLE001
+                    pass
+                break
+            frame = frame.f_back
+        os.write(2, b"REFUSED (exit 87): the isolation gate is missing: " + path.encode() + b"\n")
+        os._exit(87)
+    sys.modules[name] = module
+    return module
 
 
-_refuse_direct_pytest()
+# The gate runs before any third-party or `app` import (finding M1). No override exists.
+_load_isolation_gate().refuse_unless_guarded()
 
 from pathlib import Path  # noqa: E402
 from typing import Generator  # noqa: E402

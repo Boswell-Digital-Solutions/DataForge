@@ -138,7 +138,11 @@ Status: implementation in review. Finding M1 stays open until a separately autho
 The design is `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`. The tracked finding is in `docs/KNOWN_ISSUES.md`.
 
 Every run of the suite must use `scripts/run-tests-isolated.sh`.
-A run of `pytest` without the runner exits with code 87 before `tests/conftest.py` imports `app`.
+A run of `pytest` without the runner exits with code 87 before any `app` import.
+The gate is `tests/isolation/gate.py`. It imports only the standard library.
+The repository-root `conftest.py` calls it first, so the gate covers `tests/`, `app/tests/` and any later test directory.
+`tests/conftest.py` calls the same gate again. A second call does the same check.
+If the gate file is missing, the run also exits 87.
 No override exists. The refusal also covers `--collect-only`.
 
 ```bash
@@ -291,7 +295,8 @@ After a run, a throwaway container of the same pinned image removes every file i
 - The `Makefile` on `master` has literal `\t` characters instead of tabs, so `make` fails with "missing separator". This is older than the runner.
 - Skip reasons are global. They are not bound to a (file, reason) pair, so the same text in another file is also declared.
 - The two long SQLAlchemy skip reasons contain version-sensitive text. A SQLAlchemy upgrade can change them, and the run then fails closed with exit 87.
-- `app/tests/` has no gate. The owner decision on it is pending. A direct `pytest app/tests` is not refused and not guarded.
+- `app/tests/` is gated. The repository-root `conftest.py` calls the gate, so a direct `pytest app/tests` exits 87 before any `app` import.
+- `app/tests/` is not in `testpaths` and CI does not collect it. That is a separate, open decision. `app/tests/test_api_deployment.py` has five known failures (`docs/KNOWN_ISSUES.md`).
 
 ## Running the Suite
 
