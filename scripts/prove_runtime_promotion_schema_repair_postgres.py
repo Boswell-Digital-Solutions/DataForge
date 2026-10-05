@@ -51,14 +51,21 @@ def schema_matches_models() -> None:
             live_cols = {c["name"] for c in insp.get_columns(name)}
             if live_cols != {c.name for c in model.columns}:
                 problems.append(f"{name}: columns differ {sorted(live_cols ^ {c.name for c in model.columns})}")
-            live_idx = {i["name"] for i in insp.get_indexes(name)}
-            model_idx = {i.name for i in model.indexes}
-            # The original migrations never created some indexes that the models declare. That
-            # drift is older than the repair. It is reported, not failed. See KNOWN_ISSUES.
-            if not model_idx <= live_idx:
-                notes.append(f"{name}: model-only indexes {sorted(model_idx - live_idx)}")
-            if not live_idx:
-                problems.append(f"{name}: no indexes created")
+            # Compare index coverage by columns. The names differ between the models and the migrations.
+            # A primary key or a unique constraint also covers its columns.
+            covered = {tuple(i["column_names"]) for i in insp.get_indexes(name)}
+            covered |= {tuple(u["column_names"]) for u in insp.get_unique_constraints(name)}
+            covered.add(tuple(insp.get_pk_constraint(name)["constrained_columns"]))
+            for idx in model.indexes:
+                cols = tuple(c.name for c in idx.columns)
+                if cols not in covered:
+                    problems.append(f"{name}: no index covers {cols}")
+            live_cols = {c["name"]: c for c in insp.get_columns(name)}
+            for col in model.columns:
+                found = live_cols.get(col.name)
+                if found is not None and bool(found["nullable"]) != bool(col.nullable and not col.primary_key):
+                    # The repair reproduces the migrations. A model that disagrees is older drift.
+                    notes.append(f"{name}.{col.name}: nullability differs from the model")
             live_fk = {
                 (tuple(f["constrained_columns"]), f["referred_table"]) for f in insp.get_foreign_keys(name)
             }
@@ -79,7 +86,7 @@ def schema_matches_models() -> None:
         raise SystemExit("SCHEMA_CHECK_FAILED\n" + "\n".join(problems))
     for note in notes:
         print("NOTE", note)
-    print("schema_matches_models OK: 7 tables, columns, foreign keys, RLS")
+    print("schema_matches_models OK: 7 tables, columns, nullability, index coverage, foreign keys, RLS")
 
 
 def seed_row() -> None:

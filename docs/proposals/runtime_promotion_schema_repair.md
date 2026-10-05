@@ -105,7 +105,7 @@ Do not start a restore.
 
 ## Decisions for Charlie
 
-- D1 (resolved 2026-10-05): No backup or point-in-time recovery exists. Charlie confirmed that the Free plan offers none. Lost data, if any, cannot be recovered. The repair creates empty tables.
+- D1 (answered 2026-10-05): The Free plan has no automatic backups or point-in-time recovery. A manual export or a copy outside Supabase may still exist. Nobody has checked. If lost data is wanted, look for a manual export first. Otherwise the repair creates empty tables.
 - D2: Repair the seven runtime-promotion tables only, or also the other 48 absent tables? The audit shows the
   runtime-promotion family is wholly absent. The other 48 belong to several systems. Each system owner must
   confirm that its tables are still wanted. A table that nothing uses should not be recreated.
@@ -114,16 +114,21 @@ Do not start a restore.
 ## Implementation (branch `fix/runtime-promotion-schema-repair`)
 
 - Migration `20261005_01` (`alembic/versions/20261005_01_repair_runtime_promotion_schema.py`), on top of the single head `20260930_01`.
-  It replays the five original migrations by group. A group with no table present runs the original `upgrade()`. A group with all
-  tables present is skipped. A group with some tables present stops with an error. Then it enables RLS with no policy on all seven tables.
-  The downgrade does nothing. The original migrations are the one source of the table definitions.
-- Limit: for tables that already exist, the migration does not compare their columns with the models. It only refuses partial groups.
-  Step 7 checks the live shape after deploy.
-- Proof: `pg_virtualenv bash scripts/prove_runtime_promotion_schema_repair_postgres.sh` (about 1 minute). On a throwaway cluster
-  with the head stamped and no tables, it passed: seven tables created with the models' columns and foreign keys, RLS on with no policy;
-  a re-run kept an existing row and changed nothing; a partial schema was refused and left unchanged.
-  Run with a clean virtualenv from `requirements.txt`. The service-key gate is not touched.
-- Found on the way: the models declare six indexes that the migrations never create. Recorded in KNOWN_ISSUES.
+  It replays the five original migrations by group. All checks run before any change:
+  - A row-level-security policy on any of the seven tables stops the migration. Enabling RLS keeps policies, so a
+    policy would break the deny-all posture.
+  - A group with only some tables present stops the migration.
+  - A group with all tables present must match the original migration: column names, types and nullability, the primary key,
+    foreign keys, unique constraints and indexes. It reads the expected shape by running the original `upgrade()` against a recorder.
+    A wrong shape stops the migration.
+  - A group with no tables present runs the original `upgrade()`.
+  Then it enables RLS on all seven tables. The downgrade does nothing. The original migrations are the one source of the definitions.
+- Proof: `pg_virtualenv bash scripts/prove_runtime_promotion_schema_repair_postgres.sh`. It runs in CI as a step of the `test` job.
+  On a throwaway cluster with the head stamped and no tables, it checks: seven tables with the models' columns and foreign keys, RLS on with
+  no policy; a re-run that keeps a row; a wrong-shape table that is refused; an unexpected policy that is refused; a partial schema that is refused
+  and left unchanged. The service-key gate is not touched.
+- Found on the way: small differences between the models and the migrations. Recorded in KNOWN_ISSUES.
+- Before deploy (step 6): take a verified manual export of the surviving database. No backup exists on the Free plan.
 
 ## Do not
 

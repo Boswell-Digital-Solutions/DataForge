@@ -31,6 +31,26 @@ echo "== re-run keeps data and changes nothing"
 "$TEST_PYTHON" -m scripts.prove_runtime_promotion_schema_repair_postgres row_survives
 "$TEST_PYTHON" -m scripts.prove_runtime_promotion_schema_repair_postgres schema_matches_models
 
+echo "== wrong shape is refused and left unchanged"
+psql -v ON_ERROR_STOP=1 -c 'ALTER TABLE runtime_promotion_candidates ALTER COLUMN title DROP NOT NULL'
+"$TEST_PYTHON" -m alembic downgrade 20260930_01
+if "$TEST_PYTHON" -m alembic upgrade head 2> /tmp/rp_repair_shape.err; then
+    echo "FAILED: the repair accepted a table with the wrong shape" >&2
+    exit 1
+fi
+grep -q "wrong shape" /tmp/rp_repair_shape.err
+psql -v ON_ERROR_STOP=1 -c 'ALTER TABLE runtime_promotion_candidates ALTER COLUMN title SET NOT NULL'
+
+echo "== an unexpected policy is refused"
+psql -v ON_ERROR_STOP=1 -c 'CREATE POLICY rp_proof_policy ON runtime_promotion_receipts USING (true)'
+"$TEST_PYTHON" -m alembic downgrade 20260930_01
+if "$TEST_PYTHON" -m alembic upgrade head 2> /tmp/rp_repair_policy.err; then
+    echo "FAILED: the repair accepted a policy on a runtime-promotion table" >&2
+    exit 1
+fi
+grep -q "Unexpected row-level-security policy" /tmp/rp_repair_policy.err
+psql -v ON_ERROR_STOP=1 -c 'DROP POLICY rp_proof_policy ON runtime_promotion_receipts'
+
 echo "== partial state is refused and left unchanged"
 psql -v ON_ERROR_STOP=1 -c 'DROP TABLE runtime_promotion_execution_statuses'
 "$TEST_PYTHON" -m alembic downgrade 20260930_01
