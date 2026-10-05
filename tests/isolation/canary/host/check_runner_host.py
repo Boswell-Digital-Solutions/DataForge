@@ -4,7 +4,8 @@
         --confcutdir tests/isolation/canary/host -p no:cacheprovider
 
 They do not import `app` and do not run the DataForge suite. The conftest gate is tested on a
-copy of tests/conftest.py next to a poison `app` package, so the real application cannot load.
+copy of the repository layout (both conftests, the gate) with a poison `app` package, so the
+real application cannot load.
 """
 
 from __future__ import annotations
@@ -79,12 +80,21 @@ def write_test(directory: Path, source: str):
 
 # ---- the conftest gate -----------------------------------------------------------------------
 
-def test_the_gate_precedes_every_third_party_and_app_import_in_the_real_conftest():
-    tree = ast.parse((REPO / "tests" / "conftest.py").read_text())
-    gate_line = next(n.lineno for n in tree.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
-                     and getattr(n.value.func, "id", "") == "_refuse_direct_pytest")
-    stdlib = set(sys.stdlib_module_names)
+def _gate_line(tree) -> int:
     for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            func = node.value.func
+            if isinstance(func, ast.Attribute) and func.attr == "refuse_unless_guarded":
+                return node.lineno
+    raise AssertionError("no gate call at module level")
+
+
+@pytest.mark.parametrize("conftest", ["conftest.py", "tests/conftest.py", "app/tests/conftest.py"])
+def test_the_gate_precedes_every_third_party_and_app_import(conftest):
+    tree = ast.parse((REPO / conftest).read_text())
+    gate_line = _gate_line(tree)
+    stdlib = set(sys.stdlib_module_names)
+    for node in ast.walk(tree):
         names = []
         if isinstance(node, ast.Import):
             names = [a.name.split(".")[0] for a in node.names]
@@ -92,29 +102,107 @@ def test_the_gate_precedes_every_third_party_and_app_import_in_the_real_conftest
             names = [node.module.split(".")[0]]
         for name in names:
             if node.lineno < gate_line:
-                assert name in stdlib, f"{name} is imported before the gate"
+                assert name in stdlib, f"{conftest}: {name} is imported before the gate"
             if name in ("app", "fastapi", "sqlalchemy", "pytest"):
-                assert node.lineno > gate_line
+                assert node.lineno > gate_line, f"{conftest}: {name} before the gate"
 
 
+def test_the_gate_module_imports_only_the_standard_library():
+    tree = ast.parse((REPO / "tests" / "isolation" / "gate.py").read_text())
+    stdlib = set(sys.stdlib_module_names)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            assert all(a.name.split(".")[0] in stdlib for a in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            assert node.module and node.module.split(".")[0] in stdlib
+
+
+def _layout_copy(tmp_path: Path) -> tuple:
+    """A copy of the repository layout: both conftests, the gate, pytest.ini, a poison `app`
+    package whose import writes a marker, and test files that import it. The real application
+    is not on the path, so it cannot load."""
+    root = tmp_path / "repo"
+    marker = tmp_path / "APP-WAS-IMPORTED"
+    (root / "tests" / "isolation").mkdir(parents=True)
+    (root / "app" / "tests").mkdir(parents=True)
+    shutil.copy2(REPO / "conftest.py", root / "conftest.py")
+    shutil.copy2(REPO / "pytest.ini", root / "pytest.ini")
+    shutil.copy2(REPO / "tests" / "conftest.py", root / "tests" / "conftest.py")
+    shutil.copy2(REPO / "tests" / "isolation" / "gate.py", root / "tests" / "isolation" / "gate.py")
+    shutil.copy2(REPO / "app" / "tests" / "conftest.py", root / "app" / "tests" / "conftest.py")
+    (root / "tests" / "__init__.py").write_text("")
+    (root / "app" / "__init__.py").write_text(f"open({str(marker)!r}, 'w').close()\nraise SystemExit('poison app imported')\n")
+    (root / "app" / "tests" / "test_x.py").write_text("import app\n\ndef test_x():\n    assert True\n")
+    (root / "tests" / "test_y.py").write_text("import app\n\ndef test_y():\n    assert True\n")
+    return root, marker
+
+
+@pytest.mark.parametrize("target", ["app/tests", "tests", "."])
 @pytest.mark.parametrize("flags", [[], ["--collect-only", "-q"]])
 @pytest.mark.parametrize("env_extra", [{}, {"NETGUARD_RUN_ID": "forged"}])
-def test_direct_pytest_is_refused_with_exit_87_and_the_application_never_loads(tmp_path, flags, env_extra):
-    marker = tmp_path / "APP-WAS-IMPORTED"
-    poison = tmp_path / "poison" / "app"
-    poison.mkdir(parents=True)
-    (poison / "__init__.py").write_text(f"open({str(marker)!r}, 'w').close()\nraise SystemExit('poison app imported')\n")
-    work = tmp_path / "work"
-    work.mkdir()
-    shutil.copy2(REPO / "tests" / "conftest.py", work / "conftest.py")
-    (work / "test_x.py").write_text("def test_x():\n    assert True\n")
+def test_direct_pytest_is_refused_with_exit_87_and_the_application_never_loads(tmp_path, target, flags, env_extra):
+    root, marker = _layout_copy(tmp_path)
     env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
-    env.update(PYTHONPATH=str(tmp_path / "poison"), **env_extra)
-    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", *flags, str(work)],
-                            env=env, capture_output=True, text=True, timeout=60, cwd=str(work))
+    env.pop("PYTHONPATH", None)
+    env.update(env_extra)
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", *flags, target],
+                            env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
     assert result.returncode == 87, result.stdout + result.stderr
-    assert "REFUSED (exit 87)" in result.stderr
+    assert "REFUSED (exit 87): the network guard is not installed" in result.stderr
     assert not marker.exists()
+
+
+def test_tests_conftest_refuses_on_its_own_without_the_root_conftest(tmp_path):
+    root, marker = _layout_copy(tmp_path)
+    (root / "conftest.py").unlink()
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", "--collect-only", "tests"],
+                            env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode == 87 and "network guard is not installed" in result.stderr and not marker.exists()
+
+
+def test_a_confcutdir_below_the_root_conftest_is_refused_by_the_app_tests_conftest(tmp_path):
+    root, marker = _layout_copy(tmp_path)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=",
+                             "--confcutdir", "app/tests", "app/tests"], env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode == 87 and "network guard is not installed" in result.stderr and not marker.exists()
+
+
+def test_the_documented_limit_noconftest_skips_the_gate(tmp_path):
+    """A known limit, not a defence: --noconftest skips every conftest, so the poison app loads.
+    This canary keeps the documentation honest; it fails if the limit ever changes."""
+    root, marker = _layout_copy(tmp_path)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", "--noconftest",
+                             "--collect-only", "app/tests"], env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode != 87 and marker.exists()
+
+
+def test_a_missing_gate_file_fails_closed(tmp_path):
+    root, marker = _layout_copy(tmp_path)
+    (root / "tests" / "isolation" / "gate.py").unlink()
+    env = {k: v for k, v in os.environ.items() if not k.startswith("NETGUARD_")}
+    result = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=", "app/tests"],
+                            env=env, capture_output=True, text=True, timeout=60, cwd=str(root))
+    assert result.returncode == 87 and "isolation gate is missing" in result.stderr and not marker.exists()
+
+
+def test_the_root_conftest_lets_a_runner_run_pass_outside_tests(tmp_path):
+    """A directory beside app/ and tests/ loads the root conftest; the gate passes under the runner."""
+    planted = Path(tempfile.mkdtemp(prefix="planted_root_", dir=REPO))
+    try:
+        (planted / "check_root.py").write_text(
+            "import sys\n\ndef test_root_conftest_ran_the_gate():\n"
+            "    assert '_dataforge_isolation_gate' in sys.modules\n"
+            "    assert 'app' not in sys.modules\n")
+        report = tmp_path / "r.json"
+        result = run_runner("--no-postgres", "--report", str(report), "--", str(planted / "check_root.py"),
+                            "-c", str(REPO / "pytest.ini"), "--rootdir", str(REPO), "-o", "addopts=",
+                            "-o", "python_files=check_*.py")
+    finally:
+        shutil.rmtree(planted, ignore_errors=True)
+    assert result.returncode == 0 and "1 passed" in result.stdout, result.stdout + result.stderr
 
 
 # ---- the runner's preconditions (exit 86, no test starts) --------------------------------------
