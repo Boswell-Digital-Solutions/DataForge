@@ -7,7 +7,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Location**: `app/config.py:107` (the default of `NEUROFORGE_URL`), `app/utils/embeddings.py:26` and `:126`
   (the endpoint and the unauthenticated `httpx` POST), and `tests/test_integration/test_infrastructure_health.py`
   (`test_embedding_generation` and `test_embedding_batch_generation`). Line numbers are for `dac5e835ec8b9b7f15e383b8621645f44a0c4d8c`.
-- **Status**: **Open. Not repaired. Documenting the finding does not repair it.** This entry authorizes no code change. It was
+- **Status**: **Closed (2026-10-05).** The decision owner accepted the repair evidence on 2026-10-05: the isolated runner merged as
+  `038a82f6c13ba026eef98ddae739b791cdd69d37`, its final independent review, the full-suite and CI runs under the runner, the
+  planted-violation run and the teardown results (see the notes at the end of this entry). The coverage gaps and follow-ups in the
+  next entry stay open. Status before 2026-10-05: open, not repaired. It was
   found as finding M1 of the security review of pull request 88 (the WP-DF-00 pin bump), and the working session verified it
   against the saved outputs and the source before it was reported.
 - **What is wrong**: `NEUROFORGE_URL` defaults to the hosted service `https://neuroforge-9lxc.onrender.com`. `tests/conftest.py` sets
@@ -54,23 +57,77 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 - **Condition for any later run**: the decision owner ruled on 2026-10-04 that a future test authorization requires network isolation
   that prevents access to hosted services and permits only explicitly identified local test services. Overriding `NEUROFORGE_URL`
   or deselecting the two tests alone does not prove that the whole suite is isolated.
-- **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Open until a bounded change makes the suite refuse
-  or avoid hosted services, and that change has its own authorization and evidence.
-- **Status note (2026-10-04, implementation in review)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
-  is implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`). The branch is in review.
-  **M1 stays OPEN** until the separately authorized closure evidence exists. The closure evidence is a full run of the suite
+- **Scope**: the DataForge test suite, for any run with `NEUROFORGE_URL` unset. Closed on 2026-10-05: the suite in `tests/` runs only under the
+  isolated runner (direct `pytest` exits 87), and the decision owner accepted the evidence. `app/tests/` has no gate on master (see the
+  next entry).
+- **Status note (2026-10-04, implementation in review; superseded)**: the design of `docs/proposals/M1_TEST_ISOLATION_REPAIR_DESIGN.md`
+  was implemented on branch `feat/m1-isolated-test-runner` (`scripts/run-tests-isolated.sh`).
+  **Update (2026-10-05, merged)**: pull request 91 merged as `038a82f6c13ba026eef98ddae739b791cdd69d37` (tree equal to PR head
+  `34a6b1299a5818316bb708b5fc6a5ee96a2fa9f9`). **Update (2026-10-05, closed)**: the decision owner accepted the repair evidence. M1 is closed.
+  The two status notes below are history. The threat model and the final review stay current.
+  (History.) M1 stayed open until the separately authorized closure evidence existed. The closure evidence is a full run of the suite
   under the runner with zero violations, and an independent review of the exact head. (The update below records the first full runs.)
   **Update (2026-10-05)**: a local full run under the runner (`--database postgres --migrate`) and the first CI full run showed
   1050 passed, 23 skipped and no violation. The 14 skips with no declared reason are now declared by their exact reason strings,
   with one entry per reason in `DECLARED_SKIPS` (`scripts/isolated_test_runner.py`). Eight of them are infrastructure-health tests
-  that skip because the `db` fixture is a fixed SQLite engine. That coverage gap exists without the runner. The direct callers
-  of pytest now use the runner, and the Render build skips the suite (`scripts/preflight.sh --no-tests`). M1 stays OPEN until
-  the closure steps are reviewed.
+  that skip because the `db` fixture is a fixed SQLite engine. (Corrected 2026-10-05: seven skip because of the fixture, and one
+  because of the psycopg 3 and psycopg2 mismatch. See the next entry.) That coverage gap exists without the runner. The direct callers
+  of pytest now use the runner, and the Render build skips the suite (`scripts/preflight.sh --no-tests`). (History.) M1 stayed open until
+  the closure steps were reviewed.
   **Threat model**: the guard and the plugin are in-process Python. They are defence in depth against accidental calls, not
   against a hostile test process. The kernel layers are the barrier: the network namespace, the mount allow-list, the seccomp
   filter and the absence of inherited sockets. A hostile test can truncate `violations.jsonl` or silence the stderr marker.
   That can erase only the record of an attempt that the kernel already blocked. A hardening option is a write-only pipe that
   the runner drains. Residue: `DOCKER_HOST` is limited to `unix://`, and a `docker.sock` that forwards to a remote TCP host is not detected.
+
+- **Final review of the merged runner (2026-10-05)**: an independent review of `038a82f6` found no safety or fail-open defect
+  (verdict: approve with changes; none blocks). Evidence: canaries 54 passed on each route, host canaries 39 passed, the full
+  suite under the runner 1050 passed and 23 skipped with every skip declared and no violation, the planted-violation tool exit 87
+  with two violations and two failed tests, and clean teardown after every normal run. CI: the runner step passed on PR run
+  37265341309 and master run 37266293444. **The coverage upload failed in both** (`codecov/codecov-action@v3`, TLS handshake
+  failure). The step is advisory, so no Codecov upload has succeeded for this code. The follow-ups are in the next entry.
+
+## Follow-ups of the M1 Runner Review (2026-10-05)
+
+- **Location**: `scripts/isolated_test_runner.py`, `scripts/prove_planted_violation.py`, `scripts/preflight.sh`,
+  `tests/isolation/services.py`, `tests/isolation/canary/host/check_runner_host.py`, `.github/workflows/test.yml`,
+  `tests/conftest.py`, `doc/system/15-testing.md`. Line numbers are for `038a82f6`.
+- **Status**: **Open. Not repaired.** Found by the independent review of the merged runner. None is a path to a hosted service.
+- **PostgreSQL coverage (open, not repaired by declaring skips)**: eight infrastructure-health checks never run on any backend.
+  Seven skip because the shared `db` fixture is a fixed in-memory SQLite engine. `test_psycopg_available` skips for another
+  reason: it imports psycopg 3, and the repository pins `psycopg2-binary` only. Declaring their skips does not give PostgreSQL coverage.
+- **Recorded deviation**: the disposable Postgres container uses trust authentication over its Unix socket (no password), not the
+  design's random credentials. The protection is `--network none`, the 0700 run directory and the identity check.
+- **Misleading CI comment**: on pull requests, `test.yml` posts "Tests passed! Coverage reports available." whenever `coverage.xml` exists, although
+  every upload so far has failed.
+- **Signal leftovers**: after SIGTERM or SIGINT, `prove_planted_violation.py` leaves a `/tmp/dfi-*` run directory, and it never
+  deletes its `planted-proof-*` temporary directory. `rmtree` on the run directory has no check that the path starts with `/tmp/dfi-`.
+- **Host-canary cleanup can hit another run**: the module fixture deletes every `/tmp/dfi-*` that appeared during the module, so a
+  concurrent run from another session can lose its live run directory (it then fails closed).
+- **Unproven capabilities**: `tests/isolation/services.py:95-96` grants five capabilities, and the comment at line 94 says that the
+  image entrypoint needs all five. The review ran the canaries with only `CHOWN`, `SETUID` and `SETGID`, and they passed. So
+  `DAC_OVERRIDE` and `FOWNER` are unproven.
+- **`--no-tests` is not tied to Render**: any caller can run `preflight.sh --no-tests` and see "PRE-FLIGHT PASSED". `run_isolated`
+  also overwrites a caller's `ISOLATED_RUNNER_PYTHON`.
+- **Stale text**: `doc/system/15-testing.md` still says "The runner has no proof for a full run of the suite."
+- **Earlier gaps, noted only**: `alembic heads` failing passes the single-head check; the Makefile has literal `\t`; exit 1 also keeps
+  the run directory, and the docs list only 86, 87 and 88; `app/tests/` has no gate (decision pending).
+- **Scope**: open until bounded, authorized changes fix them. Each needs its own evidence.
+
+## The CI App Credential Can Mint Organization-Admin Tokens (2026-10-05)
+
+- **Location**: `.github/workflows/test.yml` (the step "Mint an app token for the private forge-* dependency clones") and the
+  repository secret `FORGE_PRIVATE_DEPS_APP_PRIVATE_KEY`.
+- **Status**: **Open. Not repaired.** Found by a read-only inventory on 2026-10-05.
+- **What is wrong**: the step mints a token of the GitHub App `bds-fleet-operator` (app id 4425224, installation 149850721). The
+  installation covers all repositories of the organization and grants, among others, administration, secrets, workflows and contents
+  write, and organization administration and organization secrets write. The step asks for two repositories, but the private key
+  in this repository's secrets can mint a token with the full installation scope. Any workflow in this repository that can read the
+  secret can therefore act with organization-admin rights. The step also passes no `permission-*` input, so the token that it mints
+  carries the full installation permissions on the two named repositories.
+- **Fix (not authorized)**: a dedicated GitHub App with only the permissions that the clone needs (Contents: Read on the dependency
+  repositories), or mint-time narrowing plus a protected environment. Removing this key needs the decision owner.
+- **Scope**: this repository's CI and any other repository that holds the same key.
 
 ## The llm-intel Promotion Apply Route Takes No Credential (2026-10-03)
 
