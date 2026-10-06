@@ -2,6 +2,15 @@
 
 This document tracks confirmed issues and concerns awaiting investigation. Blocking impact and verification status are stated per item.
 
+## The Model Catalog Write Routes Accept Unauthenticated Requests (2026-10-06)
+
+- **Location**: `app/api/multi_provider_router.py`, routes `POST /api/v1/models`, `PUT /api/v1/models/{model_key}`, `DELETE /api/v1/models/{model_key}`. The pricing, cost and batch write routes in the same file use the same pattern.
+- **Status**: OPEN. Found 2026-10-06. Observed on the hosted service.
+- **What is wrong**: On 2026-10-06 an unauthenticated `PUT` to the hosted catalog returned HTTP 200. A later unauthenticated `POST` created a row, and a `PUT` set the old row inactive. No credential was sent. The route handlers take only a database session (`Depends(get_db)`). The code shows no auth dependency on them.
+- **Impact**: High for a real deployment. Anyone who can reach the service can add, change, or deactivate a model. NeuroForge reads this catalog and picks planning models from it. Nothing has gone live, so this is a "before go-live" gap.
+- **Not verified**: whether another layer (a gateway or a global middleware) is meant to guard these routes. The test did not show one.
+- **Next step**: put the write routes behind the service-key check and the `run_token` scope that the other write routes use. The planned model-catalog automation depends on this: its apply step must authenticate. Until then, treat catalog writes as open.
+
 ## The Runtime-Promotion Candidate Tables Are Missing From The Connected Database (2026-10-05)
 
 - **Location**: Database project `DataForgedb` (ref `embvfponjxejbtrkryzs`). Migrations
