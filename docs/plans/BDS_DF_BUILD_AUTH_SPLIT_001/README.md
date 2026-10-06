@@ -1,6 +1,6 @@
 # BDS-DF-BUILD-AUTH-SPLIT-001 — one build credential per private repository
 
-Status: IN PROGRESS. Slice 1 (DataForge, PR 101), slice 2 (NeuroForge, PRs 142 and 143), slice 3 (Rake, PR 123) and slice 4 (Forge-Agents, PR 146) are merged. Each Render service runs split mode. DataForge GitHub CI and the Render web service are proven. The other three services are proven by operator-pasted build log lines. Open: the Forge-Agents `ci.yml` token, the Render cron service evidence, the Docker push on `master`, the NeuroForge deploy-key secret file, and the legacy cleanup.
+Status: IN PROGRESS. Slice 1 (DataForge, PR 101), slice 2 (NeuroForge, PRs 142 and 143), slice 3 (Rake, PR 123), slice 4 (Forge-Agents Render build, PR 146) and slice 5 (Forge-Agents CI, PR 148) are merged. Each Render service runs split mode. DataForge GitHub CI, the DataForge Render web service and the Forge-Agents CI are proven by run records. The other services are proven by operator-pasted build log lines. Open: the Render cron service evidence, the Docker push on `master`, the NeuroForge deploy-key secret file, the Forge-Agents `FORGE_TELEMETRY_DEPLOY_KEY` secret, and the legacy cleanup.
 Authorized by Charlie on 2026-10-05: D1, D2 and D3 below, implementation and tests in review PRs only.
 Not authorized: App creation, secret installation or rotation, Render configuration changes, live credential tests,
 merges, and production deployments. Each needs a separate checkpoint.
@@ -45,7 +45,7 @@ Other services (read only; not changed in this slice):
 |---|---|---|---|
 | NeuroForge | both repositories | `scripts/render-git-auth.sh`, `scripts/render_build.sh`, `render.yaml`, governed-verification and release workflows | Slice 2. Code merged (NeuroForge PR 142, test fix PR 143). The Render service runs split mode and deployed green (operator-reported 2026-10-06). It has no Dockerfile. Its workflows clone nothing private. |
 | Rake | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render.yaml`, `Dockerfile`, `ci-cd.yml`, `quick-test.yml` | Slice 3. Code merged (Rake PR 123). The Render service runs split mode and its build passed preflight (operator-pasted log line, 2026-10-06). Needs no contract-core credential. Gains from D2 only. The Dockerfile uses its own `forge_deps_token` secret. CI strips the private requirement. |
-| Forge-Agents | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render-build.sh`, `Dockerfile`, `ci.yml` | Slice 4. Code merged (Forge-Agents PR 146). The Render service runs split mode (operator-pasted log line, 2026-10-06). `ci.yml` still mints its own token from the Fleet Operator App (`BDS_APP_*`). That is a separate consumer and is open. Needs no contract-core credential. |
+| Forge-Agents | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render-build.sh`, `Dockerfile`, `ci.yml` | Slice 4. Code merged (Forge-Agents PR 146). The Render service runs split mode (operator-pasted log line, 2026-10-06). `ci.yml` has its own mode switch (Forge-Agents PR 148). CI run 37437715387 passed in split mode on 2026-10-06, read from the GitHub run record. Needs no contract-core credential. |
 
 ## Credential matrix (split mode)
 
