@@ -97,7 +97,7 @@
         "total_slices": 2,
         "evidence_status": "partial"
       },
-      "next_action": "Slice 1 merged (PR 101). Operator checkpoint in progress: Apps and GitHub secrets installed, mode set to split for CI. Next: prove CI in split mode, then Render (cron first).",
+      "next_action": "Slice 1 merged (PR 101). CI and the Render web service are proven in split mode. Next: Render cron service, the Docker push on master, then later slices for NeuroForge, Rake and Forge-Agents.",
       "blocker": null,
       "doc_system_paths": [
         "doc/system/14-config-env.md"

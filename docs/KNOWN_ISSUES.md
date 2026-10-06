@@ -63,7 +63,7 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 ## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
 
 - **Location**: `scripts/render-git-auth.sh`. The same script exists in Rake, Forge-Agents and NeuroForge.
-- **Status**: Open. Slice 1 (DataForge code and offline tests) is in review under plan
+- **Status**: Open. Slice 1 (DataForge code and offline tests) is merged, and the DataForge web service builds in split mode on Render (2026-10-06, commit `cde1ecac`). The cron service and the Docker push on `master` are not yet confirmed. Plan
   [BDS-DF-BUILD-AUTH-SPLIT-001](plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md). Nothing is deployed. The mode stays `legacy`
   until an operator checkpoint sets it. Authorized 2026-10-05: implementation and tests only. App creation, secrets, Render
   changes, live credential tests, merges and rollout need a separate checkpoint.
