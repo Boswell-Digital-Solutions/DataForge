@@ -63,10 +63,10 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
 ## Render Build Auth Needs One Credential For Two Private Repositories (2026-10-05)
 
 - **Location**: `scripts/render-git-auth.sh`. The same script exists in Rake, Forge-Agents and NeuroForge.
-- **Status**: Open. Slice 1 (DataForge code and offline tests) is in review under plan
-  [BDS-DF-BUILD-AUTH-SPLIT-001](plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md). Nothing is deployed. The mode stays `legacy`
+- **Status**: Open. Slice 1 (DataForge code and offline tests) merged in PR #101 at `00422b8bba28f6f4b114d3441e1c873af17d2448` under plan
+  [BDS-DF-BUILD-AUTH-SPLIT-001](plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md). Live split-mode rollout is unverified and unauthorized. The default mode remains `legacy`
   until an operator checkpoint sets it. Authorized 2026-10-05: implementation and tests only. App creation, secrets, Render
-  changes, live credential tests, merges and rollout need a separate checkpoint.
+  changes, live credential tests, further merges and rollout need a separate checkpoint. Next: CP2 read-only preflight in the plan.
 - **What is wrong**: The script mints one installation token for `forge-telemetry` and
   `forge_contract_core` together (`PRIVATE_REPOS`, and the `repositories` request body). The
   credential must have access to both repositories.
@@ -75,7 +75,7 @@ This document tracks confirmed issues and concerns awaiting investigation. Block
   parity in Forge_Command. It is not for Render builds. If an operator puts it in
   `FORGE_PRIVATE_DEPS_APP_CLIENT_ID`, GitHub rejects the `forge-telemetry` request and the build fails.
   Do not broaden that App to make the script work.
-- **Fix (slice 1, in review)**: An explicit `FORGE_BUILD_AUTH_MODE` (`legacy` by default, or `split`). Split mode uses a separate
+- **Fix (slice 1, merged; rollout held)**: An explicit `FORGE_BUILD_AUTH_MODE` (`legacy` by default, or `split`). Split mode uses a separate
   build App per repository, each installed on that repository only, with a token per repository, path-scoped credentials, a read
   probe and a deny probe, and no fallback to a broader credential. The exposure is the App and its key, not the token request. So the
   installations must be narrow. The Docker build and the three CI workflows follow the same mode. A migrated consumer fails closed.
