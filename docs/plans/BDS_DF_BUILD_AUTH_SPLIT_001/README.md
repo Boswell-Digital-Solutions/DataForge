@@ -1,6 +1,6 @@
 # BDS-DF-BUILD-AUTH-SPLIT-001 — one build credential per private repository
 
-Status: IN PROGRESS. Slice 1 (code and offline tests) is in review. The rollout is not authorized.
+Status: IN PROGRESS. Slice 1 (code and offline tests) is merged (PR 101, merge commit `00422b8b`). The operator checkpoint is under way: GitHub CI and the Render web service are proven in split mode. The Render cron service, the Docker push on `master`, and the legacy cleanup are open.
 Authorized by Charlie on 2026-10-05: D1, D2 and D3 below, implementation and tests in review PRs only.
 Not authorized: App creation, secret installation or rotation, Render configuration changes, live credential tests,
 merges, and production deployments. Each needs a separate checkpoint.
@@ -101,6 +101,28 @@ Legacy mode's own fallback to the old token (`FORGE_TELEMETRY_TOKEN`) is unchang
    confirmed unaffected. Do not revoke a shared credential before then.
 
 A merge of the slice 1 code changes no mode. The mode stays `legacy` until step 3, so a merge does not change a build.
+
+## Checkpoint evidence (recorded 2026-10-06)
+
+Operator actions, done by Charlie: two build Apps created, a read-only scope check, the GitHub variables and secrets, the
+repository variable `FORGE_BUILD_AUTH_MODE=split`, and the Render web service redeployed.
+
+| Item | Evidence | Result |
+|---|---|---|
+| App installations | GitHub API, read-only: `bds-contract-core-build-reader` (App 5206033) and `bds-telemetry-build-reader` (App 5206064), each `contents: read` and `metadata: read`, no events, selected repositories | pass |
+| Repository settings | Four names present (two variables, two secrets). The two client IDs match the Apps' public IDs. The mode variable was unset until the operator set `split`. | pass |
+| GitHub CI in split mode | PR 103: the `Verify the minted token can actually clone` step printed `split mode: each token reaches its own repository only`. The install step cloned both repositories. The full Test Suite passed, including the Postgres proof. | pass |
+| Docker build in split mode | The Docker workflow ran on PR 103 with `BUILD_AUTH_MODE=split` and succeeded | pass (pull-request run only) |
+| Render web service (`dataforge`, commit `cde1ecac`) | Build log, operator-supplied: `render-git-auth: split-mode auth configured for DataForge private dependencies (one token per repository).` at 12:59:06 EDT. Both private repositories cloned. The build and deploy succeeded. No credential appears in the log. | pass |
+| After the redeploy | `/health` 200; `/version` shows commit `cde1ecac` and `alembic_revision 20261005_01`; the receipt-ingest route still answers 401 without a key | pass |
+
+Open items at this point:
+
+- Render cron service (`dataforge-supabase-log-poll`): not confirmed. It needs the same four values, and its own fresh build.
+- Docker workflow on a push to `master`: not yet run in split mode. Only a pull-request run is proven.
+- A build-log note: the pre-flight check printed `Dirty: YES` for commit `cde1eca`. It reads the Render build directory, not the repository. It is not caused by this change and is not investigated.
+- The legacy values (`FORGE_PRIVATE_DEPS_APP_*`, `FORGE_TELEMETRY_TOKEN`) are still present everywhere as the rollback path. Remove them only in a later checkpoint, after NeuroForge, Rake and Forge-Agents are migrated or confirmed unaffected.
+- The two PEM files must be moved or deleted from the operator's Downloads folder.
 
 ## Rollback
 
