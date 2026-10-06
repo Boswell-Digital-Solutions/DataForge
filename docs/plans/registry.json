@@ -93,11 +93,11 @@
       "plan_path": "docs/plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md",
       "tracking_issue": null,
       "implementation": {
-        "completed_slices": 0,
+        "completed_slices": 1,
         "total_slices": 2,
         "evidence_status": "partial"
       },
-      "next_action": "Review slice 1 (code and offline tests). Operator checkpoint for App creation, secrets, Render and the mode switch is not authorized.",
+      "next_action": "Slice 1 merged (PR 101). Operator checkpoint in progress: Apps and GitHub secrets installed, mode set to split for CI. Next: prove CI in split mode, then Render (cron first).",
       "blocker": null,
       "doc_system_paths": [
         "doc/system/14-config-env.md"
