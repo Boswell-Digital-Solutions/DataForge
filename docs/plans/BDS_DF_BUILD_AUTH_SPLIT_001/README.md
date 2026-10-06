@@ -118,7 +118,7 @@ repository variable `FORGE_BUILD_AUTH_MODE=split`, and the Render web service re
 
 Open items at this point:
 
-- Render cron service (`dataforge-supabase-log-poll`): not confirmed. It needs the same four values, and its own fresh build.
+- Render cron service (`dataforge-supabase-log-poll`): the operator reports that the four values and the mode are set and a fresh build ran (2026-10-06). The build-log line has not been supplied, so this is operator-reported, not log-verified.
 - Docker workflow on a push to `master`: not yet run in split mode. Only a pull-request run is proven.
 - A build-log note: the pre-flight check printed `Dirty: YES` for commit `cde1eca`. It reads the Render build directory, not the repository. It is not caused by this change and is not investigated.
 - The legacy values (`FORGE_PRIVATE_DEPS_APP_*`, `FORGE_TELEMETRY_TOKEN`) are still present everywhere as the rollback path. Remove them only in a later checkpoint, after NeuroForge, Rake and Forge-Agents are migrated or confirmed unaffected.
