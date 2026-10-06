@@ -44,7 +44,7 @@ Other services (read only; not changed in this slice):
 | Service | Needs | Where | Note |
 |---|---|---|---|
 | NeuroForge | both repositories | `scripts/render-git-auth.sh`, `scripts/render_build.sh`, `render.yaml`, governed-verification and release workflows | Slice 2. Code merged (NeuroForge PR 142, test fix PR 143). The Render service runs split mode and deployed green (operator-reported 2026-10-06). It has no Dockerfile. Its workflows clone nothing private. |
-| Rake | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render.yaml`, `Dockerfile`, `ci-cd.yml`, `quick-test.yml` | Slice 3. Code in review (Rake PR 123). Needs no contract-core credential. Gains from D2 only. The Dockerfile uses its own `forge_deps_token` secret. CI strips the private requirement. |
+| Rake | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render.yaml`, `Dockerfile`, `ci-cd.yml`, `quick-test.yml` | Slice 3. Code merged (Rake PR 123). The Render service runs split mode and its build passed preflight (operator-pasted log line, 2026-10-06). Needs no contract-core credential. Gains from D2 only. The Dockerfile uses its own `forge_deps_token` secret. CI strips the private requirement. |
 | Forge-Agents | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render-build.sh`, `Dockerfile`, `ci.yml` | Needs no contract-core credential. Gains from D2 only. |
 
 ## Credential matrix (split mode)
