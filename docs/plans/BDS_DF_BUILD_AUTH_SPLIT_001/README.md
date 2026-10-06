@@ -43,8 +43,8 @@ Other services (read only; not changed in this slice):
 
 | Service | Needs | Where | Note |
 |---|---|---|---|
-| NeuroForge | both repositories | `scripts/render-git-auth.sh`, `scripts/render_build.sh`, `render.yaml`, governed-verification and release workflows | Same two-repository script. Later slice. |
-| Rake | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render.yaml`, `Dockerfile`, `ci-cd.yml`, `quick-test.yml` | Needs no contract-core credential. Gains from D2 only. |
+| NeuroForge | both repositories | `scripts/render-git-auth.sh`, `scripts/render_build.sh`, `render.yaml`, governed-verification and release workflows | Slice 2. Code merged (NeuroForge PR 142, test fix PR 143). The Render service runs split mode and deployed green (operator-reported 2026-10-06). It has no Dockerfile. Its workflows clone nothing private. |
+| Rake | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render.yaml`, `Dockerfile`, `ci-cd.yml`, `quick-test.yml` | Slice 3. Code in review (Rake PR 123). Needs no contract-core credential. Gains from D2 only. The Dockerfile uses its own `forge_deps_token` secret. CI strips the private requirement. |
 | Forge-Agents | `forge-telemetry` only | `scripts/render-git-auth.sh`, `render-build.sh`, `Dockerfile`, `ci.yml` | Needs no contract-core credential. Gains from D2 only. |
 
 ## Credential matrix (split mode)
@@ -99,6 +99,17 @@ Legacy mode's own fallback to the old token (`FORGE_TELEMETRY_TOKEN`) is unchang
 6. Run the Docker workflow on `master`, with the mode `split`.
 7. Remove the legacy values only in a later checkpoint, after every consumer (including NeuroForge, Rake and Forge-Agents) is migrated or
    confirmed unaffected. Do not revoke a shared credential before then.
+8. In the same cleanup checkpoint, account for the NeuroForge Render secret file `forge_telemetry_deploy_key_b64`. No script in the
+   service repositories reads it (checked 2026-10-06). It looks like an older deploy key for `forge-telemetry`. Before removal, check the
+   `forge-telemetry` repository's deploy keys. Find out whether the key is still registered and whether it has write access. Remove the
+   secret file and the deploy key only when no consumer needs them.
+
+## Shared Render environment groups (optional)
+
+The build scripts read ordinary environment variables. So a Render environment group can supply the values to many services. Use two groups.
+Link the telemetry group to every service that clones `forge-telemetry`. Link the contract-core group to DataForge and NeuroForge only.
+Rake and Forge-Agents must not receive a contract-core key. A variable set on a service overrides the same name in a group. Set
+`FORGE_BUILD_AUTH_MODE` on each service, not in a group, so each service cuts over and rolls back by itself.
 
 A merge of the slice 1 code changes no mode. The mode stays `legacy` until step 3, so a merge does not change a build.
 
