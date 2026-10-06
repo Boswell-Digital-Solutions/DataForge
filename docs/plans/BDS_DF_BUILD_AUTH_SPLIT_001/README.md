@@ -1,9 +1,9 @@
 # BDS-DF-BUILD-AUTH-SPLIT-001 — one build credential per private repository
 
-Status: IN PROGRESS. Slice 1 (code and offline tests) is in review. The rollout is not authorized.
+Status: IN PROGRESS. Slice 1 (code and offline tests) is merged. Slice 2 (live rollout) is held and not authorized.
 Authorized by Charlie on 2026-10-05: D1, D2 and D3 below, implementation and tests in review PRs only.
 Not authorized: App creation, secret installation or rotation, Render configuration changes, live credential tests,
-merges, and production deployments. Each needs a separate checkpoint.
+further merges, and production deployments. Each needs a separate checkpoint.
 
 ## Problem
 
@@ -74,7 +74,7 @@ The mode is explicit. It is set per consumer, and never inferred.
 
 Legacy mode's own fallback to the old token (`FORGE_TELEMETRY_TOKEN`) is unchanged. It exists only until the consumer moves to split mode.
 
-## Slice 1 — code and offline tests (this PR; review only)
+## Slice 1 — code and offline tests (merged; live proof outstanding)
 
 - `scripts/render-git-auth.sh`: split mode, two tokens, a read probe per repository, a deny probe per repository,
   path-scoped credential entries, fail closed.
@@ -85,6 +85,63 @@ Legacy mode's own fallback to the old token (`FORGE_TELEMETRY_TOKEN`) is unchang
   refused tokens, a token that reaches the other repository, no fallback to the legacy credential, no secret in output, and the
   CI step logic with a stub `git`.
 - What offline tests cannot prove: how the real App installations are set up. That is checkpoint evidence below.
+
+## Reconciliation receipt (2026-10-06 UTC)
+
+- [DataForge PR #101](https://github.com/Boswell-Digital-Solutions/DataForge/pull/101) is merged as
+  `00422b8bba28f6f4b114d3441e1c873af17d2448`; reviewed head `efaccffba5df96879bf43b65e8ee601ab8c8bf63`.
+- [Portfolio PR #244](https://github.com/Boswell-Digital-Solutions/forge/pull/244) is merged as
+  `3e918f1dee9570277ed60c1d80d5d94c21806cdf`. Registration does not authorize rollout.
+- The PR #101 record reports 39 passing offline tests including the Render telemetry configuration tests,
+  and three caught mutation checks. Those are historical reported results, not a new test run in this reconciliation.
+- One of two slices is complete at the code/offline level. Overall evidence remains partial; no live split-mode
+  acceptance is recorded here. Related PR records, the #101 discussion and current plan contain no newer rollout authorization.
+  A code merge does not prove the deployed revision, current variable values, or real installation scope.
+
+## Next bounded operator checkpoint — CP2 preflight (read only)
+
+Prepare a redacted go/no-go packet for Charlie before requesting any live action. This checkpoint permits
+inspection and documentation only: no App creation, key generation, secret installation, token minting,
+workflow dispatch, variable changes, rebuilds, deploys or credential revocation.
+
+Required evidence:
+
+1. Pin current DataForge `master`, the merged Slice 1 head and merge commit, and portfolio registration.
+   Capture expected check names, conclusions and run links for the exact reviewed head; do not infer green checks from a merge.
+2. Record existing App installation metadata and selected-repository permissions without reading key values.
+   Distinguish the Fleet Operator from the protected Forge_Command reader. Proposed Apps must each select exactly
+   one repository with `Contents: read` and only GitHub's required implicit permissions. Token deny probes alone
+   cannot prove the App/key has no broader installation access.
+3. Record DataForge GitHub variable names and effective mode, secret names/presence only, and the exact Render
+   web/cron service IDs, deployed revisions and effective mode. An absent mode defaults to legacy; an unreadable
+   setting is unknown, not evidence of legacy. Confirm existing approved rollback credentials remain available without exposing them.
+4. Inspect workflow triggers and side effects before any future repository-wide mode switch: `docker.yml` and
+   `deploy.yml` can publish images. Record whether saving Render environment values or auto-deploy settings would
+   trigger a deployment. Define a build-only validation path or explicitly include publishing/deployment in the later authorization.
+5. Name each proposed live stage, consumer, operator, proof and rollback scope. Submit the packet with unresolved
+   facts marked unknown and an explicit decision request. CP2 completion grants no live stage.
+
+Stop CP2 if the source head changed in relevant code, authorization is ambiguous, settings cannot be inspected,
+rollback availability is unknown, App scope is broader than intended, checks are missing or unsuccessful, or
+a supposed read-only action would mint credentials, publish or deploy. Record the gap; do not widen access or repair live settings.
+CP2 rollback is to discard/revise the packet; it changes no live state.
+
+### Later live stages (all held; each requires separate explicit authorization)
+
+The sequence below is a proposed runbook, not an executable authorization. Authorize each named stage and its
+side effects independently: (A) App creation/installation and key custody; (B) GitHub repository settings with
+mode retained as legacy; (C) controlled CI mode switch and fresh build proof; (D) Render cron; (E) Render web;
+(F) Docker build proof and any image publication. Do not advance automatically after a successful stage.
+Legacy credential cleanup/revocation is a separate final checkpoint with the complete cross-service consumer inventory.
+
+For every live stage, retain redacted installation evidence, exact revision, run/deploy ID and timestamps,
+effective mode, own-repository read successes, cross-repository denial evidence, dependency-install/build result,
+and service health where deployed. Cached dependency success is insufficient. A denial must be attributable
+to access control; timeout, transport failure or service outage is inconclusive. Never put key/token values in the packet.
+
+Stop progression on a failed or inconclusive probe/build, secret exposure, broader App installation scope,
+unexpected workflow publishing/deployment, absent required checks, or service regression. Do not bypass the probe,
+weaken fail-closed behavior, fall back automatically, or migrate another consumer.
 
 ## Checkpoint — operator actions and rollout (not authorized; for Charlie)
 
@@ -104,8 +161,12 @@ A merge of the slice 1 code changes no mode. The mode stays `legacy` until step 
 
 ## Rollback
 
-Set `FORGE_BUILD_AUTH_MODE` back to `legacy` (Render env and the repository variable), then redeploy. The legacy credentials are not
-touched until the last checkpoint, so rollback is immediate. Roll back when any split-mode build fails, a deny probe fails, or an App
+For an authorized live stage, restore the recorded pre-stage mode on the affected consumer only.
+For GitHub, restore the repository variable and stop further split-mode runs; verify a fresh legacy build under the approved
+workflow scope. For Render, set `FORGE_BUILD_AUTH_MODE=legacy` on the affected service and rebuild/redeploy within the
+stage's rollback authorization, then verify build success and service health. Do not change unaffected consumers. The legacy credentials must remain available
+until the final cleanup checkpoint. Rollback requires an explicit operator change and a fresh successful build;
+it is not immediate and is never an automatic fallback. Roll back when any split-mode build fails, a deny probe fails, or an App
 reaches a repository outside its scope.
 
 ## Acceptance evidence
