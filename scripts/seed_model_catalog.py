@@ -216,7 +216,7 @@ MODEL_CATALOG = [
     {
         "model_key": "claude-opus-4.5",
         "provider": "anthropic",
-        "model_id": "claude-opus-4-5-20250514",
+        "model_id": "claude-opus-4-5-20251101",
         "input_cost_per_mtok": Decimal("15.00"),
         "output_cost_per_mtok": Decimal("75.00"),
         "batch_input_cost": Decimal("7.50"),
