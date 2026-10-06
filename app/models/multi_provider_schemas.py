@@ -81,6 +81,7 @@ class ModelCatalogCreate(BaseModel):
 
 
 class ModelCatalogUpdate(BaseModel):
+    model_id: str | None = Field(default=None, min_length=1, max_length=128)
     input_cost_per_mtok: Decimal | None = None
     output_cost_per_mtok: Decimal | None = None
     batch_input_cost: Decimal | None = None

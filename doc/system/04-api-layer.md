@@ -249,3 +249,5 @@ Every route requires a DataForge Bearer API key with metadata
 incorrect service or scope returns 403. Admin and emergency headers do not
 bypass this service credential check. Session IDs and final status must match
 the body. Raw service keys are not returned in responses or written to logs.
+
+The model catalog write routes (`POST`, `PUT`, and `DELETE` on `/api/v1/models`) accept only DataForge API keys bound to `service_name=forge-agents` and `scopes` containing `model-catalog:write`. A missing or invalid key returns 401. An incorrect service or scope returns 403. The catalog read routes stay open. `PUT` can change `model_id`. Each update writes a `model_catalog_updated` log entry with the caller and the before and after values.

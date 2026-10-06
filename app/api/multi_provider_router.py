@@ -33,11 +33,14 @@ API Endpoints:
 
 import logging
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.auth import validate_api_key
 from app.database import get_db
 from app.api import multi_provider_crud as crud
 from app.models.multi_provider_schemas import (
@@ -50,6 +53,37 @@ from app.models.multi_provider_schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+bearer = HTTPBearer(auto_error=False)
+
+CATALOG_WRITE_SERVICE = "forge-agents"
+CATALOG_WRITE_SCOPE = "model-catalog:write"
+
+
+def catalog_write_scope(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> str:
+    """Fail closed: a service key bound to Forge-Agents with the model-catalog write scope.
+
+    Returns the key's service name, so the audit log names the caller.
+    """
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Service key required")
+    key = validate_api_key(credentials.credentials)
+    if key is None:
+        raise HTTPException(status_code=401, detail="Service key required")
+    metadata = key.metadata or {}
+    scopes = metadata.get("scopes")
+    if (
+        metadata.get("service_name") != CATALOG_WRITE_SERVICE
+        or not isinstance(scopes, list)
+        or CATALOG_WRITE_SCOPE not in scopes
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "model_catalog_write_scope_required", "scope": CATALOG_WRITE_SCOPE},
+        )
+    return CATALOG_WRITE_SERVICE
 
 router = APIRouter(
     prefix="/api/v1",
@@ -85,33 +119,61 @@ async def get_model(model_key: str, db: Session = Depends(get_db)):
 
 
 @router.post("/models", status_code=201, response_model=ModelCatalogResponse, summary="Create model entry")
-async def create_model(data: ModelCatalogCreate, db: Session = Depends(get_db)):
+async def create_model(
+    data: ModelCatalogCreate,
+    db: Session = Depends(get_db),
+    actor: str = Depends(catalog_write_scope),
+):
     """Add a new model to the catalog."""
     existing = crud.get_model_entry(db, data.model_key)
     if existing:
         raise HTTPException(status_code=409, detail=f"Model '{data.model_key}' already exists")
     row = crud.create_model_entry(db, data)
-    logger.info("model_catalog_created", extra={"model_key": data.model_key, "provider": data.provider.value})
+    logger.info(
+        "model_catalog_created",
+        extra={
+            "model_key": data.model_key,
+            "provider": data.provider.value,
+            "model_id": data.model_id,
+            "actor": actor,
+        },
+    )
     return ModelCatalogResponse.model_validate(row)
 
 
 @router.put("/models/{model_key}", response_model=ModelCatalogResponse, summary="Update model entry")
-async def update_model(model_key: str, data: ModelCatalogUpdate, db: Session = Depends(get_db)):
-    """Update an existing model catalog entry."""
-    row = crud.update_model_entry(db, model_key, data)
-    if not row:
+async def update_model(
+    model_key: str,
+    data: ModelCatalogUpdate,
+    db: Session = Depends(get_db),
+    actor: str = Depends(catalog_write_scope),
+):
+    """Update an existing model catalog entry. Every change is logged with its before and after values."""
+    existing = crud.get_model_entry(db, model_key)
+    if existing is None:
         raise HTTPException(status_code=404, detail=f"Model '{model_key}' not found")
-    logger.info("model_catalog_updated", extra={"model_key": model_key})
+    changes = data.model_dump(exclude_unset=True)
+    before = {field: str(getattr(existing, field)) for field in changes}
+    row = crud.update_model_entry(db, model_key, data)
+    after = {field: str(getattr(row, field)) for field in changes}
+    logger.info(
+        "model_catalog_updated",
+        extra={"model_key": model_key, "actor": actor, "before": before, "after": after},
+    )
     return ModelCatalogResponse.model_validate(row)
 
 
 @router.delete("/models/{model_key}", status_code=204, summary="Delete model entry")
-async def delete_model(model_key: str, db: Session = Depends(get_db)):
+async def delete_model(
+    model_key: str,
+    db: Session = Depends(get_db),
+    actor: str = Depends(catalog_write_scope),
+):
     """Remove a model from the catalog."""
     deleted = crud.delete_model_entry(db, model_key)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Model '{model_key}' not found")
-    logger.info("model_catalog_deleted", extra={"model_key": model_key})
+    logger.info("model_catalog_deleted", extra={"model_key": model_key, "actor": actor})
 
 
 # ══════════════════════════════════════════════════════════════════════
