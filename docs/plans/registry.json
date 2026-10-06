@@ -93,12 +93,12 @@
       "plan_path": "docs/plans/BDS_DF_BUILD_AUTH_SPLIT_001/README.md",
       "tracking_issue": null,
       "implementation": {
-        "completed_slices": 0,
+        "completed_slices": 1,
         "total_slices": 2,
         "evidence_status": "partial"
       },
-      "next_action": "Review slice 1 (code and offline tests). Operator checkpoint for App creation, secrets, Render and the mode switch is not authorized.",
-      "blocker": null,
+      "next_action": "Prepare CP2 read-only preflight evidence and seek separate authorization for each live stage; Slice 1 merged in DataForge PR #101 at 00422b8bba28f6f4b114d3441e1c873af17d2448. No App, secret, mode switch, live test or deployment is authorized.",
+      "blocker": "Live rollout held pending explicit operator checkpoint authorization and real installation/build evidence.",
       "doc_system_paths": [
         "doc/system/14-config-env.md"
       ],
