@@ -105,3 +105,16 @@ def test_create_update_model_id_and_delete_with_the_scope(client, caplog):
 
 def test_update_of_a_missing_model_is_404(client):
     assert client.put("/api/v1/models/none", json={"is_active": False}, headers=GOOD).status_code == 404
+
+
+def test_a_deepseek_model_can_be_added(client):
+    """The catalog sync adds DeepSeek models; the provider list must allow them."""
+    row = dict(NEW_ROW, model_key="deepseek-flash", provider="deepseek", model_id="deepseek-flash")
+    response = client.post("/api/v1/models", json=row, headers=GOOD)
+    assert response.status_code == 201
+    assert response.json()["provider"] == "deepseek"
+
+
+def test_an_unknown_provider_is_still_refused(client):
+    row = dict(NEW_ROW, model_key="x", provider="mystery", model_id="x")
+    assert client.post("/api/v1/models", json=row, headers=GOOD).status_code == 422

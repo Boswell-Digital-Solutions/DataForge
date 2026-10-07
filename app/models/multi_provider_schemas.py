@@ -27,6 +27,7 @@ class ProviderName(str, Enum):
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
     XAI = "xai"
+    DEEPSEEK = "deepseek"
 
 
 class PricingAlertChangeType(str, Enum):
