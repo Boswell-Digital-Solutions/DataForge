@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth.agent_registry import require_agent_registry
 from app.models.agent_registry_schemas import (
     AgentCreate,
     AgentListResponse,
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/agents",
     tags=["Agent Registry"],
+    dependencies=[Depends(require_agent_registry)],
 )
 
 

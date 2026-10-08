@@ -992,6 +992,18 @@ the body. Raw service keys are not returned in responses or written to logs.
 
 The catalog, pricing, cost and batch schemas accept the providers `openai`, `anthropic`, `google`, `xai` and `deepseek`. The model catalog write routes (`POST`, `PUT`, and `DELETE` on `/api/v1/models`) accept only DataForge API keys bound to `service_name=forge-agents` and `scopes` containing `model-catalog:write`. A missing or invalid key returns 401. An incorrect service or scope returns 403. The catalog read routes stay open. `PUT` can change `model_id`. Each update writes a `model_catalog_updated` log entry with the caller and the before and after values.
 
+## Agent registry service authority (2026-10-08)
+
+Every `/api/v1/agents` route requires a valid, unexpired, unrevoked DataForge
+service key. Its metadata must name service_name `forgeagents` and include
+`agents:read` for GET or `agents:write` for mutations. Authentication and scope
+checks precede registry handlers. This is the ForgeAgents-owned global service
+registry; the user_id field is registry metadata, not a caller authorization
+claim. Other service keys cannot upsert arbitrary agent definitions.
+
+Configure the matching key as `DATAFORGE_AGENT_REGISTRY_KEY` in Forge-Agents.
+No anonymous, customer-JWT, or generic service-key fallback is provided.
+
 ---
 
 # §5 — Proving-Slice Schema
